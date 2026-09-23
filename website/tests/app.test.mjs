@@ -38,3 +38,23 @@ test('relay rejects requests from other websites', async () => {
     ws.on('error', () => {});
   });
 });
+
+for (const [host, port] of [['127.0.0.1', 80], ['192.168.1.1', 443], ['example.com', 22]]) {
+  test(`relay blocks ${host}:${port}`, async () => {
+    await new Promise((resolve, reject) => {
+      const ws = new WebSocket(base.replace('http:', 'ws:') + '/api/wisp/', { origin: base });
+      const timeout = setTimeout(() => { ws.terminate(); reject(new Error('Stream rejection timeout')); }, 5000);
+      const finish = error => { clearTimeout(timeout); ws.close(); error ? reject(error) : resolve(); };
+      ws.on('error', finish);
+      ws.on('open', () => {
+        const packet = Buffer.alloc(8 + Buffer.byteLength(host));
+        packet[0] = 1; packet.writeUInt32LE(1, 1); packet[5] = 1; packet.writeUInt16LE(port, 6); packet.write(host, 8);
+        ws.send(packet);
+      });
+      ws.on('message', packet => {
+        if (packet[0] !== 4 || packet.readUInt32LE(1) !== 1) return;
+        try { assert.equal(packet[5], 0x48); finish(); } catch (error) { finish(error); }
+      });
+    });
+  });
+}
