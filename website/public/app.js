@@ -56,6 +56,51 @@ async function navigate(input) {
   finally { $('go').disabled = false; }
 }
 $('address-form').addEventListener('submit', event => { event.preventDefault(); navigate(address.value); });
+$('blank-launch').hidden = window.self !== window.top;
+$('open-blank').addEventListener('click', () => {
+  // Open synchronously during the click so browser popup rules can allow it.
+  const tab = window.open('about:blank', '_blank');
+  if (!tab) { notice('The new tab was blocked. Allow pop-ups for this site, then click Open in about:blank again.'); return; }
+  try {
+    const target = new URL('/', location.origin);
+    if (currentUrl) target.searchParams.set('goto', currentUrl);
+    const doc = tab.document;
+    doc.title = 'Scramjet';
+    doc.documentElement.lang = 'en';
+    const viewport = doc.createElement('meta');
+    viewport.name = 'viewport';
+    viewport.content = 'width=device-width, initial-scale=1';
+    doc.head.append(viewport);
+    const style = doc.createElement('style');
+    style.textContent = 'html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111612}iframe{display:block;border:0;width:100%;height:100%}';
+    doc.head.append(style);
+    const workspace = doc.createElement('iframe');
+    workspace.title = 'Scramjet workspace';
+    workspace.allow = 'fullscreen; autoplay; cross-origin-isolated';
+    workspace.referrerPolicy = 'no-referrer';
+    workspace.addEventListener('load', () => {
+      try {
+        if (workspace.contentDocument?.getElementById('address-form')) {
+          notice('Scramjet loaded in the new about:blank tab. The original tab stays open.');
+        } else {
+          notice('The new tab opened, but its workspace did not load. You can continue browsing here.');
+        }
+      } catch { notice('The new tab opened. Check it to continue browsing.'); }
+    }, { once: true });
+    workspace.src = target.href;
+    doc.body.replaceChildren(workspace);
+    // Detach the opener without claiming protection from browser extensions.
+    tab.opener = null;
+    tab.focus();
+    notice('Opening Scramjet in a new about:blank tab…');
+    setTimeout(() => {
+      if (tab.closed) notice('The new tab was closed or blocked by your browser. Try this feature in a regular browser with pop-ups allowed for this site.');
+    }, 1000);
+  } catch {
+    tab.close();
+    notice('This browser could not open the about:blank workspace. You can continue browsing in this tab.');
+  }
+});
 document.querySelectorAll('[data-url]').forEach(button => button.addEventListener('click', () => navigate(button.dataset.url)));
 $('home').addEventListener('click', () => location.assign('/'));
 $('back').addEventListener('click', () => frame?.back());

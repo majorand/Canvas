@@ -38,6 +38,9 @@ Vercel WebSockets are in beta and connections are subject to the configured 300-
 - Wisp transport for HTTP/HTTPS traffic, including proxied WebSockets.
 - Connection status, initialization timeouts, loading errors and custom relay settings stored in the browser.
 - Responsive layout, keyboard access and labeled controls.
+- Open in about:blank: opens the workspace in a new blank tab, retaining the current website address. The original tab stays open. If pop-ups are blocked, the page explains how to retry. Reloading the blank wrapper itself may clear it; use the workspace's reload button for the proxied page.
+
+The about:blank wrapper does not make a tab unclosable or invisible to browser-management extensions such as Securly or Hapara. It changes the top-level address; managed browser policies still apply.
 
 ## Boundaries
 
