@@ -65,8 +65,13 @@ $('open-blank').addEventListener('click', () => {
     const target = new URL('/', location.origin);
     if (currentUrl) target.searchParams.set('goto', currentUrl);
     const doc = tab.document;
-    doc.title = 'Scramjet';
+    doc.title = document.title;
     doc.documentElement.lang = 'en';
+    const favicon = doc.createElement('link');
+    favicon.rel = 'icon';
+    favicon.type = 'image/png';
+    favicon.href = new URL('/scots.png', location.origin).href;
+    doc.head.append(favicon);
     const viewport = doc.createElement('meta');
     viewport.name = 'viewport';
     viewport.content = 'width=device-width, initial-scale=1';

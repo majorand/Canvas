@@ -31,6 +31,7 @@ Vercel WebSockets are in beta and connections are subject to the configured 300-
 
 ## Features
 
+- Canvas tab styling: the title "Canvas - Highland Park High School" and Scots favicon match the public page reached from hpisd.instructure.com. The same title and icon are copied into about:blank windows, and the page header reads "Scots Canvas". This changes display branding, not the site's address or its Scramjet functionality.
 - A prominent "Leave this page and go to Canvas" button opens https://hpisd.instructure.com/ directly in the current top-level tab, including from the about:blank workspace. It is independent of the proxy connection and is also available in workspace full screen. This replaces the current history entry; it does not erase browsing history or close other tabs.
 - Website address entry and Google search queries.
 - Browser workspace with back, forward, reload, home and full screen.
@@ -54,5 +55,7 @@ The wisp-js 0.5.0 per-host stream limit contains an upstream iterator bug, so th
 Verified on September 22, 2026: local build and automated tests; public health and service-worker endpoints without authentication; actual HTTPS proxy loads for Example Domain, Wikipedia, and Google search results; back/forward navigation; and the home page at a 390-pixel viewport. The frontend and relay both run on the Vercel Hobby project. No separate backend account, paid service, or always-on local computer is required for this deployment.
 
 ## License and source
+
+The Scots logo in public/scots.png is the existing favicon from the school Canvas page, downloaded from https://resources.finalsite.net/images/v1774986756/hpisdorg/udonhuq0lkslosopfmll/Scots.png. School branding belongs to its respective owner and is not covered by this app's software license.
 
 AGPL-3.0-only, consistent with Scramjet. Source and deployment code: https://github.com/majorand/scramjet/tree/main/website. Original project: https://github.com/MercuryWorkshop/scramjet.
