@@ -1,0 +1,30 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer"><title>Sign in</title>
+<link rel="icon" href="./scots.png"><link rel="stylesheet" href="./accounts.css">
+<script src="./config.js" defer></script><script src="./exit.js" defer></script><script type="module" src="./access.js"></script>
+</head><body>
+<header><a class="brand" href="./">Calculator</a><a data-exit-canvas class="exit" href="https://hpisd.instructure.com/" target="_top">Leave this page and go to Canvas</a></header>
+<main class="narrow"><div class="eyebrow">PRIVATE WORKSPACE</div><h1>Welcome back.</h1>
+<p class="lead">Sign in with the account your administrator created for you.</p>
+<p class="status" id="message" role="status">Checking account service…</p>
+<section class="card" id="login-card"><form id="login-form">
+<label>Email<input name="email" type="email" autocomplete="username" required maxlength="254"></label>
+<label>Password<input name="password" type="password" autocomplete="current-password" required maxlength="128"></label>
+<button class="primary" type="submit">Sign in</button>
+</form><p class="small">Need an account or a password reset? Contact your site administrator.</p></section>
+<section class="card" id="member-card" hidden><h2 id="member-name">Your account</h2>
+<a class="primary link-button" href="./workspace.html">Open workspace</a><button id="logout" type="button">Sign out</button>
+<details><summary>Change your password</summary><form id="password-form">
+<label>Current password<input name="currentPassword" type="password" autocomplete="current-password" required maxlength="128"></label>
+<label>New password<input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
+<label>Confirm new password<input name="confirm" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
+<button class="primary" type="submit">Save password</button></form></details></section>
+<section class="card" id="setup-card" hidden><h2>Administrator setup</h2><p>Enter the designated owner's email. A private setup link will let the owner choose the admin password.</p>
+<form id="setup-form"><label>Owner email<input name="email" type="email" autocomplete="email" required maxlength="254"></label><button type="submit">Email my setup link</button></form></section>
+<section class="card" id="complete-card" hidden><h2>Choose your administrator password</h2>
+<form id="complete-form"><label>New password<input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
+<label>Confirm password<input name="confirm" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label><button class="primary" type="submit">Save administrator password</button></form></section>
+<p class="small">Account sign-ins and workspace visits are visible to the administrator. The dashboard shows the last 30 days; browsing destinations are not recorded by this access log.</p>
+<a class="admin-link" href="./admin.html">Administrator login →</a>
+</main></body></html>

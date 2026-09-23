@@ -31,6 +31,7 @@ jobs:
       - run: npm run build:pages
         working-directory: website
         env:
+          AUTH_API_URL: ${{ vars.AUTH_API_URL }}
           WISP_URL: ${{ vars.WISP_URL }}
       - run: npm test
         working-directory: website

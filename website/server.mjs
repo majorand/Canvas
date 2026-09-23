@@ -3,10 +3,13 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
 import { upgrade, health } from './lib/relay.mjs';
+import accessHandler from './api/access.js';
 const root = path.resolve(fileURLToPath(new URL('./dist/', import.meta.url)));
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript', '.mjs': 'application/javascript', '.css': 'text/css', '.wasm': 'application/wasm', '.svg': 'image/svg+xml', '.png': 'image/png' };
-export const server = http.createServer(async (req, res) => {
+export function createAppServer({ upgradeHandler = upgrade, apiHandler = accessHandler } = {}) {
+const server = http.createServer(async (req, res) => {
   const pathname = new URL(req.url, 'http://localhost').pathname;
+  if (pathname === '/api/access') return apiHandler(req, res);
   if (['/api/health', '/api/wisp', '/api/wisp/', '/health'].includes(pathname)) return health(req, res);
   if (!['GET', 'HEAD'].includes(req.method)) { res.writeHead(405); res.end(); return; }
   try {
@@ -25,7 +28,10 @@ export const server = http.createServer(async (req, res) => {
     res.end(req.method === 'HEAD' ? undefined : content);
   } catch { res.writeHead(404); res.end('Not found'); }
 });
-server.on('upgrade', upgrade);
+server.on('upgrade', upgradeHandler);
+return server;
+}
+export const server = createAppServer();
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const port = Number(process.env.PORT || 3030);
   server.listen(port, process.env.HOST || '127.0.0.1', () => console.log(`Scramjet ready at http://localhost:${port}`));

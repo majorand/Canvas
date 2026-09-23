@@ -1,18 +1,18 @@
+import { accountApi, authorizedRelayUrl, clearMember, signOut, signInUrl } from './auth-client.mjs';
 import { normalizeAddress } from './url.mjs';
 import { appUrl, controllerPaths, prepareWorker } from './runtime.mjs';
 const $ = id => document.getElementById(id);
 const address = $('address');
 let controller, frame, initPromise, loadTimer, currentUrl = '';
-function storedRelay() { try { return localStorage.getItem('scramjet-relay') || ''; } catch { return ''; } }
-function relayUrl() { return storedRelay() || window.SCRAMJET_CONFIG?.wisp || `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/api/wisp/`; }
 function notice(message = '') { $('notice').textContent = message; $('notice').hidden = !message; }
 function setConnection(online) { $('connection').textContent = online ? 'Relay connected' : 'Relay unavailable'; $('connection').className = `status ${online ? 'online' : 'offline'}`; }
-function checkRelay() {
+async function checkRelay() {
+  const relay = await authorizedRelayUrl();
   return new Promise((resolve, reject) => {
     let ws;
     const timer = setTimeout(() => finish(new Error('The relay did not respond. Try again shortly, or choose another relay in Settings.')), 20000);
     function finish(error) { clearTimeout(timer); if (ws) { ws.onclose = null; ws.onerror = null; ws.onmessage = null; ws.close(); } setConnection(!error); error ? reject(error) : resolve(); }
-    try { ws = new WebSocket(relayUrl()); ws.binaryType = 'arraybuffer'; ws.onmessage = event => { const data = new Uint8Array(event.data); if (data[0] === 3 || data[0] === 5) finish(); else finish(new Error('This endpoint is not a Wisp relay. Check Settings.')); }; ws.onerror = () => finish(new Error('Cannot connect to the relay. Check your connection or the relay URL in Settings.')); ws.onclose = () => finish(new Error('The relay closed the connection. Please retry.')); }
+    try { ws = new WebSocket(relay); ws.binaryType = 'arraybuffer'; ws.onmessage = event => { const data = new Uint8Array(event.data); if (data[0] === 3 || data[0] === 5) finish(); else finish(new Error('This endpoint is not a Wisp relay. Check Settings.')); }; ws.onerror = () => finish(new Error('Cannot connect to the relay. Check your connection or the relay URL in Settings.')); ws.onclose = () => finish(new Error('The relay closed the connection. Please retry.')); }
     catch (error) { finish(error); }
   });
 }
@@ -21,7 +21,7 @@ async function initialize() {
   const registration = await workspaceReady;
   if (!registration) return false;
   await checkRelay();
-  const transport = new LibcurlTransport.LibcurlClient({ wisp: relayUrl() });
+  const transport = new LibcurlTransport.LibcurlClient({ wisp: await authorizedRelayUrl() });
   await withTimeout(transport.init(), 20000, 'The transport could not start. Reload and try again.');
   controller = new $scramjetController.Controller({ serviceworker: registration.active, transport, config: controllerPaths() });
   await withTimeout(controller.wait(), 20000, 'Scramjet could not initialize. Reload and try again.');
@@ -114,17 +114,16 @@ $('back').addEventListener('click', () => frame?.back());
 $('forward').addEventListener('click', () => frame?.forward());
 $('reload').addEventListener('click', () => { notice(); frame?.reload(); });
 $('fullscreen').addEventListener('click', async () => { try { if (document.fullscreenElement) await document.exitFullscreen(); else await $('workspace').requestFullscreen(); } catch { notice('Full screen is unavailable in this browser.'); } });
-$('settings-open').addEventListener('click', () => { $('relay').value = storedRelay(); $('settings-result').textContent = ''; $('settings').showModal(); });
-$('reset-relay').addEventListener('click', () => { $('relay').value = ''; });
-$('settings-form').addEventListener('submit', event => {
-  event.preventDefault();
-  try {
-    const value = $('relay').value.trim();
-    if (value) { const url = new URL(value); if (!['ws:', 'wss:'].includes(url.protocol) || url.username || url.password) throw new Error('Enter a valid ws:// or wss:// URL without embedded credentials.'); if (location.protocol === 'https:' && url.protocol !== 'wss:') throw new Error('An HTTPS website requires a secure wss:// relay.'); }
-    if (value) localStorage.setItem('scramjet-relay', value); else localStorage.removeItem('scramjet-relay');
-    location.reload();
-  } catch (error) { $('settings-result').textContent = error.message; }
-});
+$('settings-open').addEventListener('click', () => $('settings').showModal());
+$('sign-out').addEventListener('click', signOut);
+accountApi('enter').catch(error => notice(error.message));
+const presenceTimer = setInterval(() => accountApi('presence').catch(error => {
+  if (error.status === 401 || error.status === 403) {
+    clearInterval(presenceTimer); clearMember(); location.replace(signInUrl());
+  }
+}), 60000);
+window.addEventListener('pagehide', () => clearInterval(presenceTimer));
+
 document.addEventListener('keydown', event => { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'l') { event.preventDefault(); address.focus(); address.select(); } });
 window.addEventListener('offline', () => { setConnection(false); notice('You are offline. Reconnect to continue browsing.'); });
 window.addEventListener('online', () => checkRelay().then(() => notice()).catch(error => notice(error.message)));

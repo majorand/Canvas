@@ -1,3 +1,4 @@
+import { authorizeRelay } from './access.mjs';
 import { server as wisp, logging } from '@mercuryworkshop/wisp-js/server';
 logging.set_level(logging.ERROR);
 Object.assign(wisp.options, {
@@ -22,19 +23,34 @@ export function allowedOrigin(req) {
   } catch { return false; }
 }
 
-export function upgrade(req, socket, head) {
-  const pathname = new URL(req.url, 'http://localhost').pathname;
-  if (!['/api/wisp', '/api/wisp/', '/wisp/'].includes(pathname)) {
-    socket.end('HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n');
-    return;
-  }
-  if (!allowedOrigin(req)) {
-    socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');
-    return;
-  }
-  req.url = '/wisp/';
-  wisp.routeRequest(req, socket, head);
+export function createUpgrade(authorize = authorizeRelay) {
+  return async function upgrade(req, socket, head) {
+    const pathname = new URL(req.url, 'http://localhost').pathname;
+    if (!['/api/wisp', '/api/wisp/', '/wisp/'].includes(pathname)) {
+      socket.end('HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n'); return;
+    }
+    if (!allowedOrigin(req)) {
+      socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n'); return;
+    }
+    let session;
+    const waiting = setTimeout(() => socket.destroy(), 20000);
+    try { session = await authorize(req); }
+    catch (error) {
+      clearTimeout(waiting);
+      const status = error.status === 401 || error.status === 403 ? 401 : 503;
+      socket.end('HTTP/1.1 ' + status + (status === 401 ? ' Unauthorized' : ' Service Unavailable') + '\r\nConnection: close\r\n\r\n'); return;
+    }
+    clearTimeout(waiting);
+    if (socket.destroyed) return;
+    const expires = setTimeout(() => socket.destroy(), Math.max(1, new Date(session.expiresAt).getTime() - Date.now()));
+    const recheck = setInterval(() => session.revalidate().catch(() => socket.destroy()), 30000);
+    socket.once('close', () => { clearInterval(recheck); clearTimeout(expires); });
+    // Strip the relay-only credential before passing the request to Wisp.
+    req.url = '/wisp/';
+    wisp.routeRequest(req, socket, head);
+  };
 }
+export const upgrade = createUpgrade();
 
 export function health(_req, res) {
   res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });

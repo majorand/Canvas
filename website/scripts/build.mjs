@@ -20,5 +20,5 @@ if (wisp) {
   if (process.argv.includes('--pages') && url.protocol !== 'wss:') throw new Error('GitHub Pages requires a secure wss:// relay');
 }
 await writeFile(path.join(dist, '.nojekyll'), '');
-await writeFile(path.join(dist, 'config.js'), `window.SCRAMJET_CONFIG = ${JSON.stringify({ wisp })};\n`);
+await writeFile(path.join(dist, 'config.js'), `window.SCRAMJET_CONFIG = ${JSON.stringify({ wisp, api: process.env.AUTH_API_URL || (process.argv.includes('--pages') ? 'https://scramjet-xi.vercel.app/api/access' : '') })};\n`);
 console.log('Built website and pinned Scramjet assets into dist/.');

@@ -8,12 +8,13 @@
   <script src="./exit.js" defer></script>
   <script src="./config.js" defer></script><script src="./scramjet/scramjet.js" defer></script>
   <script src="./controller/controller.api.js" defer></script><script src="./transport/index.js" defer></script>
-  <script type="module" src="./app.js"></script>
+  <script type="module" src="./workspace-loader.js"></script>
 </head>
-<body>
+<body class="auth-loading">
+  <section id="auth-status" style="padding:48px 24px;text-align:center"><p id="auth-status-text">Checking sign-in…</p><a href="./access.html">Return to sign in</a></section>
   <div class="exit-bar"><a class="emergency-exit" data-exit-canvas href="https://hpisd.instructure.com/" target="_top" referrerpolicy="no-referrer">Leave this page and go to Canvas</a></div>
   <header class="header"><a class="brand" href="./workspace.html" aria-label="Scots Canvas home"><img src="./scots.png" width="36" height="36" alt="Scots logo"><span class="brand-name">Scots Canvas</span></a>
-    <div class="header-actions"><span class="status" id="connection" role="status">Checking connection…</span><button class="quiet" id="settings-open">Settings</button></div>
+    <div class="header-actions"><span id="signed-in-name" class="status"></span><a id="admin-link" class="quiet" href="./admin.html" target="_blank" rel="noopener noreferrer" hidden>Admin</a><button id="sign-out" class="quiet">Sign out</button><span class="status" id="connection" role="status">Checking connection…</span><button class="quiet" id="settings-open">Settings</button></div>
   </header>
   <main>
     <section id="landing" class="landing">
@@ -41,5 +42,5 @@
     <section id="workspace" hidden><div class="page-meta"><span id="page-state">Loading…</span><a class="emergency-exit fullscreen-exit" data-exit-canvas href="https://hpisd.instructure.com/" target="_top" referrerpolicy="no-referrer">Leave this page and go to Canvas</a><button class="quiet" id="fullscreen">Full screen</button></div><iframe id="web-frame" title="Proxied website" allow="fullscreen; autoplay" referrerpolicy="no-referrer"></iframe></section>
   </main>
   <footer id="footer"><span>A window to what’s next.</span><div><a href="https://github.com/majorand/Canvas" target="_blank" rel="noopener noreferrer">Source code ↗</a><a href="https://github.com/MercuryWorkshop/scramjet" target="_blank" rel="noopener noreferrer">Made with Mercury Workshop</a></div></footer>
-  <dialog id="settings"><form method="dialog"><div class="dialog-heading"><h2>Connection settings</h2><button class="quiet" aria-label="Close settings">✕</button></div></form><p>The default relay is hosted on Vercel and shared by both versions of this website. You can use your own Wisp backend instead.</p><form id="settings-form"><label for="relay">Wisp WebSocket URL</label><input id="relay" type="url" placeholder="wss://your-backend.example/wisp/"><small>Leave blank to use the default. A custom relay receives the traffic you browse through it.</small><div class="dialog-actions"><button type="button" class="quiet" id="reset-relay">Use default</button><button type="submit" class="primary">Save connection</button></div></form><p class="settings-result" id="settings-result" role="status"></p></dialog>
+  <dialog id="settings"><form method="dialog"><div class="dialog-heading"><h2>Account settings</h2><button class="quiet" aria-label="Close settings">✕</button></div></form><p>Your connection is authenticated through the site's private relay.</p><p><a class="primary" href="./access.html">Change your password</a></p><p>Account sign-ins and workspace visits are logged for 30 days. Browsing destinations are not recorded in the access log.</p></dialog>
 </body></html>

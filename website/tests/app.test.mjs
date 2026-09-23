@@ -2,7 +2,10 @@ import test, { after, before } from 'node:test';
 import assert from 'node:assert/strict';
 import WebSocket from 'ws';
 import { normalizeAddress } from '../public/url.mjs';
-import { server } from '../server.mjs';
+import { createAppServer } from '../server.mjs';
+import { createUpgrade } from '../lib/relay.mjs';
+// Transport tests use an explicit in-process authorization fixture; production has no bypass.
+const server = createAppServer({ upgradeHandler: createUpgrade(async () => ({ expiresAt: new Date(Date.now() + 60000).toISOString(), revalidate: async () => true })) });
 let base;
 before(async () => { await new Promise(resolve => server.listen(0, '127.0.0.1', resolve)); base = `http://127.0.0.1:${server.address().port}`; });
 after(async () => { await new Promise(resolve => server.close(resolve)); });

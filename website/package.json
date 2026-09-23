@@ -15,9 +15,13 @@
     "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
+    "@mercuryworkshop/libcurl-transport": "2.0.5",
     "@mercuryworkshop/scramjet": "2.0.67-alpha.2",
     "@mercuryworkshop/scramjet-controller": "0.0.14",
-    "@mercuryworkshop/libcurl-transport": "2.0.5",
-    "@mercuryworkshop/wisp-js": "0.5.0"
+    "@mercuryworkshop/wisp-js": "0.5.0",
+    "@supabase/supabase-js": "2.117.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.8"
   }
 }
