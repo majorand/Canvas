@@ -25,9 +25,24 @@ Open http://localhost:3030. The local server binds to loopback by default. Set P
 
 ## Vercel
 
-Import `majorand/scramjet`, use `website` as the root directory and Other as the framework preset. Build/install/output settings are defined in vercel.json. The static frontend, service worker and WASM are served from dist. `/api/wisp/` runs the WebSocket relay and `/api/health` provides a lightweight health response. The UI probes the actual Wisp handshake instead of treating an HTTP response as proof that proxying works.
+Import `majorand/Canvas`, use `website` as the root directory and Other as the framework preset. Build/install/output settings are defined in vercel.json. The static frontend, service worker and WASM are served from dist. `/api/wisp/` runs the WebSocket relay and `/api/health` provides a lightweight health response. The UI probes the actual Wisp handshake instead of treating an HTTP response as proof that proxying works.
 
 Vercel WebSockets are in beta and connections are subject to the configured 300-second function duration. Active long-lived streams can be interrupted by platform limits. For a dedicated relay, set WISP_URL at build time, or enter a secure wss:// URL in the website's Settings. A separate backend must set ALLOWED_ORIGINS to the frontend's exact origin.
+
+
+## GitHub Pages
+
+Live frontend: https://majorand.github.io/Canvas/
+
+The `.github/workflows/website-pages.yml` workflow builds and tests `website/`, then deploys `website/dist` on pushes to main. In repository Settings → Pages, set Source to **GitHub Actions**. You can also run **Deploy website to GitHub Pages** manually in Actions.
+
+`npm run build:pages` creates the Pages artifact. It defaults to `wss://scramjet-xi.vercel.app/api/wisp/`; set the repository Actions variable `WISP_URL` to use another secure Wisp relay. GitHub Pages only serves static files, so keep the Vercel project running for proxy traffic. The Vercel relay explicitly allows `https://majorand.github.io`; other owners or custom domains must add their exact origin to its `ALLOWED_ORIGINS` environment variable and redeploy the backend. Do not use a wildcard. The default relay is specific to this deployment.
+
+The calculator, Code Mode (`0000`), browsing controls, Canvas exit, and about:blank window work on Pages. All assets, links, proxy prefixes, and worker scope follow the deployed directory, so repository subpaths and root/custom-domain hosting are supported. On the first workspace visit, its service worker reloads once to add cross-origin isolation headers that Pages cannot configure on the server. This preserves the browser features available on Vercel. Unsupported browsers show an error instead of repeatedly reloading.
+
+For a local simulation of Pages at `http://localhost:3031/Canvas/`, run `npm run preview:pages`. This serves without isolation headers and uses a local relay solely for testing. Clear `WISP_URL` if you want the local relay. No local computer is required for the published Pages site.
+
+Browser data and custom relay preferences are separate for the Pages and Vercel origins. Both sites share the same backend limits and third-party website compatibility constraints.
 
 ## Features
 
@@ -60,4 +75,4 @@ Verified on September 22, 2026: local build and automated tests; public health a
 
 The Scots logo in public/scots.png is the existing favicon from the school Canvas page, downloaded from https://resources.finalsite.net/images/v1774986756/hpisdorg/udonhuq0lkslosopfmll/Scots.png. School branding belongs to its respective owner and is not covered by this app's software license.
 
-AGPL-3.0-only, consistent with Scramjet. Source and deployment code: https://github.com/majorand/scramjet/tree/main/website. Original project: https://github.com/MercuryWorkshop/scramjet.
+AGPL-3.0-only, consistent with Scramjet. Source and deployment code: https://github.com/majorand/Canvas/tree/main/website. Original project: https://github.com/MercuryWorkshop/scramjet.

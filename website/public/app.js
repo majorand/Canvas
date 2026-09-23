@@ -1,4 +1,5 @@
 import { normalizeAddress } from './url.mjs';
+import { appUrl, controllerPaths, prepareWorker } from './runtime.mjs';
 const $ = id => document.getElementById(id);
 const address = $('address');
 let controller, frame, initPromise, loadTimer, currentUrl = '';
@@ -17,14 +18,12 @@ function checkRelay() {
 }
 function withTimeout(promise, ms, message) { let timer; return Promise.race([promise, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(message)), ms); })]).finally(() => clearTimeout(timer)); }
 async function initialize() {
-  if (!('serviceWorker' in navigator) || !window.isSecureContext) throw new Error('This browser needs HTTPS (or localhost) and service-worker support to run Scramjet.');
+  const registration = await workspaceReady;
+  if (!registration) return false;
   await checkRelay();
-  await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
-  const registration = await withTimeout(navigator.serviceWorker.ready, 15000, 'The browser could not start the service worker. Reload and try again.');
-  if (!navigator.serviceWorker.controller) await withTimeout(new Promise(resolve => navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true })), 15000, 'The service worker is not controlling this page. Reload and try again.');
   const transport = new LibcurlTransport.LibcurlClient({ wisp: relayUrl() });
   await withTimeout(transport.init(), 20000, 'The transport could not start. Reload and try again.');
-  controller = new $scramjetController.Controller({ serviceworker: registration.active, transport });
+  controller = new $scramjetController.Controller({ serviceworker: registration.active, transport, config: controllerPaths() });
   await withTimeout(controller.wait(), 20000, 'Scramjet could not initialize. Reload and try again.');
   frame = controller.createFrame($('web-frame'));
   $scramjet.Tap.tap(frame.hooks.init.post, context => {
@@ -36,14 +35,17 @@ async function initialize() {
   $scramjet.Tap.tap(frame.hooks.error.request, context => {
     if (['document', 'iframe'].includes(context.rawrequest.destination)) { clearTimeout(loadTimer); $('page-state').textContent = 'Could not load this page'; notice('This page could not be loaded. Try reloading, a different website, or check the relay in Settings.'); }
   });
+  return true;
 }
 async function navigate(input) {
   $('go').disabled = true;
   notice();
   try {
     const url = normalizeAddress(input);
+    address.value = url;
     if (!initPromise) initPromise = initialize().catch(error => { initPromise = null; throw error; });
-    await initPromise;
+    if (!await initPromise) return;
+    history.replaceState(null, '', appUrl('workspace.html'));
     currentUrl = url; address.value = url;
     document.body.classList.add('browsing');
     for (const id of ['landing', 'start-content', 'footer']) $(id).hidden = true;
@@ -62,7 +64,7 @@ $('open-blank').addEventListener('click', () => {
   const tab = window.open('about:blank', '_blank');
   if (!tab) { notice('The new tab was blocked. Allow pop-ups for this site, then click Open in about:blank again.'); return; }
   try {
-    const target = new URL('/workspace.html', location.origin);
+    const target = appUrl('workspace.html');
     if (currentUrl) target.searchParams.set('goto', currentUrl);
     const doc = tab.document;
     doc.title = document.title;
@@ -70,7 +72,7 @@ $('open-blank').addEventListener('click', () => {
     const favicon = doc.createElement('link');
     favicon.rel = 'icon';
     favicon.type = 'image/png';
-    favicon.href = new URL('/scots.png', location.origin).href;
+    favicon.href = appUrl('scots.png').href;
     doc.head.append(favicon);
     const viewport = doc.createElement('meta');
     viewport.name = 'viewport';
@@ -107,7 +109,7 @@ $('open-blank').addEventListener('click', () => {
   }
 });
 document.querySelectorAll('[data-url]').forEach(button => button.addEventListener('click', () => navigate(button.dataset.url)));
-$('home').addEventListener('click', () => location.assign('/workspace.html'));
+$('home').addEventListener('click', () => location.assign(appUrl('workspace.html')));
 $('back').addEventListener('click', () => frame?.back());
 $('forward').addEventListener('click', () => frame?.forward());
 $('reload').addEventListener('click', () => { notice(); frame?.reload(); });
@@ -127,4 +129,12 @@ document.addEventListener('keydown', event => { if ((event.ctrlKey || event.meta
 window.addEventListener('offline', () => { setConnection(false); notice('You are offline. Reconnect to continue browsing.'); });
 window.addEventListener('online', () => checkRelay().then(() => notice()).catch(error => notice(error.message)));
 const initialUrl = new URL(location.href).searchParams.get('goto');
-if (initialUrl) { history.replaceState(null, '', '/workspace.html'); navigate(initialUrl); } else checkRelay().catch(error => notice(error.message));
+$('open-blank').disabled = true;
+const workspaceReady = prepareWorker(() => address.value || initialUrl).then(registration => {
+  if (registration) $('open-blank').disabled = false;
+  return registration;
+});
+workspaceReady.then(registration => {
+  if (!registration) return;
+  if (initialUrl) navigate(initialUrl); else checkRelay().catch(error => notice(error.message));
+}).catch(error => { setConnection(false); notice(error.message); });

@@ -16,7 +16,7 @@ function press(key) {
   if (opening) return;
   const unlock = calculator.press(key);
   render();
-  if (unlock) { opening = true; message.textContent = 'Opening workspace…'; location.assign('/workspace.html'); }
+  if (unlock) { opening = true; message.textContent = 'Opening workspace…'; location.assign(new URL('workspace.html', import.meta.url)); }
 }
 document.querySelectorAll('[data-key]').forEach(button => button.addEventListener('click', () => press(button.dataset.key)));
 mode.addEventListener('click', () => { calculator.setCodeMode(!calculator.codeMode); render(); });
