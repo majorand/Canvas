@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Your personal Scramjet web workspace. Browse websites and search the web in one place.">
+  <title>Canvas - Highland Park High School</title>
+  <link rel="icon" href="/scots.png" type="image/png"><link rel="stylesheet" href="/style.css">
+  <script src="/exit.js" defer></script>
+  <script src="/config.js" defer></script><script src="/scramjet/scramjet.js" defer></script>
+  <script src="/controller/controller.api.js" defer></script><script src="/transport/index.js" defer></script>
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <div class="exit-bar"><a class="emergency-exit" data-exit-canvas href="https://hpisd.instructure.com/" target="_top" referrerpolicy="no-referrer">Leave this page and go to Canvas</a></div>
+  <header class="header"><a class="brand" href="/workspace.html" aria-label="Scots Canvas home"><img src="/scots.png" width="36" height="36" alt="Scots logo"><span class="brand-name">Scots Canvas</span></a>
+    <div class="header-actions"><span class="status" id="connection" role="status">Checking connection…</span><button class="quiet" id="settings-open">Settings</button></div>
+  </header>
+  <main>
+    <section id="landing" class="landing">
+      <div class="eyebrow"><span></span> A LITTLE MORE INTERNET</div>
+      <h1>Your web,<br><em>in reach.</em></h1>
+      <p class="intro">A simple space to explore. Enter a website or search for<br class="desktop"> whatever’s on your mind.</p>
+    </section>
+    <div class="browser-bar" id="browser-bar">
+      <div class="navigation" id="navigation" hidden><button id="home" title="Home" aria-label="Home">⌂</button><button id="back" title="Back" aria-label="Back">←</button><button id="forward" title="Forward" aria-label="Forward">→</button><button id="reload" title="Reload page" aria-label="Reload page">↻</button></div>
+      <form id="address-form"><span class="search-icon" aria-hidden="true">⌕</span><label class="sr-only" for="address">Website or search</label><input id="address" autocomplete="off" spellcheck="false" placeholder="Search the web or enter a URL" required><button type="submit" id="go">Go <span aria-hidden="true">↗</span></button></form>
+    </div>
+    <div id="blank-launch" class="blank-launch"><a class="quiet" href="/">Calculator</a> <button id="open-blank" type="button" class="quiet" title="Open Scramjet in a new about:blank tab. Browser management tools can still see or close it.">Open in about:blank ↗</button></div>
+    <div id="notice" class="notice" role="status" hidden></div>
+    <section id="start-content" class="start-content">
+      <div class="section-label">A GOOD PLACE TO START <span>01 — 04</span></div>
+      <div class="shortcuts">
+        <button data-url="https://www.google.com/"><span class="shortcut-icon blue">G</span><span>Google<small>Find something new</small></span><b>↗</b></button>
+        <button data-url="https://www.wikipedia.org/"><span class="shortcut-icon lavender">W</span><span>Wikipedia<small>Follow your curiosity</small></span><b>↗</b></button>
+        <button data-url="https://www.youtube.com/"><span class="shortcut-icon coral">▶</span><span>YouTube<small>Watch and discover</small></span><b>↗</b></button>
+        <button data-url="https://example.com/"><span class="shortcut-icon mint">◎</span><span>Test connection<small>Open Example Domain</small></span><b>↗</b></button>
+      </div>
+      <div class="info-row"><span class="info-number">↗</span><div><strong>Powered by Scramjet</strong><p>Websites load here through your connected relay. Compatibility varies by site.</p></div><span class="keyboard-hint">Ctrl / ⌘ + L<br><small>focus the address bar*</small></span></div>
+      <p class="footnote">* Click the address bar to navigate. Your browser may reserve its own address shortcut.</p>
+    </section>
+    <section id="workspace" hidden><div class="page-meta"><span id="page-state">Loading…</span><a class="emergency-exit fullscreen-exit" data-exit-canvas href="https://hpisd.instructure.com/" target="_top" referrerpolicy="no-referrer">Leave this page and go to Canvas</a><button class="quiet" id="fullscreen">Full screen</button></div><iframe id="web-frame" title="Proxied website" allow="fullscreen; autoplay" referrerpolicy="no-referrer"></iframe></section>
+  </main>
+  <footer id="footer"><span>A window to what’s next.</span><div><a href="https://github.com/majorand/scramjet" target="_blank" rel="noopener noreferrer">Source code ↗</a><a href="https://github.com/MercuryWorkshop/scramjet" target="_blank" rel="noopener noreferrer">Made with Mercury Workshop</a></div></footer>
+  <dialog id="settings"><form method="dialog"><div class="dialog-heading"><h2>Connection settings</h2><button class="quiet" aria-label="Close settings">✕</button></div></form><p>The default relay is hosted with this website. You can use your own Wisp backend instead.</p><form id="settings-form"><label for="relay">Wisp WebSocket URL</label><input id="relay" type="url" placeholder="wss://your-backend.example/wisp/"><small>Leave blank to use the default. A custom relay receives the traffic you browse through it.</small><div class="dialog-actions"><button type="button" class="quiet" id="reset-relay">Use default</button><button type="submit" class="primary">Save connection</button></div></form><p class="settings-result" id="settings-result" role="status"></p></dialog>
+</body></html>

@@ -31,6 +31,8 @@ Vercel WebSockets are in beta and connections are subject to the configured 300-
 
 ## Features
 
+- CalcSolver-inspired calculator homepage with a light blue header and dark keypad. Supports addition, subtraction, multiplication, division, decimals, square roots, operator precedence, keyboard parentheses, clear, and backspace. Enter calculates and Escape clears.
+- Turn on **Code Mode** and press **0 four times** to open Scramjet at `/workspace.html`. Other digits or operations reset the consecutive-zero sequence; switching mode clears the partial code. Regular calculator mode never opens the workspace. The Calculator link returns to the calculator. This is a navigation shortcut, not password protection: the workspace URL remains directly accessible.
 - Canvas tab styling: the title "Canvas - Highland Park High School" and Scots favicon match the public page reached from hpisd.instructure.com. The same title and icon are copied into about:blank windows, and the page header reads "Scots Canvas". This changes display branding, not the site's address or its Scramjet functionality.
 - A prominent "Leave this page and go to Canvas" button opens https://hpisd.instructure.com/ directly in the current top-level tab, including from the about:blank workspace. It is independent of the proxy connection and is also available in workspace full screen. This replaces the current history entry; it does not erase browsing history or close other tabs.
 - Website address entry and Google search queries.

@@ -62,7 +62,7 @@ $('open-blank').addEventListener('click', () => {
   const tab = window.open('about:blank', '_blank');
   if (!tab) { notice('The new tab was blocked. Allow pop-ups for this site, then click Open in about:blank again.'); return; }
   try {
-    const target = new URL('/', location.origin);
+    const target = new URL('/workspace.html', location.origin);
     if (currentUrl) target.searchParams.set('goto', currentUrl);
     const doc = tab.document;
     doc.title = document.title;
@@ -107,7 +107,7 @@ $('open-blank').addEventListener('click', () => {
   }
 });
 document.querySelectorAll('[data-url]').forEach(button => button.addEventListener('click', () => navigate(button.dataset.url)));
-$('home').addEventListener('click', () => location.assign('/'));
+$('home').addEventListener('click', () => location.assign('/workspace.html'));
 $('back').addEventListener('click', () => frame?.back());
 $('forward').addEventListener('click', () => frame?.forward());
 $('reload').addEventListener('click', () => { notice(); frame?.reload(); });
@@ -127,4 +127,4 @@ document.addEventListener('keydown', event => { if ((event.ctrlKey || event.meta
 window.addEventListener('offline', () => { setConnection(false); notice('You are offline. Reconnect to continue browsing.'); });
 window.addEventListener('online', () => checkRelay().then(() => notice()).catch(error => notice(error.message)));
 const initialUrl = new URL(location.href).searchParams.get('goto');
-if (initialUrl) { history.replaceState(null, '', '/'); navigate(initialUrl); } else checkRelay().catch(error => notice(error.message));
+if (initialUrl) { history.replaceState(null, '', '/workspace.html'); navigate(initialUrl); } else checkRelay().catch(error => notice(error.message));

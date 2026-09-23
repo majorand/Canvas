@@ -16,7 +16,9 @@ test('URLs, search terms, and unsafe schemes', () => {
   assert.throws(() => normalizeAddress('   '));
 });
 test('serves app, service worker, WASM and health with correct headers', async () => {
-  const html = await fetch(base); assert.equal(html.status, 200); assert.match(await html.text(), /Your web/);
+  const html = await fetch(base); assert.equal(html.status, 200); assert.match(await html.text(), /Code Mode/);
+  const workspace = await fetch(base + '/workspace.html'); assert.equal(workspace.status, 200); assert.match(await workspace.text(), /Your web/);
+  const calculator = await fetch(base + '/calculator-engine.mjs'); assert.equal(calculator.status, 200); assert.match(calculator.headers.get('content-type'), /javascript/);
   assert.equal(html.headers.get('cross-origin-embedder-policy'), 'credentialless');
   const sw = await fetch(base + '/sw.js'); assert.match(sw.headers.get('content-type'), /javascript/); assert.equal(sw.headers.get('service-worker-allowed'), '/');
   const wasm = await fetch(base + '/scramjet/scramjet.wasm'); assert.equal(wasm.headers.get('content-type'), 'application/wasm'); assert.equal(wasm.status, 200); await wasm.arrayBuffer();
