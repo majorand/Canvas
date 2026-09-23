@@ -31,6 +31,7 @@ Vercel WebSockets are in beta and connections are subject to the configured 300-
 
 ## Features
 
+- A prominent "Leave this page and go to Canvas" button opens https://hpisd.instructure.com/ directly in the current top-level tab, including from the about:blank workspace. It is independent of the proxy connection and is also available in workspace full screen. This replaces the current history entry; it does not erase browsing history or close other tabs.
 - Website address entry and Google search queries.
 - Browser workspace with back, forward, reload, home and full screen.
 - Google, Wikipedia, YouTube and Example Domain shortcuts.

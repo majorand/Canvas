@@ -5,11 +5,13 @@
   <meta name="description" content="Your personal Scramjet web workspace. Browse websites and search the web in one place.">
   <title>Scramjet · Your web, in reach</title>
   <link rel="icon" href="/icon.svg" type="image/svg+xml"><link rel="stylesheet" href="/style.css">
+  <script src="/exit.js" defer></script>
   <script src="/config.js" defer></script><script src="/scramjet/scramjet.js" defer></script>
   <script src="/controller/controller.api.js" defer></script><script src="/transport/index.js" defer></script>
   <script type="module" src="/app.js"></script>
 </head>
 <body>
+  <div class="exit-bar"><a class="emergency-exit" data-exit-canvas href="https://hpisd.instructure.com/" target="_top" referrerpolicy="no-referrer">Leave this page and go to Canvas</a></div>
   <header class="header"><a class="brand" href="/" aria-label="Scramjet home"><img src="/icon.svg" width="32" height="32" alt="">scramjet<span class="badge">WORKSPACE</span></a>
     <div class="header-actions"><span class="status" id="connection" role="status">Checking connection…</span><button class="quiet" id="settings-open">Settings</button></div>
   </header>
@@ -36,7 +38,7 @@
       <div class="info-row"><span class="info-number">↗</span><div><strong>Powered by Scramjet</strong><p>Websites load here through your connected relay. Compatibility varies by site.</p></div><span class="keyboard-hint">Ctrl / ⌘ + L<br><small>focus the address bar*</small></span></div>
       <p class="footnote">* Click the address bar to navigate. Your browser may reserve its own address shortcut.</p>
     </section>
-    <section id="workspace" hidden><div class="page-meta"><span id="page-state">Loading…</span><button class="quiet" id="fullscreen">Full screen</button></div><iframe id="web-frame" title="Proxied website" allow="fullscreen; autoplay" referrerpolicy="no-referrer"></iframe></section>
+    <section id="workspace" hidden><div class="page-meta"><span id="page-state">Loading…</span><a class="emergency-exit fullscreen-exit" data-exit-canvas href="https://hpisd.instructure.com/" target="_top" referrerpolicy="no-referrer">Leave this page and go to Canvas</a><button class="quiet" id="fullscreen">Full screen</button></div><iframe id="web-frame" title="Proxied website" allow="fullscreen; autoplay" referrerpolicy="no-referrer"></iframe></section>
   </main>
   <footer id="footer"><span>A window to what’s next.</span><div><a href="https://github.com/majorand/scramjet" target="_blank" rel="noopener noreferrer">Source code ↗</a><a href="https://github.com/MercuryWorkshop/scramjet" target="_blank" rel="noopener noreferrer">Made with Mercury Workshop</a></div></footer>
   <dialog id="settings"><form method="dialog"><div class="dialog-heading"><h2>Connection settings</h2><button class="quiet" aria-label="Close settings">✕</button></div></form><p>The default relay is hosted with this website. You can use your own Wisp backend instead.</p><form id="settings-form"><label for="relay">Wisp WebSocket URL</label><input id="relay" type="url" placeholder="wss://your-backend.example/wisp/"><small>Leave blank to use the default. A custom relay receives the traffic you browse through it.</small><div class="dialog-actions"><button type="button" class="quiet" id="reset-relay">Use default</button><button type="submit" class="primary">Save connection</button></div></form><p class="settings-result" id="settings-result" role="status"></p></dialog>
