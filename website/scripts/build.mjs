@@ -1,6 +1,7 @@
-import { mkdir, cp, copyFile, writeFile } from 'node:fs/promises';
+import { mkdir, cp, copyFile, writeFile, readdir, readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const dist = path.join(root, 'dist');
 await mkdir(dist, { recursive: true });
@@ -21,4 +22,17 @@ if (wisp) {
 }
 await writeFile(path.join(dist, '.nojekyll'), '');
 await writeFile(path.join(dist, 'config.js'), `window.SCRAMJET_CONFIG = ${JSON.stringify({ wisp, api: process.env.AUTH_API_URL || (process.argv.includes('--pages') ? 'https://scramjet-xi.vercel.app/api/access' : '') })};\n`);
-console.log('Built website and pinned Scramjet assets into dist/.');
+// A shared revision keeps HTML, configuration, and the entire module graph in sync.
+const appFiles = (await readdir(path.join(root, 'public'))).filter(file => /\.(html|js|mjs|css)$/.test(file)).sort();
+const sources = await Promise.all(appFiles.map(file => readFile(path.join(dist, file), 'utf8')));
+const config = await readFile(path.join(dist, 'config.js'), 'utf8');
+const revision = createHash('sha256').update(sources.join('\n') + config).digest('hex').slice(0,16);
+for (let index = 0; index < appFiles.length; index++) {
+  const source = sources[index].replace(/(['"])(\.\/[^'"\s?]+\.(?:html|js|mjs|css))(?:\?([^'"\s]*))?\1/g, (_match, quote, file, query) => {
+    const params = new URLSearchParams(query);
+    params.set('v', revision);
+    return quote + file + '?' + params.toString() + quote;
+  });
+  await writeFile(path.join(dist, appFiles[index]), source);
+}
+console.log('Built website and pinned Scramjet assets into dist/ (' + revision + ').');

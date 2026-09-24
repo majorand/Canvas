@@ -10,9 +10,9 @@ async function checkRelay() {
   const relay = await authorizedRelayUrl();
   return new Promise((resolve, reject) => {
     let ws;
-    const timer = setTimeout(() => finish(new Error('The relay did not respond. Try again shortly, or choose another relay in Settings.')), 20000);
+    const timer = setTimeout(() => finish(new Error('The relay did not respond. Check your internet connection and try again shortly.')), 20000);
     function finish(error) { clearTimeout(timer); if (ws) { ws.onclose = null; ws.onerror = null; ws.onmessage = null; ws.close(); } setConnection(!error); error ? reject(error) : resolve(); }
-    try { ws = new WebSocket(relay); ws.binaryType = 'arraybuffer'; ws.onmessage = event => { const data = new Uint8Array(event.data); if (data[0] === 3 || data[0] === 5) finish(); else finish(new Error('This endpoint is not a Wisp relay. Check Settings.')); }; ws.onerror = () => finish(new Error('Cannot connect to the relay. Check your connection or the relay URL in Settings.')); ws.onclose = () => finish(new Error('The relay closed the connection. Please retry.')); }
+    try { ws = new WebSocket(relay); ws.binaryType = 'arraybuffer'; ws.onmessage = event => { const data = new Uint8Array(event.data); if (data[0] === 3 || data[0] === 5) finish(); else finish(new Error('The relay returned an unexpected response. Reload the workspace and try again.')); }; ws.onerror = () => finish(new Error('Cannot connect to the relay. Reload the workspace to refresh your sign-in, then try again. If this continues, your network may block WebSocket connections or the relay may be unavailable.')); ws.onclose = () => finish(new Error('The relay closed the connection. Please retry.')); }
     catch (error) { finish(error); }
   });
 }
@@ -33,7 +33,7 @@ async function initialize() {
     $scramjet.Tap.tap(context.client.hooks.lifecycle.navigate, (_context, props) => update(props.url));
   });
   $scramjet.Tap.tap(frame.hooks.error.request, context => {
-    if (['document', 'iframe'].includes(context.rawrequest.destination)) { clearTimeout(loadTimer); $('page-state').textContent = 'Could not load this page'; notice('This page could not be loaded. Try reloading, a different website, or check the relay in Settings.'); }
+    if (['document', 'iframe'].includes(context.rawrequest.destination)) { clearTimeout(loadTimer); $('page-state').textContent = 'Could not load this page'; notice('This page could not be loaded. Try reloading or opening a different website.'); }
   });
   return true;
 }

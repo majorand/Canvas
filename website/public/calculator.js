@@ -1,4 +1,5 @@
 import { Calculator } from './calculator-engine.mjs';
+import { appUrl } from './runtime.mjs';
 const calculator = new Calculator();
 const display = document.getElementById('display');
 const mode = document.getElementById('code-mode');
@@ -16,7 +17,7 @@ function press(key) {
   if (opening) return;
   const unlock = calculator.press(key);
   render();
-  if (unlock) { opening = true; message.textContent = 'Opening workspace…'; location.assign(new URL('access.html', import.meta.url)); }
+  if (unlock) { opening = true; message.textContent = 'Opening workspace…'; location.assign(appUrl('access.html')); }
 }
 document.querySelectorAll('[data-key]').forEach(button => button.addEventListener('click', () => press(button.dataset.key)));
 mode.addEventListener('click', () => { calculator.setCodeMode(!calculator.codeMode); render(); });

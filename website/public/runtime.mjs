@@ -1,5 +1,10 @@
 // Resolve against this module so root and /Repository/ hosting use the same build.
-export const appUrl = (file, moduleUrl = import.meta.url) => new URL(file, moduleUrl);
+export function appUrl(file, moduleUrl = import.meta.url) {
+  const url = new URL(file, moduleUrl);
+  const revision = new URL(moduleUrl).searchParams.get('v');
+  if (revision && url.pathname.endsWith('.html')) url.searchParams.set('v', revision);
+  return url;
+}
 export function controllerPaths(moduleUrl = import.meta.url) {
   return Object.fromEntries(Object.entries({
     prefix: '~/sj/',

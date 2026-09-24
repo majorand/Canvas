@@ -19,7 +19,7 @@ test('all application and Scramjet paths remain within the deployed directory', 
 });
 
 test('built HTML assets and navigation are relative and resolve inside Pages', async () => {
-  for (const page of ['index.html', 'workspace.html']) {
+  for (const page of ['index.html', 'workspace.html', 'access.html', 'admin.html']) {
     const html = await readFile(new URL('../dist/' + page, import.meta.url), 'utf8');
     for (const [, target] of html.matchAll(/(?:src|href)="([^"]+)"/g)) {
       if (target.startsWith('https:') || target.startsWith('#')) continue;
@@ -44,7 +44,7 @@ test('worker isolates Pages documents without interfering with proxy routing or 
     URL, Headers, Response,
     importScripts: file => assert.equal(file, './controller/controller.sw.js'),
     self: { registration: { scope: 'https://majorand.github.io/Canvas/' }, addEventListener: (name, cb) => { handlers[name] = cb; } },
-    fetch: async () => new Response('page', { headers: { 'Content-Type': 'text/html' } }),
+    fetch: async (_request, options) => { assert.equal(options.cache, 'no-cache'); return new Response('page', { headers: { 'Content-Type': 'text/html' } }); },
     $scramjetController: { shouldRoute: () => proxied, route: async () => new Response('proxied') },
   };
   vm.runInNewContext(await readFile(new URL('../public/sw.js', import.meta.url), 'utf8'), context);
@@ -55,6 +55,7 @@ test('worker isolates Pages documents without interfering with proxy routing or 
   assert.equal(document.headers.get('Cross-Origin-Opener-Policy'), 'same-origin');
   assert.equal(document.headers.get('Cross-Origin-Embedder-Policy'), 'credentialless');
   assert.equal(document.headers.get('Content-Type'), 'text/html');
+  assert.equal(document.headers.get('Cache-Control'), 'no-store');
   assert.equal(await document.text(), 'page');
   response = undefined;
   send('https://majorand.github.io/another-project/');
@@ -62,4 +63,26 @@ test('worker isolates Pages documents without interfering with proxy routing or 
   proxied = true;
   send('https://majorand.github.io/Canvas/~/sj/test');
   assert.equal(await (await response).text(), 'proxied');
+});
+
+test('published entry pages and nested modules use one cache revision', async () => {
+  const read = file => readFile(new URL('../dist/' + file, import.meta.url), 'utf8');
+  const workspace = await read('workspace.html');
+  const revision = /workspace-loader\.js\?v=([a-f0-9]{16})/.exec(workspace)?.[1];
+  assert.ok(revision, 'workspace loader must bypass older cached scripts');
+  for (const file of ['index.html','workspace.html','access.html','admin.html','workspace-loader.js','app.js','auth-client.mjs','access.js','admin.js','calculator.js','sw.js']) {
+    const source = await read(file);
+    for (const [, target] of source.matchAll(/['"](\.\/[^'"\s]+\.(?:html|js|mjs|css)(?:\?[^'"\s]*)?)['"]/g)) {
+      const url = new URL(target,'https://example.test/Canvas/');
+      assert.equal(url.searchParams.get('v'),revision,file + ': ' + target);
+      await access(new URL('../dist/' + url.pathname.slice('/Canvas/'.length),import.meta.url));
+    }
+  }
+});
+
+test('sign-in and workspace navigation retain the deployed revision', () => {
+  const module = 'https://example.test/Canvas/runtime.mjs?v=revision123';
+  assert.equal(appUrl('workspace.html',module).href,'https://example.test/Canvas/workspace.html?v=revision123');
+  assert.equal(appUrl('access.html?flow=setup',module).href,'https://example.test/Canvas/access.html?flow=setup&v=revision123');
+  assert.equal(appUrl('api/access',module).href,'https://example.test/Canvas/api/access');
 });
