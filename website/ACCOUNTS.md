@@ -71,3 +71,14 @@ imported by the deployed endpoints.
 Static HTML, JavaScript, and the open-source calculator are public on Pages.
 Account data and proxy relay access are protected on the backend. Missing server configuration
 fails closed; configure Supabase before replacing an existing public deployment.
+
+## Usernames
+
+People can sign in with either their email or an assigned username. In the admin dashboard,
+set an optional username when creating or editing a member. Use “Your administrator username”
+to set your own. Existing accounts continue using email until a username is assigned.
+Usernames are unique, case-insensitive, 3–32 characters, and stored in lowercase. Allowed characters
+are letters, numbers, dots, underscores, and hyphens; start with a letter or number.
+Clearing a username removes that alias without changing the email or password.
+For an existing database, apply supabase/usernames.sql before deploying this update.
+The isolated demonstration member also accepts test.member as its login.

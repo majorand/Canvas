@@ -77,3 +77,7 @@ begin
 end; $$;
 revoke all on function public.site_allow_attempt(text,integer,integer), public.site_authorize_session(text,text), public.site_cleanup() from public, anon, authenticated;
 grant execute on function public.site_allow_attempt(text,integer,integer), public.site_authorize_session(text,text), public.site_cleanup() to service_role;
+
+-- Optional unique login aliases; existing email logins remain valid.
+alter table public.site_accounts add column if not exists username text unique
+  check (username ~ '^[a-z0-9][a-z0-9._-]{2,31}$');

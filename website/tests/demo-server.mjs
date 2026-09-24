@@ -10,7 +10,7 @@ await service.dispatch('setup',{email:'owner@example.test'},'','local');
 const owner=[...fake.identities.values()][0];
 await service.dispatch('complete-setup',{accessToken:owner.id,password:'owner-test-password-123'},'','local');
 const admin=await service.dispatch('login',{email:owner.email,password:'owner-test-password-123',admin:true},'','local');
-await service.dispatch('create-user',{email:'member@example.test',name:'Test member',password:'member-test-password-123'},admin.token,'local');
+await service.dispatch('create-user',{email:'member@example.test',name:'Test member',username:'test.member',password:'member-test-password-123'},admin.token,'local');
 const server=createAppServer({
   apiHandler:createAccessHandler(()=>service),
   upgradeHandler:createUpgrade(async req=>{

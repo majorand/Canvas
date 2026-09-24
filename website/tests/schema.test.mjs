@@ -38,6 +38,10 @@ test('actual PostgreSQL schema restricts roles, limits attempts, and revokes rel
     const id = '11111111-1111-4111-8111-111111111111';
     await db.query('insert into auth.users values ($1)',[id]);
     await db.query("insert into public.site_accounts(id,email,display_name) values ($1,'member@example.test','Member')",[id]);
+    await db.query("update public.site_accounts set username='member.alias' where id=$1",[id]);
+    await assert.rejects(db.query("update public.site_accounts set username='INVALID' where id=$1",[id]),/check constraint/);
+    await db.query("insert into auth.users values ('22222222-2222-4222-8222-222222222222')");
+    await assert.rejects(db.query("insert into public.site_accounts(id,email,display_name,username) values ('22222222-2222-4222-8222-222222222222','second@example.test','Second','member.alias')"),/unique constraint/);
     await db.exec('set role service_role');
     await db.query("insert into public.site_sessions(token_hash,user_id,kind,expires_at) values ('member',$1,'member',now()+interval '1 hour')",[id]);
     await db.query("insert into public.site_sessions(token_hash,user_id,kind,parent_hash,expires_at) values ('relay',$1,'relay','member',now()+interval '1 hour')",[id]);

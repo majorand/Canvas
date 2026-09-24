@@ -6,7 +6,7 @@
 <main><div class="eyebrow">SITE ADMINISTRATION</div><h1>Your people. Your access.</h1>
 <p class="lead">Manage individual accounts and see recent access to your workspace.</p><p class="status" id="message" role="status">Sign in with your administrator account.</p>
 <section class="card narrow" id="admin-login"><h2>Administrator sign in</h2><form id="admin-login-form">
-<label>Email<input name="email" type="email" autocomplete="username" required maxlength="254"></label>
+<label>Username or email<input name="identifier" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required maxlength="254"></label>
 <label>Administrator password<input name="password" type="password" autocomplete="current-password" required maxlength="128"></label>
 <button class="primary" type="submit">Sign in as administrator</button></form>
 </section>
@@ -14,15 +14,19 @@
 <div class="stats"><div><strong id="account-count">0</strong><span>Accounts</span></div><div><strong id="enabled-count">0</strong><span>Enabled</span></div><div><strong id="recent-count">0</strong><span>Active in the last 2 minutes</span></div></div>
 <div class="columns"><section class="card"><h2>Create an account</h2><form id="create-form">
 <label>Name<input name="name" required maxlength="80" autocomplete="off"></label><label>Email<input name="email" type="email" required maxlength="254" autocomplete="off"></label>
+<label>Username (optional)<input name="username" minlength="3" maxlength="32" autocomplete="off" autocapitalize="none" spellcheck="false"></label>
+<p class="small">Usernames are unique and ignore capitalization. Use 3–32 letters, numbers, dots, underscores, or hyphens.</p>
 <label>Initial password<input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
 <button class="primary" type="submit">Create account</button></form><p class="small">Share these details privately. Members can change their password on the sign-in page.</p></section>
 <section class="card"><h2>Edit access</h2><form id="edit-form"><label>Account<select id="user-select" name="id" required><option value="">Choose an account</option></select></label>
 <label>Name<input id="edit-name" name="name" required maxlength="80"></label>
+<label>Username (optional)<input id="edit-username" name="username" minlength="3" maxlength="32" autocomplete="off" autocapitalize="none" spellcheck="false"></label>
 <label class="check"><input id="edit-enabled" name="enabled" type="checkbox">Account enabled</label>
 <label>New password (optional)<input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128"></label>
 <button class="primary" type="submit">Save account</button></form><p class="small">Disabling access or resetting a password ends existing sessions. Open relay connections close within 30 seconds.</p></section></div>
-<section class="card"><h2>Accounts</h2><div class="table-scroll"><table><thead><tr><th>Name</th><th>Email</th><th>Access</th><th>Last seen</th></tr></thead><tbody id="users"></tbody></table></div></section>
+<section class="card"><h2>Accounts</h2><div class="table-scroll"><table><thead><tr><th>Name</th><th>Username</th><th>Email</th><th>Access</th><th>Last seen</th></tr></thead><tbody id="users"></tbody></table></div></section>
 <section class="card"><div class="section-heading"><h2>Access log</h2><span class="small">Latest 200 events · 30 days</span></div><p class="small">Shows the account used, not a verified physical identity. “Active” is an estimate based on recent workspace activity. Browsing destinations are not logged here.</p><div class="table-scroll"><table><thead><tr><th>Time</th><th>Account</th><th>Event</th></tr></thead><tbody id="events"></tbody></table></div></section>
+<section class="card"><h2>Your administrator username</h2><form id="admin-profile-form"><label>Username (optional)<input id="admin-username" name="username" minlength="3" maxlength="32" autocomplete="off" autocapitalize="none" spellcheck="false"></label><button type="submit">Save username</button></form><p class="small">You can always continue signing in with your email.</p></section>
 <section class="card"><details><summary>Change administrator password</summary><form id="admin-password-form">
 <label>Current password<input name="currentPassword" type="password" autocomplete="current-password" required maxlength="128"></label>
 <label>New password<input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>

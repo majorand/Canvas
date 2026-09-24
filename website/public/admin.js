@@ -17,11 +17,12 @@ const eventNames = { sign_in: 'Signed in', failed_sign_in: 'Failed sign-in', adm
 async function load() {
   const data = await api('admin-data');
   users = data.users;
+  if (document.activeElement !== $('admin-username')) $('admin-username').value = users.find(user => user.role === 'admin')?.username || '';
   const selected = $('user-select').value;
   $('account-count').textContent = users.length;
   $('enabled-count').textContent = users.filter(user => user.enabled).length;
   $('recent-count').textContent = users.filter(user => user.enabled && Date.now() - new Date(user.last_seen_at).getTime() < 120000).length;
-  $('users').replaceChildren(...users.map(user => row([user.display_name, user.email, user.role === 'admin' ? 'Administrator' : user.enabled ? 'Enabled' : 'Disabled', date(user.last_seen_at)])));
+  $('users').replaceChildren(...users.map(user => row([user.display_name, user.username || "—", user.email, user.role === 'admin' ? 'Administrator' : user.enabled ? 'Enabled' : 'Disabled', date(user.last_seen_at)])));
   $('events').replaceChildren(...data.events.map(event => row([date(event.created_at), event.email, eventNames[event.event] || event.event])));
   if (!data.events.length) $('events').append(row(['—', 'No access events yet.', '—']));
   const placeholder = document.createElement('option'); placeholder.value = ''; placeholder.textContent = 'Choose an account';
@@ -47,10 +48,14 @@ $('create-form').addEventListener('submit', event => { event.preventDefault(); s
 }); });
 $('user-select').addEventListener('change', () => {
   const user = users.find(user => user.id === $('user-select').value);
+  $('edit-username').value = user?.username || '';
   $('edit-name').value = user?.display_name || ''; $('edit-enabled').checked = Boolean(user?.enabled);
 });
 $('edit-form').addEventListener('submit', event => { event.preventDefault(); submit(event.currentTarget, async fields => {
   const result = await api('update-user', { ...fields, enabled: $('edit-enabled').checked }); await load(); show(result.message);
+}); });
+$('admin-profile-form').addEventListener('submit', event => { event.preventDefault(); submit(event.currentTarget, async fields => {
+  const result = await api('admin-profile', fields); await load(); show(result.message);
 }); });
 $('admin-password-form').addEventListener('submit', event => { event.preventDefault(); submit(event.currentTarget, async fields => {
   if (fields.password !== fields.confirm) throw new Error('The passwords do not match.');

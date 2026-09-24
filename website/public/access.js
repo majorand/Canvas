@@ -36,7 +36,7 @@ try {
   } else {
     const status = await accountApi('status', {}, '');
     $('setup-card').hidden = !status.setupAvailable;
-    show(status.setupAvailable ? 'The owner needs to finish administrator setup before accounts can be used.' : 'Enter your email and password to continue.');
+    show(status.setupAvailable ? 'The owner needs to finish administrator setup before accounts can be used.' : 'Enter your username or email and password to continue.');
     if (memberSession()) {
       try {
         const { user } = await accountApi('me');

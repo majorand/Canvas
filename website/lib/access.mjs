@@ -23,7 +23,14 @@ const displayName = value => {
   if (!name || name.length > 80) throw new AccessError(400, 'Enter a name between 1 and 80 characters.');
   return name;
 };
+function usernameCheck(value) {
+  const username = String(value || '').trim().toLowerCase();
+  if (!username) return null;
+  if (!/^[a-z0-9][a-z0-9._-]{2,31}$/.test(username)) throw new AccessError(400, 'Use 3–32 characters for usernames: letters, numbers, dots, underscores, or hyphens; start with a letter or number.');
+  return username;
+}
 function checked(result) {
+  if (result.error?.code === '23505') throw new AccessError(409, 'That email or username is already in use.');
   if (result.error) throw new AccessError(503, 'Account storage is unavailable. Please try again later.');
   return result.data;
 }
@@ -39,6 +46,14 @@ export function createAccessService({ db, authClient, ownerEmail, siteUrl, now =
   }
   async function accountByEmail(email) {
     return checked(await db.from('site_accounts').select('*').eq('email', email).maybeSingle());
+  }
+  async function uniqueUsername(value, exceptId) {
+    const username = usernameCheck(value);
+    if (username) {
+      const existing = checked(await db.from('site_accounts').select('id').eq('username', username).maybeSingle());
+      if (existing && existing.id !== exceptId) throw new AccessError(409, 'That username is already in use.');
+    }
+    return username;
   }
   async function authorize(token, kind) {
     if (!validToken(token)) throw new AccessError(401, 'Please sign in.');
@@ -59,10 +74,10 @@ export function createAccessService({ db, authClient, ownerEmail, siteUrl, now =
     checked(await db.from('site_sessions').delete().eq('user_id', userId));
   }
   async function verifyPassword(email, password) {
-    if (typeof password !== 'string' || password.length > 128) throw new AccessError(401, 'Email or password is incorrect.');
+    if (typeof password !== 'string' || password.length > 128) throw new AccessError(401, 'Username, email, or password is incorrect.');
     const client = authClient();
     const result = await client.auth.signInWithPassword({ email, password });
-    if (result.error || !result.data?.user) throw new AccessError(401, 'Email or password is incorrect.');
+    if (result.error || !result.data?.user) throw new AccessError(401, 'Username, email, or password is incorrect.');
     // Our own scoped sessions are revocable immediately; Supabase tokens stay off the frontend.
     await client.auth.signOut({ scope: 'local' });
     return result.data.user;
@@ -106,10 +121,17 @@ export function createAccessService({ db, authClient, ownerEmail, siteUrl, now =
     return { message: 'Administrator password saved. You can now sign in to the admin page.' };
   }
   async function login(body, ip) {
-    const email = emailCheck(body.email);
+    const identifier = String(body.identifier ?? body.email ?? '').trim().toLowerCase();
     const kind = body.admin === true ? 'admin' : 'member';
     await rate('login-ip:' + ip, 30);
-    await rate('login-email:' + email, 10);
+    if (!identifier || identifier.length > 254) throw new AccessError(401, 'Username, email, or password is incorrect.');
+    const account = identifier.includes('@')
+      ? await accountByEmail(identifier)
+      : checked(await db.from('site_accounts').select('*').eq('username', identifier).maybeSingle());
+    // Username and email attempts share the same limit for an existing account.
+    await rate('login-account:' + (account?.id || identifier), 10);
+    if (!account) throw new AccessError(401, 'Username, email, or password is incorrect.');
+    const email = account.email;
     let user;
     try { user = await verifyPassword(email, body.password); }
     catch (error) {
@@ -117,7 +139,6 @@ export function createAccessService({ db, authClient, ownerEmail, siteUrl, now =
       if (known) await log(known, 'failed_sign_in');
       throw error;
     }
-    const account = await accountByEmail(email);
     if (!account || account.id !== user.id || !account.enabled || !account.activated) throw new AccessError(403, 'This account does not have access. Contact the administrator.');
     if (kind === 'admin' && account.role !== 'admin') throw new AccessError(403, 'Administrator access is required.');
     await log(account, kind === 'admin' ? 'admin_sign_in' : 'sign_in');
@@ -128,7 +149,7 @@ export function createAccessService({ db, authClient, ownerEmail, siteUrl, now =
     if (action === 'setup') return setup(body, ip);
     if (action === 'complete-setup') return completeSetup(body, ip);
     if (action === 'login') return login(body, ip);
-    const adminAction = ['admin-data', 'create-user', 'update-user', 'admin-password', 'admin-logout'].includes(action);
+    const adminAction = ['admin-data', 'create-user', 'update-user', 'admin-password', 'admin-logout', 'admin-profile'].includes(action);
     const account = await authorize(token, adminAction ? 'admin' : 'member');
     if (action === 'me') return { user: account };
     if (action === 'enter' || action === 'presence') {
@@ -155,9 +176,15 @@ export function createAccessService({ db, authClient, ownerEmail, siteUrl, now =
       await log(account, 'password_changed');
       return { message: 'Password changed. Sign in again with your new password.' };
     }
+    if (action === 'admin-profile') {
+      const username = await uniqueUsername(body.username, account.id);
+      checked(await db.from('site_accounts').update({ username }).eq('id', account.id));
+      await log(account, 'account_updated');
+      return { message: username ? 'Administrator username saved. You can sign in with your username or email.' : 'Username removed. Continue signing in with your email.' };
+    }
     if (action === 'admin-data') {
       checked(await db.rpc('site_cleanup'));
-      const users = checked(await db.from('site_accounts').select('id,email,display_name,role,enabled,activated,created_at,last_seen_at').order('created_at', { ascending: false }).limit(500));
+      const users = checked(await db.from('site_accounts').select('id,email,username,display_name,role,enabled,activated,created_at,last_seen_at').order('created_at', { ascending: false }).limit(500));
       const events = checked(await db.from('site_access_events').select('id,email,event,created_at').gte('created_at', new Date(now() - 30 * 86400000).toISOString()).order('created_at', { ascending: false }).limit(200));
       return { users, events };
     }
@@ -165,9 +192,10 @@ export function createAccessService({ db, authClient, ownerEmail, siteUrl, now =
       await rate('admin-create:' + account.id, 30, 3600);
       const email = emailCheck(body.email); const name = displayName(body.name); passwordCheck(body.password);
       if (email === owner || await accountByEmail(email)) throw new AccessError(409, 'That account already exists.');
+      const username = await uniqueUsername(body.username);
       const result = await db.auth.admin.createUser({ email, password: body.password, email_confirm: true });
       if (result.error || !result.data?.user) throw new AccessError(400, 'The account could not be created. Check the email and password.');
-      const member = { id: result.data.user.id, email, display_name: name, role: 'member', enabled: true };
+      const member = { id: result.data.user.id, email, username, display_name: name, role: 'member', enabled: true };
       try { checked(await db.from('site_accounts').insert(member)); }
       catch (error) { await db.auth.admin.deleteUser(member.id); throw error; }
       await log(member, 'account_created', account);
@@ -178,6 +206,7 @@ export function createAccessService({ db, authClient, ownerEmail, siteUrl, now =
       const target = checked(await db.from('site_accounts').select('*').eq('id', body.id).maybeSingle());
       if (!target || target.role === 'admin') throw new AccessError(403, 'Use administrator password settings to change your own account.');
       const updates = {};
+      if (body.username !== undefined) updates.username = await uniqueUsername(body.username, target.id);
       if (body.name !== undefined) updates.display_name = displayName(body.name);
       if (typeof body.enabled === 'boolean') updates.enabled = body.enabled;
       if (body.password) {

@@ -121,3 +121,41 @@ test('HTTP and WebSocket endpoints reject unauthorized requests and allow authen
 test('production relay rejects a missing credential before accessing any database', async () => {
   await rejected(authorizeRelay({url:'/api/wisp/'}),401);
 });
+
+test('username and email both sign in, share rate limits, and retain role checks', async () => {
+  const {service,admin,member}=await fixture();
+  await service.dispatch('update-user',{id:member.user.id,username:'  School.User  '},admin.token,'1');
+  const login = await service.dispatch('login',{identifier:'SCHOOL.USER',password:'member-test-password-123'},'','4');
+  assert.equal(login.user.id,member.user.id);
+  assert.ok((await service.dispatch('login',{identifier:member.user.email,password:'member-test-password-123'},'','4')).token);
+  await rejected(service.dispatch('login',{identifier:'school.user',password:'member-test-password-123',admin:true},'','4'),403);
+  await rejected(service.dispatch('admin-profile',{username:'takeover'},member.token,'4'),401);
+  await service.dispatch('update-user',{id:member.user.id,enabled:false},admin.token,'1');
+  await rejected(service.dispatch('login',{identifier:'school.user',password:'member-test-password-123'},'','4'),403);
+});
+
+test('usernames are unique, validated, editable, optional, and supported for the administrator', async () => {
+  const {service,admin,member}=await fixture();
+  await service.dispatch('admin-profile',{username:'My.Admin'},admin.token,'1');
+  assert.ok((await service.dispatch('login',{identifier:'my.admin',password:'owner-test-password-123',admin:true},'','7')).token);
+  await rejected(service.dispatch('update-user',{id:member.user.id,username:'MY.ADMIN'},admin.token,'1'),409);
+  await rejected(service.dispatch('create-user',{email:'new@example.test',username:'my.admin',name:'New',password:'new-test-password-123'},admin.token,'1'),409);
+  for (const username of ['xy','has space','email@example.test','_invalid','x'.repeat(33)]) {
+    await rejected(service.dispatch('update-user',{id:member.user.id,username},admin.token,'1'),400);
+  }
+  await service.dispatch('create-user',{email:'new@example.test',username:'new-user',name:'New',password:'new-test-password-123'},admin.token,'1');
+  assert.ok((await service.dispatch('login',{identifier:'new-user',password:'new-test-password-123'},'','8')).token);
+  await service.dispatch('update-user',{id:member.user.id,username:'old-name'},admin.token,'1');
+  await service.dispatch('update-user',{id:member.user.id,username:'new-name'},admin.token,'1');
+  await rejected(service.dispatch('login',{identifier:'old-name',password:'member-test-password-123'},'','9'),401);
+  await service.dispatch('update-user',{id:member.user.id,username:''},admin.token,'1');
+  await rejected(service.dispatch('login',{identifier:'new-name',password:'member-test-password-123'},'','9'),401);
+  assert.ok((await service.dispatch('login',{email:member.user.email,password:'member-test-password-123'},'','9')).token);
+});
+
+test('alternating email and username cannot bypass account login throttling', async () => {
+  const {service,admin,member}=await fixture();
+  await service.dispatch('update-user',{id:member.user.id,username:'same-account'},admin.token,'1');
+  for(let i=0;i<9;i++) await rejected(service.dispatch('login',{identifier:i%2?'same-account':member.user.email,password:'wrong'},'','new-ip'),401);
+  await rejected(service.dispatch('login',{identifier:'same-account',password:'member-test-password-123'},'','different-ip'),429);
+});
