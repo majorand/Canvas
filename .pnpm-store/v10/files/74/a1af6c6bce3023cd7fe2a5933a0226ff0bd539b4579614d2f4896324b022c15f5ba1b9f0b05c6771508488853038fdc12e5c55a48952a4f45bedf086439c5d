@@ -1,0 +1,10 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { Chunks } from "@rsdoctor/graph";
+import { parseBundle } from "../utils/index.js";
+async function getAssetsModulesData(moduleGraph, chunkGraph, bundleDir, sourceMapSets, hasParseBundle = true, assetsWithoutSourceMap) {
+    return Chunks.getAssetsModulesData(moduleGraph, chunkGraph, bundleDir, hasParseBundle ? {
+        parseBundle: parseBundle
+    } : {}, sourceMapSets, assetsWithoutSourceMap);
+}
+export { getAssetsModulesData };

@@ -1,0 +1,25 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+var types_CheckVersion = /*#__PURE__*/ function(CheckVersion) {
+    CheckVersion[CheckVersion["null"] = 0] = "null";
+    CheckVersion[CheckVersion["prerelease"] = 1] = "prerelease";
+    CheckVersion[CheckVersion["prepatch"] = 16] = "prepatch";
+    CheckVersion[CheckVersion["patch"] = 256] = "patch";
+    CheckVersion[CheckVersion["preminor"] = 4096] = "preminor";
+    CheckVersion[CheckVersion["minor"] = 65536] = "minor";
+    CheckVersion[CheckVersion["premajor"] = 1048576] = "premajor";
+    CheckVersion[CheckVersion["major"] = 16777216] = "major";
+    return CheckVersion;
+}({});
+var types_CheckVersionMap = /*#__PURE__*/ function(CheckVersionMap) {
+    CheckVersionMap[CheckVersionMap["null"] = 0] = "null";
+    CheckVersionMap[CheckVersionMap["prerelease"] = 1] = "prerelease";
+    CheckVersionMap[CheckVersionMap["prepatch"] = 17] = "prepatch";
+    CheckVersionMap[CheckVersionMap["patch"] = 273] = "patch";
+    CheckVersionMap[CheckVersionMap["preminor"] = 4369] = "preminor";
+    CheckVersionMap[CheckVersionMap["minor"] = 69905] = "minor";
+    CheckVersionMap[CheckVersionMap["premajor"] = 1118481] = "premajor";
+    CheckVersionMap[CheckVersionMap["major"] = 17895697] = "major";
+    return CheckVersionMap;
+}({});
+export { types_CheckVersion as CheckVersion, types_CheckVersionMap as CheckVersionMap };

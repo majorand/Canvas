@@ -1,0 +1,95 @@
+"use strict";
+var __webpack_require__ = {};
+(()=>{
+    __webpack_require__.d = (exports1, definition)=>{
+        for(var key in definition)if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key)) Object.defineProperty(exports1, key, {
+            enumerable: true,
+            get: definition[key]
+        });
+    };
+})();
+(()=>{
+    __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop);
+})();
+(()=>{
+    __webpack_require__.r = (exports1)=>{
+        if ("u" > typeof Symbol && Symbol.toStringTag) Object.defineProperty(exports1, Symbol.toStringTag, {
+            value: 'Module'
+        });
+        Object.defineProperty(exports1, '__esModule', {
+            value: true
+        });
+    };
+})();
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+    getExportIdentifierStatement: ()=>getExportIdentifierStatement,
+    getDeclarationIdentifier: ()=>getDeclarationIdentifier
+});
+const compat_namespaceObject = require("es-toolkit/compat");
+const ruleUtils_namespaceObject = require("@rsdoctor/utils/ruleUtils");
+function getDefaultExportIdentifier(node, module, searchId) {
+    const { declaration } = node;
+    if (ruleUtils_namespaceObject.parser.asserts.isLiteral(declaration) && declaration.loc) return module.getStatement(declaration.loc);
+    if (ruleUtils_namespaceObject.parser.asserts.isIdentifier(declaration)) {
+        if (searchId) {
+            const result = getDeclarationIdentifier(declaration.name, module);
+            if (result) return result;
+        } else if (declaration.loc) return module.getStatement(declaration.loc);
+    }
+    if (ruleUtils_namespaceObject.parser.asserts.isClassDeclaration(declaration) || ruleUtils_namespaceObject.parser.asserts.isFunctionDeclaration(declaration)) {
+        if (declaration.id?.loc) return module.getStatement(declaration.id.loc);
+    }
+    const startLine = node.declaration.loc?.start.line;
+    if (!(0, compat_namespaceObject.isNumber)(startLine)) return;
+    const { transformed } = module.getSource();
+    const endColumn = transformed.split('\n')[startLine - 1].length - 1;
+    return module.getStatement({
+        start: {
+            line: startLine,
+            column: 0
+        },
+        end: {
+            line: startLine,
+            column: endColumn
+        }
+    });
+}
+function getExportIdentifierStatement(name, module) {
+    const ast = module.getProgram();
+    if (!ast) return;
+    for (const node of ast.body){
+        if (ruleUtils_namespaceObject.parser.asserts.isExportDefaultDeclaration(node)) {
+            const result = getDefaultExportIdentifier(node, module, false);
+            if (result) return result;
+        }
+        const id = ruleUtils_namespaceObject.parser.utils.getIdentifierInExport(name, node);
+        if (id?.loc) return module.getStatement(id.loc);
+    }
+}
+function getDeclarationIdentifier(name, module) {
+    const ast = module.getProgram();
+    if (!ast) return;
+    for (const node of ast.body){
+        const id = ruleUtils_namespaceObject.parser.utils.getIdentifierInDeclaration(name, node);
+        if (id?.loc) return module.getStatement(id.loc);
+        if (ruleUtils_namespaceObject.parser.asserts.isExportNamedDeclaration(node) && node.declaration) {
+            const id = ruleUtils_namespaceObject.parser.utils.getIdentifierInDeclaration(name, node.declaration);
+            if (id?.loc) return module.getStatement(id.loc);
+        }
+        if ('default' === name && ruleUtils_namespaceObject.parser.asserts.isExportDefaultDeclaration(node)) {
+            const result = getDefaultExportIdentifier(node, module, true);
+            if (result) return result;
+        }
+    }
+}
+exports.getDeclarationIdentifier = __webpack_exports__.getDeclarationIdentifier;
+exports.getExportIdentifierStatement = __webpack_exports__.getExportIdentifierStatement;
+for(var __rspack_i in __webpack_exports__)if (-1 === [
+    "getDeclarationIdentifier",
+    "getExportIdentifierStatement"
+].indexOf(__rspack_i)) exports[__rspack_i] = __webpack_exports__[__rspack_i];
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});

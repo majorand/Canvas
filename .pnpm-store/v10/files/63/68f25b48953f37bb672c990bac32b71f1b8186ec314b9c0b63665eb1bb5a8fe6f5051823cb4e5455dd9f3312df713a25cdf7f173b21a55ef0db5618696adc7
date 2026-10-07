@@ -1,0 +1,49 @@
+{
+  "name": "@rsdoctor/types",
+  "version": "1.4.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rsdoctor",
+    "directory": "packages/types"
+  },
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@types/connect": "3.4.38",
+    "@types/estree": "1.0.5",
+    "@types/tapable": "2.2.7",
+    "source-map": "^0.7.6"
+  },
+  "devDependencies": {
+    "@rspack/core": "1.6.8",
+    "@types/node": "^22.8.1",
+    "@types/react": "^18.3.27",
+    "tslib": "2.8.1",
+    "typescript": "^5.9.2"
+  },
+  "peerDependencies": {
+    "@rspack/core": "*",
+    "webpack": "5.x"
+  },
+  "peerDependenciesMeta": {
+    "@rspack/core": {
+      "optional": true
+    },
+    "webpack": {
+      "optional": true
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "build": "rm -f ./tsconfig.tsbuildinfo && tsc -p tsconfig.json",
+    "dev": "npm run start",
+    "start": "npm run build -- -w"
+  }
+}

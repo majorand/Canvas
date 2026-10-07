@@ -1,0 +1,10 @@
+export declare function isUndefined(value: unknown): value is undefined;
+export declare function isNumber(value: unknown): value is number;
+export declare function isObject(value: unknown): value is Record<string, unknown>;
+export declare function isEmpty(value: unknown): boolean;
+export declare function last<T>(array: T[]): T | undefined;
+export declare function compact<T>(array: (T | null | undefined)[]): T[];
+export declare function isNil(value: unknown): value is null | undefined;
+export declare const isPlainObject: (obj: unknown) => obj is Record<string, any>;
+export declare const isString: (v: unknown) => v is string;
+export declare function pick<T extends Record<string, any>, K extends keyof T>(obj: T, keys: readonly K[]): Pick<T, K>;

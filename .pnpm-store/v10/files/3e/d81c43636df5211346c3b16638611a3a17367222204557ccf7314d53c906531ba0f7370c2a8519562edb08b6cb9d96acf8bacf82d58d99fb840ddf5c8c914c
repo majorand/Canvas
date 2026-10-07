@@ -1,0 +1,8 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { ModuleGraphTrans } from "@rsdoctor/graph";
+import { appendModuleGraphByCompilation } from "./index.js";
+function getModuleGraphByStats(compilation, stats, root, chunkGraph, features, context) {
+    return appendModuleGraphByCompilation(compilation, ModuleGraphTrans.getModuleGraphByStats(stats, root, chunkGraph), features, context);
+}
+export { getModuleGraphByStats };

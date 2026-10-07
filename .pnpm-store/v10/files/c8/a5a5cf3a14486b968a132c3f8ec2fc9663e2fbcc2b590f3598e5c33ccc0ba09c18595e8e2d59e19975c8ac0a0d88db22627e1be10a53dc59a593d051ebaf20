@@ -1,0 +1,24 @@
+import { SDK } from '@rsdoctor/types';
+export declare class Dependency implements SDK.DependencyInstance {
+    static kind: typeof SDK.DependencyKind;
+    static init(): void;
+    id: number;
+    readonly request: string;
+    readonly module: SDK.ModuleInstance;
+    readonly kind: SDK.DependencyKind;
+    readonly statements: SDK.StatementInstance[];
+    private _originDependency;
+    meta: SDK.DependencyBuildMeta;
+    constructor(request: string, module: SDK.ModuleInstance, dependency: SDK.ModuleInstance, kind: SDK.DependencyKind, statements?: SDK.StatementInstance[]);
+    get resolvedRequest(): string;
+    get dependency(): SDK.ModuleInstance;
+    get originDependency(): SDK.ModuleInstance;
+    get kindString(): keyof typeof SDK.DependencyKind;
+    get resolveConcatenationModule(): boolean;
+    isSameWithoutStatements(dep: Dependency): boolean;
+    addStatement(statement: SDK.StatementInstance): void;
+    hasStatement(statement: SDK.StatementInstance): boolean;
+    setBuildMeta(data: SDK.DependencyBuildMeta): void;
+    toData(): SDK.DependencyData;
+    setId(id: number): void;
+}

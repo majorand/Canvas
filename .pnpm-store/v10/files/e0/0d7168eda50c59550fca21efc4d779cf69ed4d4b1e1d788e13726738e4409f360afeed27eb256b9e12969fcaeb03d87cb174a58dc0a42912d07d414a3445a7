@@ -1,0 +1,13 @@
+import { Plugin } from 'vite';
+import { RenderedComponent } from 'dreamland/ssr/server';
+
+declare let jsxPlugin: () => Plugin;
+declare let renderSsr: (html: string, render: () => RenderedComponent, transform?: (html: string) => Promise<string> | string) => Promise<string>;
+type DevSsrPluginOptions = {
+    entry: string;
+    transform?: (html: string) => string;
+};
+declare let devSsr: (options: DevSsrPluginOptions) => any;
+
+export { devSsr, jsxPlugin, renderSsr };
+export type { DevSsrPluginOptions };

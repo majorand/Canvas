@@ -1,0 +1,32 @@
+import { SDK } from '@rsdoctor/types';
+export declare class Chunk implements SDK.ChunkInstance {
+    readonly id: string;
+    readonly name: string;
+    readonly size: number;
+    readonly initial: boolean;
+    readonly entry: boolean;
+    private _assets;
+    private _modules;
+    private _dependencies;
+    private _imported;
+    private _parsedSize;
+    constructor(id: string, name: string, size: number, initial: boolean, entry: boolean);
+    isEntry(): boolean;
+    isChunkEntryModule(module: SDK.ModuleInstance): boolean;
+    hasModule(module: SDK.ModuleInstance): boolean;
+    addModule(module: SDK.ModuleInstance): void;
+    addAsset(asset: SDK.AssetInstance): void;
+    addModules(modules: SDK.ModuleInstance[]): void;
+    addDependency(dep: SDK.ChunkInstance): void;
+    addImported(imported: SDK.ChunkInstance): void;
+    getAssets(): SDK.AssetInstance[];
+    getModules(): SDK.ModuleInstance[];
+    getDependencies(): SDK.ChunkInstance[];
+    getImported(): SDK.ChunkInstance[];
+    setParsedSize(parsedSize: number): void;
+    toData(): SDK.ChunkData;
+    setDependencies(dependencies: SDK.ChunkInstance[]): void;
+    setImported(imported: SDK.ChunkInstance[]): void;
+    setModules(modules: SDK.ModuleInstance[]): void;
+    setAssets(assets: SDK.AssetInstance[]): void;
+}

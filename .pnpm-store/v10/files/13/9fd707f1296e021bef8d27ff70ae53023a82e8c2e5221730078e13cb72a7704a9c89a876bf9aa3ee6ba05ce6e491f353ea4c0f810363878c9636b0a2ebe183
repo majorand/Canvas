@@ -1,0 +1,35 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { openBrowser } from "@rsdoctor/sdk";
+import { makeRulesSerializable } from "@rsdoctor/core/plugins";
+import { SDK } from "@rsdoctor/types";
+import { chalk } from "@rsdoctor/utils/logger";
+import { cloneDeep } from "es-toolkit/compat";
+import path from "path";
+function processCompilerConfig(config) {
+    const { plugins, infrastructureLogging, ...rest } = config;
+    const _rest = cloneDeep(rest);
+    if (_rest.module?.defaultRules) makeRulesSerializable(_rest.module.defaultRules);
+    if (_rest.module?.rules) makeRulesSerializable(_rest.module.rules);
+    return {
+        ..._rest,
+        plugins: plugins.map((e)=>e?.constructor.name)
+    };
+}
+async function handleBriefModeReport(sdk, options, disableClientServer) {
+    if (!disableClientServer && options.output.mode === SDK.IMode[SDK.IMode.brief]) {
+        const outputTypes = options.output.options?.type || [];
+        const isJsonOnly = Array.isArray(outputTypes) && 1 === outputTypes.length && 'json' === outputTypes[0];
+        if (isJsonOnly) {
+            const jsonFileName = options.output.options?.jsonOptions?.fileName || 'rsdoctor-data.json';
+            const jsonFilePath = path.resolve(sdk.outputDir, jsonFileName);
+            console.log(`${chalk.green('[RSDOCTOR] generated JSON data')}: ${jsonFilePath}`);
+        } else {
+            const htmlOptions = 'htmlOptions' in options.output.options && options.output.options.htmlOptions || void 0;
+            const outputFilePath = path.resolve(sdk.outputDir, htmlOptions?.reportHtmlName || 'rsdoctor-report.html');
+            console.log(`${chalk.green('[RSDOCTOR] generated brief report')}: ${outputFilePath}`);
+            openBrowser(`file:///${outputFilePath}`);
+        }
+    }
+}
+export { handleBriefModeReport, processCompilerConfig };

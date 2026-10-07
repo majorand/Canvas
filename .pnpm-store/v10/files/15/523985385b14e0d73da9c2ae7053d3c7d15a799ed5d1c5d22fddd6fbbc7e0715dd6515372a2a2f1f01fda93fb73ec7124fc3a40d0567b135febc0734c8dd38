@@ -1,0 +1,20 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+const globalKey = '__rsdoctor_sdks__';
+function setSDK(t) {
+    if (!globalThis.__rsdoctor_sdks__) globalThis.__rsdoctor_sdks__ = [];
+    globalThis.__rsdoctor_sdks__.push(t);
+    globalThis.__rsdoctor_sdk__ = t;
+}
+function getSDK(builderName) {
+    const sdks = globalThis[globalKey] || [];
+    let sdk = globalThis['__rsdoctor_sdk__'];
+    if (sdk && sdk.name !== builderName) sdk = builderName ? sdks.find((s)=>s.name === builderName) || sdk : sdk;
+    if (sdk && builderName && 'parent' in sdk) {
+        const _sdk = sdk;
+        const slaveSDK = _sdk.parent.slaves.find((_sdk)=>_sdk.name === builderName);
+        return slaveSDK || sdk;
+    }
+    return sdk;
+}
+export { getSDK, setSDK };

@@ -1,0 +1,15 @@
+import { Data } from '@rsdoctor/utils/common';
+import { Manifest, SDK } from '@rsdoctor/types';
+interface SocketAPILoaderOptions {
+    sdk: SDK.RsdoctorBuilderSDKInstance;
+}
+export declare class SocketAPILoader implements Manifest.ManifestDataLoader {
+    protected options: SocketAPILoaderOptions;
+    protected dataLoader: Data.APIDataLoader;
+    constructor(options: SocketAPILoaderOptions);
+    loadManifest(): Promise<Manifest.RsdoctorManifestWithShardingFiles>;
+    loadData<T extends Manifest.RsdoctorManifestMappingKeys>(key: T): Promise<Manifest.InferManifestDataValue<T>>;
+    loadData(key: string): Promise<void>;
+    get loadAPIData(): <T extends SDK.ServerAPI.API, B extends SDK.ServerAPI.InferRequestBodyType<T> = import("@rsdoctor/types/dist/common").Get<SDK.ServerAPI.RequestBodyTypes, T, void>, R extends SDK.ServerAPI.InferResponseType<T> = import("@rsdoctor/types/dist/common").Get<SDK.ServerAPI.ResponseTypes, T, void>>(...args: B extends void ? [api: T] : [api: T, body: B]) => Promise<SDK.ServerAPI.InferResponseType<T>>;
+}
+export {};

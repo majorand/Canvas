@@ -1,0 +1,11 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { Linter } from "@rsdoctor/types";
+function toSeverity(input, defaultLevel) {
+    if ('off' === input) return Linter.Severity.Ignore;
+    if ('on' === input) return defaultLevel;
+    const key = `${input[0].toUpperCase()}${input.slice(1)}`;
+    return Linter.Severity[key];
+}
+function noop() {}
+export { noop, toSeverity };

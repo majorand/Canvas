@@ -1,0 +1,98 @@
+"use strict";
+var __webpack_require__ = {};
+(()=>{
+    __webpack_require__.d = (exports1, definition)=>{
+        for(var key in definition)if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key)) Object.defineProperty(exports1, key, {
+            enumerable: true,
+            get: definition[key]
+        });
+    };
+})();
+(()=>{
+    __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop);
+})();
+(()=>{
+    __webpack_require__.r = (exports1)=>{
+        if ("u" > typeof Symbol && Symbol.toStringTag) Object.defineProperty(exports1, Symbol.toStringTag, {
+            value: 'Module'
+        });
+        Object.defineProperty(exports1, '__esModule', {
+            value: true
+        });
+    };
+})();
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+    raw: ()=>raw,
+    default: ()=>proxy,
+    pitch: ()=>pitch
+});
+const index_cjs_namespaceObject = require("../../build-utils/build/index.cjs");
+const external_utils_index_cjs_namespaceObject = require("../utils/index.cjs");
+const loaderModule = function(...args) {
+    if ((0, external_utils_index_cjs_namespaceObject.shouldSkipLoader)(this)) return void this.callback(null, ...args);
+    this.cacheable(false);
+    const mod = (0, external_utils_index_cjs_namespaceObject.getOriginLoaderModule)(this);
+    if (mod.default) {
+        if (false === mod.raw && Buffer.isBuffer(args[0])) args[0] = args[0].toString();
+        let start;
+        let startHRTime;
+        const trap = index_cjs_namespaceObject.Utils.createLoaderContextTrap.call(this, (err, res, sourceMap)=>{
+            (0, external_utils_index_cjs_namespaceObject.reportLoader)(this, start, startHRTime, false, false, args[0].toString(), err, res, sourceMap);
+        });
+        start = Date.now();
+        startHRTime = process.hrtime();
+        try {
+            const result = mod.default.apply(trap, args);
+            if (result) {
+                if (!(result instanceof Promise)) (0, external_utils_index_cjs_namespaceObject.reportLoader)(this, start, startHRTime, false, true, args[0].toString(), null, result);
+            }
+            return result || '';
+        } catch (error) {
+            (0, external_utils_index_cjs_namespaceObject.reportLoader)(this, start, startHRTime, false, true, args[0].toString(), error, null);
+            throw error;
+        }
+    }
+    this.callback(null, ...args);
+};
+const pitch = function() {
+    if ((0, external_utils_index_cjs_namespaceObject.shouldSkipLoader)(this)) return;
+    this.cacheable(false);
+    const mod = (0, external_utils_index_cjs_namespaceObject.getOriginLoaderModule)(this);
+    if (mod.pitch && 'function' == typeof mod.pitch) {
+        let start;
+        let startHRTime;
+        const trap = index_cjs_namespaceObject.Utils.createLoaderContextTrap.call(this, (err, res)=>{
+            (0, external_utils_index_cjs_namespaceObject.reportLoader)(this, start, startHRTime, true, false, err ? 'Loader Pitch Async Error' : '', err, res);
+        });
+        start = Date.now();
+        startHRTime = process.hrtime();
+        try {
+            const res = mod.pitch.apply(trap, arguments);
+            if (res) {
+                if (!(res instanceof Promise)) (0, external_utils_index_cjs_namespaceObject.reportLoader)(this, start, startHRTime, true, true, '', null, res);
+            }
+            return res;
+        } catch (error) {
+            (0, external_utils_index_cjs_namespaceObject.reportLoader)(this, start, startHRTime, true, true, 'Loader Pitch Sync Error', error, null);
+            throw error;
+        }
+    }
+};
+loaderModule.raw = true;
+loaderModule.pitch = pitch;
+const raw = true;
+const proxy = loaderModule;
+exports["default"] = __webpack_exports__["default"];
+exports.pitch = __webpack_exports__.pitch;
+exports.raw = __webpack_exports__.raw;
+for(var __rspack_i in __webpack_exports__)if (-1 === [
+    "default",
+    "pitch",
+    "raw"
+].indexOf(__rspack_i)) exports[__rspack_i] = __webpack_exports__[__rspack_i];
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+module.exports = loaderModule;

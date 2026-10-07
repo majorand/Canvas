@@ -1,0 +1,135 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { Manifest } from "@rsdoctor/types";
+import { Process } from "@rsdoctor/utils/build";
+import { chalk, logger } from "@rsdoctor/utils/logger";
+import { Chunks, ModuleGraph } from "../../build-utils/build/index.js";
+import { internalPluginTapPreOptions, pluginTapPostOptions } from "../constants.js";
+import { applyRspackNativePlugin } from "./rspack.js";
+import { handleAfterEmitAssets, handleEmitAssets } from "./sourcemapTool.js";
+let hasConsole = false;
+const ensureModulesChunksGraphFn = (compiler, _this)=>{
+    if (_this._modulesGraphApplied) return;
+    _this._modulesGraphApplied = true;
+    const context = {
+        astCache: new Map(),
+        packagePathMap: new Map(),
+        getSourceMap: (file)=>_this.sdk.getSourceMap(file)
+    };
+    const RsdoctorRspackPlugin = compiler.webpack.experiments?.RsdoctorPlugin;
+    if (RsdoctorRspackPlugin) applyRspackNativePlugin(compiler, _this, RsdoctorRspackPlugin);
+    if (!_this._realSourcePathCache) _this._realSourcePathCache = new Map();
+    compiler.hooks.done.tapPromise(internalPluginTapPreOptions('moduleGraph'), async (_stats)=>{
+        await doneHandler(_stats, _this, context, compiler);
+    });
+    compiler.hooks.compilation.tap({
+        ...pluginTapPostOptions,
+        name: 'RsdoctorSourceMapCollector'
+    }, (compilation)=>{
+        if (compilation.hooks.processAssets) compilation.hooks.processAssets.tapPromise({
+            name: 'RsdoctorSourceMapCollector',
+            stage: 2400
+        }, async ()=>{
+            if (!ensureDevtools(compiler)) return;
+            const { namespace, sourceMapFilenameRegex } = calculateNamespaceAndRegex(compiler);
+            await handleAfterEmitAssets(compilation, _this, sourceMapFilenameRegex, namespace);
+        });
+    });
+    compiler.hooks.emit.tapAsync({
+        ...pluginTapPostOptions,
+        stage: pluginTapPostOptions.stage + 100
+    }, emitHandler.bind(null, _this, compiler));
+};
+async function doneHandler(_stats, _this, context, compiler) {
+    const stats = _stats;
+    const getStatsJson = (()=>{
+        let cached = null;
+        return ()=>{
+            if (cached) return cached;
+            cached = stats.toJson({
+                all: false,
+                chunks: true,
+                modules: true,
+                chunkModules: true,
+                assets: true,
+                ids: true,
+                hash: true,
+                errors: true,
+                warnings: true,
+                nestedModules: true,
+                cachedModules: true,
+                orphanModules: true,
+                runtimeModules: true,
+                optimizationBailout: true
+            });
+            return cached;
+        };
+    })();
+    logger.debug(`${(Process.getMemoryUsageMessage(), '[Before Generate ModuleGraph]')}`);
+    if (!_this.chunkGraph?.getChunks().length) _this.chunkGraph = Chunks.chunkTransform(new Map(), getStatsJson());
+    if (!_this.modulesGraph.getModules().length) _this.modulesGraph = await ModuleGraph.getModuleGraphByStats(stats.compilation, getStatsJson(), process.cwd(), _this.chunkGraph, _this.options.features, context);
+    logger.debug(`${(Process.getMemoryUsageMessage(), '[After Generate ModuleGraph]')}`);
+    if (_this.options.features.treeShaking) {
+        if ('rspackVersion' in compiler.webpack) logger.info(chalk.yellow('Rspack currently does not support treeShaking capabilities.'));
+        else {
+            _this.modulesGraph = ModuleGraph.appendTreeShaking(_this.modulesGraph, stats.compilation) || _this.modulesGraph;
+            _this.sdk.addClientRoutes([
+                Manifest.RsdoctorManifestClientRoutes.TreeShaking
+            ]);
+        }
+        logger.debug(`${(Process.getMemoryUsageMessage(), '[After AppendTreeShaking to ModuleGraph]')}`);
+    }
+    const shouldParseBundle = false !== _this.options.supports.parseBundle;
+    await getModulesInfos(compiler, _this.modulesGraph, _this.chunkGraph, shouldParseBundle, _this.sourceMapSets, _this.assetsWithoutSourceMap);
+    logger.debug(`${Process.getMemoryUsageMessage()}, '[After Transform ModuleGraph]'`);
+    _this.modulesGraph && await _this.sdk.reportModuleGraph(_this.modulesGraph);
+    await _this.sdk.reportChunkGraph(_this.chunkGraph);
+    if (_this.options.supports.generateTileGraph) logger.warn(chalk.yellow('The option generateTileGraph is deprecated. Treemap (i.e. Tile Graph) is now supported by default.'));
+}
+const ensureDevtools = (compiler)=>{
+    const devtool = compiler.options.devtool;
+    if ('string' == typeof devtool && /eval/i.test(devtool)) {
+        hasConsole || logger.warn('SourceMap with eval is not supported. Please use other sourcemap options.');
+        hasConsole = true;
+        return false;
+    }
+    if ('rspack' in compiler) return true;
+    const sourceMapEnabled = 'string' == typeof devtool && /source-?map/i.test(devtool);
+    if (!sourceMapEnabled) {
+        logger.debug('SourceMap is not enabled. Skipping sourcemap processing.');
+        return false;
+    }
+    return true;
+};
+async function getModulesInfos(compiler, moduleGraph, chunkGraph, parseBundle, sourceMapSets, assetsWithoutSourceMap) {
+    if (!moduleGraph) return;
+    try {
+        await Chunks.getAssetsModulesData(moduleGraph, chunkGraph, compiler.outputPath, sourceMapSets, parseBundle, assetsWithoutSourceMap);
+    } catch (e) {}
+}
+function escapeRegExp(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+function calculateNamespaceAndRegex(compiler) {
+    let namespace = compiler.options.output.devtoolNamespace || compiler.options.output.library?.name || '[^/]+/';
+    if (Array.isArray(namespace)) namespace = namespace[0];
+    else if ('object' == typeof namespace && 'name' in namespace) namespace = namespace.name;
+    const safeNamespace = escapeRegExp(namespace);
+    const sourceMapFilenameRegex = new RegExp(`(?:webpack://)?(?:${safeNamespace})?([^?]*)`);
+    return {
+        namespace: namespace,
+        sourceMapFilenameRegex
+    };
+}
+async function emitHandler(_this, compiler, compilation, callback) {
+    if (!ensureDevtools(compiler)) return void callback();
+    const { namespace, sourceMapFilenameRegex } = calculateNamespaceAndRegex(compiler);
+    await handleEmitAssets({
+        compilation,
+        pluginInstance: _this,
+        sourceMapFilenameRegex,
+        namespace
+    });
+    callback();
+}
+export { calculateNamespaceAndRegex, ensureDevtools, ensureModulesChunksGraphFn };

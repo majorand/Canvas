@@ -1,0 +1,72 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { Dependency, Module } from "@rsdoctor/graph";
+import { SDK } from "@rsdoctor/types";
+const createDependencyKind = (type)=>{
+    if (type.includes('harmony')) return SDK.DependencyKind.ImportStatement;
+    if (type.includes('cjs')) return SDK.DependencyKind.RequireCall;
+    if (type.includes('import()')) return SDK.DependencyKind.DynamicImport;
+    if (type.includes('amd')) return SDK.DependencyKind.AMDRequire;
+    return SDK.DependencyKind.Unknown;
+};
+function patchNativeModuleGraph(mg, cg, rawModuleGraph) {
+    const { modules: rawModules, dependencies: rawDependencies, chunkModules: rawChunkModules } = rawModuleGraph;
+    const modules = rawModules.map((module)=>{
+        const res = new Module(module.identifier, module.path, module.isEntry, 'concatenated' === module.kind ? SDK.ModuleKind.Concatenation : SDK.ModuleKind.Normal, void 0, module.layer);
+        res.setId(module.ukey);
+        return res;
+    });
+    mg.setModules(modules);
+    for (const rawModule of rawModules){
+        const module = mg.getModuleById(rawModule.ukey);
+        if (module) module.setImported(rawModule.imported.map((ukey)=>mg.getModuleById(ukey)).filter(Boolean));
+    }
+    for (const rawModule of rawModules){
+        const module = mg.getModuleById(rawModule.ukey);
+        module.setModules(rawModule.modules.map((ukey)=>mg.getModuleById(ukey)).filter(Boolean));
+    }
+    for (const rawModule of rawModules){
+        const module = mg.getModuleById(rawModule.ukey);
+        if (module) module.setConcatenationModules(rawModule.belongModules.map((ukey)=>mg.getModuleById(ukey)).filter(Boolean));
+    }
+    for (const rawModule of rawModules){
+        const module = mg.getModuleById(rawModule.ukey);
+        if (module) module.setChunks(rawModule.chunks.map((ukey)=>cg.getChunkById(ukey.toString())).filter(Boolean));
+    }
+    for (const rawChunkModule of rawChunkModules){
+        const chunk = cg.getChunkById(rawChunkModule.chunk.toString());
+        if (chunk) chunk.setModules(rawChunkModule.modules.map((ukey)=>mg.getModuleById(ukey)).filter(Boolean));
+    }
+    const deppendencies = rawDependencies.map((dep)=>{
+        const res = new Dependency(dep.request, mg.getModuleById(dep.module), mg.getModuleById(dep.dependency), createDependencyKind(dep.kind));
+        res.setId(dep.ukey);
+        return res;
+    });
+    mg.setDependencies(deppendencies);
+    for (const rawModule of rawModules){
+        const module = mg.getModuleById(rawModule.ukey);
+        module.setDependencies(rawModule.dependencies.map((ukey)=>mg.getDependencyById(ukey)).filter(Boolean));
+    }
+}
+function patchNativeModuleIds(mg, rawModuleIdsPatch) {
+    const { moduleIds: rawModuleIds } = rawModuleIdsPatch;
+    for (const rawModuleId of rawModuleIds){
+        const module = mg.getModuleById(rawModuleId.module);
+        if (module) module.setRenderId(rawModuleId.renderId);
+    }
+}
+function patchNativeModuleSources(mg, rawModuleSourcesPatch) {
+    const { moduleOriginalSources: rawModuleOriginalSources } = rawModuleSourcesPatch;
+    for (const rawModuleOriginalSource of rawModuleOriginalSources){
+        const module = mg.getModuleById(rawModuleOriginalSource.module);
+        if (module) {
+            module.setSource({
+                source: rawModuleOriginalSource.source
+            });
+            module.setSize({
+                sourceSize: rawModuleOriginalSource.size
+            });
+        }
+    }
+}
+export { patchNativeModuleGraph, patchNativeModuleIds, patchNativeModuleSources };

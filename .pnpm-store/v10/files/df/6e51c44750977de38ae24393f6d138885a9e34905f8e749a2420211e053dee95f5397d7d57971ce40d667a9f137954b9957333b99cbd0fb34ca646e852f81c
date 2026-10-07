@@ -1,0 +1,72 @@
+{
+  "name": "@rsbuild/plugin-check-syntax",
+  "version": "1.5.0",
+  "repository": "https://github.com/rspack-contrib/rsbuild-plugin-check-syntax",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rslib build",
+    "dev": "rslib build --watch",
+    "lint": "biome check .",
+    "lint:write": "biome check . --write",
+    "prepare": "simple-git-hooks && npm run build",
+    "test": "rstest",
+    "bump": "npx bumpp"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "npx nano-staged"
+  },
+  "nano-staged": {
+    "*.{js,jsx,ts,tsx,mjs,cjs}": [
+      "biome check --write --no-errors-on-unmatched"
+    ]
+  },
+  "dependencies": {
+    "acorn": "^8.15.0",
+    "browserslist-to-es-version": "^1.1.1",
+    "htmlparser2": "10.0.0",
+    "picocolors": "^1.1.1",
+    "source-map": "^0.7.6"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@rsbuild/core": "^1.5.13",
+    "@rslib/core": "^0.15.0",
+    "@rspack/cli": "^1.5.8",
+    "@rspack/core": "^1.5.8",
+    "@rstest/core": "^0.5.1",
+    "@types/node": "^22.18.8",
+    "nano-staged": "^0.8.0",
+    "rslog": "^1.2.11",
+    "simple-git-hooks": "^2.13.1",
+    "strip-ansi": "^7.1.2",
+    "typescript": "^5.9.3",
+    "upath": "^2.0.1"
+  },
+  "peerDependencies": {
+    "@rsbuild/core": "1.x"
+  },
+  "peerDependenciesMeta": {
+    "@rsbuild/core": {
+      "optional": true
+    }
+  },
+  "packageManager": "pnpm@10.17.1",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

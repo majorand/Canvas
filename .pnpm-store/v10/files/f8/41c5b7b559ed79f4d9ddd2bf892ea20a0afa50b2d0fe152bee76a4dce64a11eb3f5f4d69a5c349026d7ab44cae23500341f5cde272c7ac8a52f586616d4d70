@@ -1,0 +1,10 @@
+import { Loader } from '@rsdoctor/utils/common';
+import { SDK, Plugin } from '@rsdoctor/types';
+import { ProxyLoaderInternalOptions, ProxyLoaderOptions } from '../../types/index.js';
+import { Utils as BuildUtils } from '../../build-utils/build/index.js';
+export declare function getInternalLoaderOptions(loaderContext: Plugin.LoaderContext<ProxyLoaderOptions>): ProxyLoaderInternalOptions;
+export declare function getLoaderOptionsWithoutInternalKeys(loaderContext: Plugin.LoaderContext<ProxyLoaderOptions>): Omit<ProxyLoaderOptions, typeof Loader.LoaderInternalPropertyName>;
+export declare function getOriginLoaderModule(loaderContext: Plugin.LoaderContext<ProxyLoaderOptions>): ReturnType<typeof BuildUtils.loadLoaderModule>;
+export declare function shouldSkipLoader(loaderContext: Plugin.LoaderContext<ProxyLoaderOptions>): boolean;
+export declare function interceptLoader<T extends Plugin.BuildRuleSetRule>(rules: T[], loaderPath: string, options: Omit<ProxyLoaderInternalOptions, 'loader' | 'hasOptions'>, cwd?: string, resolveLoader?: Plugin.Configuration['resolve']): T[];
+export declare function reportLoader(ctx: Plugin.LoaderContext<ProxyLoaderOptions>, start: number, startHRTime: [number, number], isPitch: boolean, sync: boolean, code: string, err: Error | null | undefined, res: string | Buffer | null, sourceMap?: Plugin.SourceMapInput): Promise<SDK.LoaderData>;

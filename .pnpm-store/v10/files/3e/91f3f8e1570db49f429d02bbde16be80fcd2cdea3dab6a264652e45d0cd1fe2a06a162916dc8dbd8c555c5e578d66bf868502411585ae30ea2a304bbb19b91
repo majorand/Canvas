@@ -1,0 +1,65 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { InternalBasePlugin } from "./base.js";
+import { Linter } from "../../rules/index.js";
+import { DevToolError } from "@rsdoctor/utils/error";
+import { pull } from "es-toolkit/compat";
+import { time, timeEnd } from "@rsdoctor/utils/logger";
+class InternalRulesPlugin extends InternalBasePlugin {
+    apply(compiler) {
+        time('InternalRulesPlugin.apply');
+        try {
+            compiler.hooks.done.tapPromise(this.tapPreOptions, this.done);
+        } finally{
+            timeEnd('InternalRulesPlugin.apply');
+        }
+    }
+    async lint(compilation) {
+        time('InternalRulesPlugin.lint');
+        try {
+            const options = this.options ?? {};
+            const linter = new Linter(options.linter);
+            const result = await linter.validate(this.sdk.getRuleContext({}));
+            const validateErrors = result.errors.map((err)=>DevToolError.from(err, {
+                    detail: err.detail,
+                    controller: {
+                        noColor: true
+                    }
+                }));
+            const errors = validateErrors.filter((item)=>'Error' === item.level);
+            const warnings = validateErrors.filter((item)=>'Warn' === item.level);
+            const toWebpackError = (err)=>err.toError();
+            result.replace.forEach((item)=>{
+                if (Array.isArray(compilation.errors) && compilation.errors.includes(item)) pull(compilation.errors, item);
+                if (Array.isArray(compilation.warnings) && compilation.warnings.includes(item)) pull(compilation.warnings, item);
+            });
+            if (Array.isArray(compilation.errors)) errors.forEach((err)=>{
+                compilation.warnings.push(toWebpackError(err));
+            });
+            if (Array.isArray(compilation.warnings)) warnings.forEach((err)=>{
+                compilation.warnings.push(toWebpackError(err));
+            });
+            this.sdk.reportError(validateErrors);
+            await linter.afterValidate({
+                data: this.sdk.getRuleContext({}),
+                validateResult: result,
+                hooks: {
+                    afterSaveManifest: this.sdk.hooks.afterSaveManifest
+                }
+            });
+        } finally{
+            timeEnd('InternalRulesPlugin.lint');
+        }
+    }
+    constructor(...args){
+        super(...args), this.name = 'rules', this.done = async (stats)=>{
+            time('InternalRulesPlugin.done');
+            try {
+                await this.lint(stats.compilation);
+            } finally{
+                timeEnd('InternalRulesPlugin.done');
+            }
+        };
+    }
+}
+export { InternalRulesPlugin };

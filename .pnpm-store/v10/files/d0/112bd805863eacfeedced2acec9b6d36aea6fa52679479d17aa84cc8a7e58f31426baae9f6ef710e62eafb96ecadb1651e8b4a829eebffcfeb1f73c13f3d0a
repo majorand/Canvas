@@ -1,0 +1,45 @@
+import picocolors from "picocolors";
+import { createLogger, logger } from "rslog";
+import { Constants } from "@rsdoctor/types";
+function debug(getMsg, prefix = '') {
+    process.env.DEBUG && (logger.level = 'verbose', logger.debug(`${prefix} ${getMsg()}`));
+}
+let rsdoctorLogger = createLogger();
+rsdoctorLogger.override({
+    log: (message)=>{
+        console.log(`${picocolors.green('[RSDOCTOR LOG]')} ${message}`);
+    },
+    info: (message)=>{
+        console.log(`${picocolors.yellow('[RSDOCTOR INFO]')} ${message}`);
+    },
+    warn: (message)=>{
+        console.warn(`${picocolors.yellow('[RSDOCTOR WARN]')} ${message}`);
+    },
+    start: (message)=>{
+        console.log(`${picocolors.green('[RSDOCTOR START]')} ${message}`);
+    },
+    ready: (message)=>{
+        console.log(`${picocolors.green('[RSDOCTOR READY]')} ${message}`);
+    },
+    error: (message)=>{
+        console.error(`${picocolors.red('[RSDOCTOR ERROR]')} ${message}`);
+    },
+    success: (message)=>{
+        console.error(`${picocolors.green('[RSDOCTOR SUCCESS]')} ${message}`);
+    },
+    debug: (message)=>{
+        process.env.DEBUG && console.log(`${picocolors.blue('[RSDOCTOR DEBUG]')} ${message}`);
+    }
+});
+let _timers = new Map();
+function time(label) {
+    process.env.DEBUG !== Constants.RsdoctorProcessEnvDebugKey || _timers.has(label) || _timers.set(label, Date.now());
+}
+function timeEnd(label) {
+    if (process.env.DEBUG !== Constants.RsdoctorProcessEnvDebugKey) return;
+    let start = _timers.get(label);
+    if (null == start) return void logger.debug(`Timer '${label}' does not exist.`);
+    let duration = Date.now() - start;
+    logger.debug(`Timer '${label}' ended: ${duration}ms`), _timers.delete(label);
+}
+export { picocolors as chalk, debug, rsdoctorLogger as logger, time, timeEnd };

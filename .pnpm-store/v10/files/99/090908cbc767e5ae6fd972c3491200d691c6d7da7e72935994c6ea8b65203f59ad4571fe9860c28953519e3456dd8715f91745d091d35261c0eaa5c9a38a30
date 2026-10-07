@@ -1,0 +1,125 @@
+"use strict";
+var __webpack_require__ = {};
+(()=>{
+    __webpack_require__.d = (exports1, definition)=>{
+        for(var key in definition)if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key)) Object.defineProperty(exports1, key, {
+            enumerable: true,
+            get: definition[key]
+        });
+    };
+})();
+(()=>{
+    __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop);
+})();
+(()=>{
+    __webpack_require__.r = (exports1)=>{
+        if ("u" > typeof Symbol && Symbol.toStringTag) Object.defineProperty(exports1, Symbol.toStringTag, {
+            value: 'Module'
+        });
+        Object.defineProperty(exports1, '__esModule', {
+            value: true
+        });
+    };
+})();
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+    InternalSummaryPlugin: ()=>InternalSummaryPlugin
+});
+const common_namespaceObject = require("@rsdoctor/utils/common");
+const compat_namespaceObject = require("es-toolkit/compat");
+const external_base_cjs_namespaceObject = require("./base.cjs");
+const logger_namespaceObject = require("@rsdoctor/utils/logger");
+class InternalSummaryPlugin extends external_base_cjs_namespaceObject.InternalBasePlugin {
+    apply(compiler) {
+        (0, logger_namespaceObject.time)('InternalSummaryPlugin.apply');
+        try {
+            compiler.hooks.beforeCompile.tapPromise(this.tapPostOptions, this.beforeCompile);
+            compiler.hooks.afterCompile.tapPromise(this.tapPreOptions, this.afterCompile);
+            compiler.hooks.done.tapPromise(this.tapPostOptions, this.done.bind(this, compiler));
+        } finally{
+            (0, logger_namespaceObject.timeEnd)('InternalSummaryPlugin.apply');
+        }
+    }
+    mark(key, type) {
+        const now = Date.now();
+        switch(type){
+            case 'pre':
+                this.preTimes.set(key, now);
+                break;
+            case 'post':
+                this.postTimes.set(key, now);
+                break;
+            default:
+                break;
+        }
+    }
+    report(name, start) {
+        this.times.set(name, start);
+        this.sdk.reportSummaryData({
+            costs: [
+                {
+                    name,
+                    startAt: start,
+                    costs: Date.now() - start
+                }
+            ]
+        });
+    }
+    constructor(...args){
+        super(...args), this.name = 'summary', this.times = new Map(), this.preTimes = new Map(), this.postTimes = new Map(), this.beforeCompile = async ()=>{
+            (0, logger_namespaceObject.time)('InternalSummaryPlugin.beforeCompile');
+            try {
+                if (!this.times.has(common_namespaceObject.Summary.SummaryCostsDataName.Bootstrap)) {
+                    const costs = Math.floor(1000 * process.uptime());
+                    const startAt = Date.now() - costs;
+                    this.report(common_namespaceObject.Summary.SummaryCostsDataName.Bootstrap, startAt);
+                    this.mark(common_namespaceObject.Summary.SummaryCostsDataName.Bootstrap, 'post');
+                }
+            } finally{
+                (0, logger_namespaceObject.timeEnd)('InternalSummaryPlugin.beforeCompile');
+            }
+        }, this.afterCompile = async (compilation)=>{
+            (0, logger_namespaceObject.time)('InternalSummaryPlugin.afterCompile');
+            try {
+                if (!this.times.has(common_namespaceObject.Summary.SummaryCostsDataName.Compile) && !compilation.compiler.isChild()) {
+                    const start = this.postTimes.get(common_namespaceObject.Summary.SummaryCostsDataName.Bootstrap);
+                    this.report(common_namespaceObject.Summary.SummaryCostsDataName.Compile, start);
+                    this.mark(common_namespaceObject.Summary.SummaryCostsDataName.Compile, 'post');
+                }
+            } finally{
+                (0, logger_namespaceObject.timeEnd)('InternalSummaryPlugin.afterCompile');
+            }
+        }, this.done = async (compiler)=>{
+            (0, logger_namespaceObject.time)('InternalSummaryPlugin.done');
+            try {
+                const start = this.postTimes.get(common_namespaceObject.Summary.SummaryCostsDataName.Compile);
+                this.report(common_namespaceObject.Summary.SummaryCostsDataName.Done, start);
+                if (false !== compiler.options.optimization.minimize) {
+                    const pluginData = this.sdk.getStoreData().plugin;
+                    const minifyHookData = [
+                        ...pluginData.processAssets || []
+                    ];
+                    minifyHookData.length && this.sdk.reportSummaryData({
+                        costs: [
+                            {
+                                name: common_namespaceObject.Summary.SummaryCostsDataName.Minify,
+                                startAt: (0, compat_namespaceObject.minBy)(minifyHookData, (e)=>e.startAt).startAt,
+                                costs: (0, compat_namespaceObject.sumBy)(minifyHookData, (e)=>e.costs)
+                            }
+                        ]
+                    });
+                }
+            } finally{
+                (0, logger_namespaceObject.timeEnd)('InternalSummaryPlugin.done');
+            }
+        };
+    }
+}
+exports.InternalSummaryPlugin = __webpack_exports__.InternalSummaryPlugin;
+for(var __rspack_i in __webpack_exports__)if (-1 === [
+    "InternalSummaryPlugin"
+].indexOf(__rspack_i)) exports[__rspack_i] = __webpack_exports__[__rspack_i];
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});

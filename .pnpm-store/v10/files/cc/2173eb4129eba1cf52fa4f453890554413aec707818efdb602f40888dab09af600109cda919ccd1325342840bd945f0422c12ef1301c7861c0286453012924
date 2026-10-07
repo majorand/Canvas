@@ -1,0 +1,112 @@
+"use strict";
+var __webpack_require__ = {};
+(()=>{
+    __webpack_require__.d = (exports1, definition)=>{
+        for(var key in definition)if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key)) Object.defineProperty(exports1, key, {
+            enumerable: true,
+            get: definition[key]
+        });
+    };
+})();
+(()=>{
+    __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop);
+})();
+(()=>{
+    __webpack_require__.r = (exports1)=>{
+        if ("u" > typeof Symbol && Symbol.toStringTag) Object.defineProperty(exports1, Symbol.toStringTag, {
+            value: 'Module'
+        });
+        Object.defineProperty(exports1, '__esModule', {
+            value: true
+        });
+    };
+})();
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+    InternalBundlePlugin: ()=>InternalBundlePlugin
+});
+const types_namespaceObject = require("@rsdoctor/types");
+const external_base_cjs_namespaceObject = require("./base.cjs");
+const graph_namespaceObject = require("@rsdoctor/graph");
+const logger_namespaceObject = require("@rsdoctor/utils/logger");
+class InternalBundlePlugin extends external_base_cjs_namespaceObject.InternalBasePlugin {
+    apply(compiler) {
+        (0, logger_namespaceObject.time)('InternalBundlePlugin.apply');
+        try {
+            this.scheduler.ensureModulesChunksGraphApplied(compiler);
+            this.changeDevtoolModuleFilename(compiler);
+            compiler.hooks.compilation.tap(this.tapPostOptions, this.thisCompilation);
+            compiler.hooks.done.tapPromise(this.tapPreOptions, this.done.bind(this));
+        } finally{
+            (0, logger_namespaceObject.timeEnd)('InternalBundlePlugin.apply');
+        }
+    }
+    changeDevtoolModuleFilename(compiler) {
+        const devtool = compiler.options.devtool;
+        if (devtool) {
+            if (!compiler.options.output) compiler.options.output = {};
+            compiler.options.output.devtoolModuleFilenameTemplate = '[absolute-resource-path]';
+            logger_namespaceObject.logger.warn("output.devtoolModuleFilenameTemplate has been changed to [absolute-resource-path], this is for bundle analysis.");
+            if (devtool.includes('source-map')) compiler.options.output.devtoolFallbackModuleFilenameTemplate = ()=>'[absolute-resource-path]';
+        }
+    }
+    ensureAssetContent(name) {
+        const asset = this.map.get(name);
+        if (asset) return asset;
+        const v = {
+            content: ''
+        };
+        this.map.set(name, v);
+        return v;
+    }
+    constructor(...args){
+        super(...args), this.name = 'bundle', this.map = new Map(), this.thisCompilation = (compilation)=>{
+            (0, logger_namespaceObject.time)('InternalBundlePlugin.thisCompilation');
+            try {
+                if (compilation.hooks.processAssets && 'afterOptimizeAssets' in compilation.hooks) compilation.hooks.afterOptimizeAssets.tap(this.tapPostOptions, (assets)=>{
+                    Object.keys(assets).forEach((file)=>{
+                        const v = this.ensureAssetContent(file);
+                        v.content = assets[file].source().toString();
+                    });
+                });
+                else if (compilation.hooks.processAssets && 'afterProcessAssets' in compilation.hooks) compilation.hooks.afterProcessAssets.tap(this.tapPostOptions, ()=>{
+                    Object.keys(compilation.assets).forEach((file)=>{
+                        const v = this.ensureAssetContent(file);
+                        v.content = compilation.assets[file].source().toString();
+                    });
+                });
+                else if ('afterOptimizeChunkAssets' in compilation.hooks) compilation.hooks.afterOptimizeChunkAssets.tap(this.tapPostOptions, (chunks)=>{
+                    [
+                        ...chunks
+                    ].reduce((t, chunk)=>t.concat([
+                            ...chunk.files
+                        ]), []).forEach((file)=>{
+                        const v = this.ensureAssetContent(file);
+                        v.content = compilation.assets[file].source().toString();
+                    });
+                });
+            } finally{
+                (0, logger_namespaceObject.timeEnd)('InternalBundlePlugin.thisCompilation');
+            }
+        }, this.done = async ()=>{
+            (0, logger_namespaceObject.time)('InternalBundlePlugin.done');
+            try {
+                if (this.scheduler.chunkGraph) graph_namespaceObject.Chunks.assetsContents(this.map, this.scheduler.chunkGraph, this.scheduler.options?.supports);
+                this.sdk.addClientRoutes([
+                    types_namespaceObject.Manifest.RsdoctorManifestClientRoutes.ModuleGraph,
+                    types_namespaceObject.Manifest.RsdoctorManifestClientRoutes.BundleSize
+                ]);
+            } finally{
+                (0, logger_namespaceObject.timeEnd)('InternalBundlePlugin.done');
+            }
+        };
+    }
+}
+exports.InternalBundlePlugin = __webpack_exports__.InternalBundlePlugin;
+for(var __rspack_i in __webpack_exports__)if (-1 === [
+    "InternalBundlePlugin"
+].indexOf(__rspack_i)) exports[__rspack_i] = __webpack_exports__[__rspack_i];
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});

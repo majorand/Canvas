@@ -1,0 +1,275 @@
+"use strict";
+var __webpack_require__ = {};
+(()=>{
+    __webpack_require__.d = (exports1, definition)=>{
+        for(var key in definition)if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key)) Object.defineProperty(exports1, key, {
+            enumerable: true,
+            get: definition[key]
+        });
+    };
+})();
+(()=>{
+    __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop);
+})();
+(()=>{
+    __webpack_require__.r = (exports1)=>{
+        if ("u" > typeof Symbol && Symbol.toStringTag) Object.defineProperty(exports1, Symbol.toStringTag, {
+            value: 'Module'
+        });
+        Object.defineProperty(exports1, '__esModule', {
+            value: true
+        });
+    };
+})();
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+    UNASSIGNED: ()=>UNASSIGNED,
+    bindContextCache: ()=>bindContextCache,
+    handleAfterEmitAssets: ()=>handleAfterEmitAssets,
+    handleEmitAssets: ()=>handleEmitAssets,
+    collectSourceMaps: ()=>collectSourceMaps
+});
+const common_namespaceObject = require("@rsdoctor/utils/common");
+const logger_namespaceObject = require("@rsdoctor/utils/logger");
+const external_path_namespaceObject = require("path");
+const external_source_map_namespaceObject = require("source-map");
+const UNASSIGNED = '[unassigned]';
+function bindContextCache(context, namespace, cache, sourceMapDir, sourceRoot) {
+    cache = cache || new Map();
+    return (source, sourceMapFilenameRegex)=>{
+        if (cache.has(source)) return cache.get(source);
+        let resolved = UNASSIGNED;
+        if (source.startsWith('file://')) resolved = (0, external_path_namespaceObject.resolve)(context, source.replace(/^file:\/\//, ''));
+        else if (source.startsWith('webpack://')) if (sourceMapFilenameRegex) {
+            const match = source.match(sourceMapFilenameRegex);
+            const filePath = match?.[1];
+            const hasNamespace = namespace && source.startsWith(`webpack://${namespace}`) || namespace && source.startsWith(`file://${namespace}`);
+            const baseDir = hasNamespace ? process.cwd() : context;
+            resolved = filePath ? (0, external_path_namespaceObject.resolve)(baseDir, `./${filePath}`) : UNASSIGNED;
+        } else resolved = UNASSIGNED;
+        else if ((0, external_path_namespaceObject.isAbsolute)(source)) resolved = source;
+        else {
+            let baseDir = context;
+            if (sourceRoot) baseDir = (0, external_path_namespaceObject.isAbsolute)(sourceRoot) ? sourceRoot : sourceMapDir ? (0, external_path_namespaceObject.resolve)(sourceMapDir, sourceRoot) : (0, external_path_namespaceObject.resolve)(context, sourceRoot);
+            else if (sourceMapDir) baseDir = sourceMapDir;
+            resolved = (0, external_path_namespaceObject.resolve)(baseDir, source);
+        }
+        cache.set(source, resolved);
+        return resolved;
+    };
+}
+async function collectSourceMaps(map, assetLinesCodeList, _compilation, _this, sourceMapFilenameRegex, namespace, skipSources, sourceMapPath) {
+    if (map) {
+        const consumer = await new external_source_map_namespaceObject.SourceMapConsumer(map);
+        let sourceMapDir;
+        if (sourceMapPath) sourceMapDir = (0, external_path_namespaceObject.dirname)(sourceMapPath);
+        else if (_compilation.options.output?.path) sourceMapDir = 'string' == typeof _compilation.options.output.path ? _compilation.options.output.path : void 0;
+        const sourceRoot = map.sourceRoot;
+        const getRealSourcePath = bindContextCache(_this.sdk.root || process.cwd(), namespace, _this._realSourcePathCache, sourceMapDir, sourceRoot ?? void 0);
+        const lineMappings = new Map();
+        consumer._absoluteSources = consumer._sources;
+        consumer.eachMapping((m)=>{
+            if (!lineMappings.has(m.generatedLine)) lineMappings.set(m.generatedLine, []);
+            lineMappings.get(m.generatedLine).push(m);
+        });
+        for (const [lineNum, mappings] of lineMappings.entries()){
+            mappings.sort((a, b)=>a.generatedColumn - b.generatedColumn);
+            const lineIdx = lineNum - 1;
+            if (lineIdx < 0 || lineIdx >= assetLinesCodeList.length) continue;
+            const line = assetLinesCodeList[lineIdx];
+            for(let i = 0; i < mappings.length; i++){
+                const m = mappings[i];
+                if (!m.source) continue;
+                let realSource = m.source;
+                if (realSource.includes('!')) {
+                    const parts = realSource.split('!');
+                    for(let j = parts.length - 1; j >= 0; j--){
+                        const part = parts[j];
+                        if (!part) continue;
+                        const cleanPart = part.split('??')[0];
+                        if (!cleanPart.startsWith('builtin:')) {
+                            if (cleanPart.startsWith('/') || cleanPart.includes('\\')) {
+                                realSource = cleanPart;
+                                break;
+                            }
+                        }
+                    }
+                    if (realSource === m.source) {
+                        const lastPart = parts[parts.length - 1];
+                        realSource = lastPart ? lastPart.split('??')[0] : lastPart;
+                    }
+                } else if (realSource.includes('??')) realSource = realSource.split('??')[0];
+                if (realSource) {
+                    if ((realSource.startsWith('webpack://') || realSource.startsWith('file://')) && sourceMapFilenameRegex) realSource = getRealSourcePath(realSource, sourceMapFilenameRegex);
+                    else if (!(0, external_path_namespaceObject.isAbsolute)(realSource)) realSource = getRealSourcePath(realSource, sourceMapFilenameRegex);
+                }
+                if (!realSource || realSource === UNASSIGNED) continue;
+                if (skipSources && skipSources.has(realSource)) continue;
+                const next = mappings[i + 1];
+                const start = m.generatedColumn;
+                const end = next ? next.generatedColumn : line.length;
+                const codeSegment = line.slice(start, end);
+                const prev = _this.sourceMapSets.get(realSource) || '';
+                _this.sourceMapSets.set(realSource, prev.concat(codeSegment));
+            }
+        }
+    }
+}
+async function handleAfterEmitAssets(compilation, _this, sourceMapFilenameRegex, namespace) {
+    if ('rspack' in compilation.compiler) {
+        _this.sourceMapSets = new Map();
+        if (_this.assetsWithoutSourceMap) _this.assetsWithoutSourceMap.clear();
+        else _this.assetsWithoutSourceMap = new Set();
+        (0, logger_namespaceObject.time)('ensureModulesChunkGraph.afterEmit.start');
+        const assets = [
+            ...compilation.getAssets()
+        ];
+        const skipSources = new Set();
+        for (const asset of assets){
+            const { assetLinesCodeList, map: mapFromAsset, assetName } = parseAsset(asset, assets, 'js/css');
+            let map = mapFromAsset;
+            let sourceMapPath;
+            if (map) {
+                const outputPath = compilation.options.output?.path;
+                if (outputPath && 'string' == typeof outputPath && assetName) {
+                    const mapFileName = assetName.endsWith('.map') ? assetName : `${assetName}.map`;
+                    sourceMapPath = (0, external_path_namespaceObject.resolve)(outputPath, mapFileName);
+                }
+            } else {
+                let sourceMapFile = asset.info.related?.sourceMap;
+                let sourceMapFileAssetName = sourceMapFile?.replace(/(\.[^.]+)(\.[^.]+)?$/, '$1');
+                if (sourceMapFile) {
+                    let sourceMapAsset = assets.find((asset)=>asset.name === sourceMapFile);
+                    if (!sourceMapAsset && sourceMapFileAssetName) {
+                        const baseNameWithoutHash = common_namespaceObject.Graph.formatAssetName(sourceMapFileAssetName, 'string' == typeof compilation.options.output.filename ? compilation.options.output.filename : void 0);
+                        sourceMapAsset = assets.find((asset)=>{
+                            const assetBaseName = common_namespaceObject.Graph.formatAssetName(asset.name, 'string' == typeof compilation.options.output.filename ? compilation.options.output.filename : void 0);
+                            return assetBaseName.includes(baseNameWithoutHash) && asset.name.endsWith('.map');
+                        });
+                    }
+                    if (sourceMapAsset) {
+                        map = JSON.parse(sourceMapAsset.source.source().toString());
+                        const outputPath = compilation.options.output?.path;
+                        if (outputPath && 'string' == typeof outputPath) sourceMapPath = (0, external_path_namespaceObject.resolve)(outputPath, sourceMapAsset.name);
+                    }
+                } else {
+                    if (assetName && 'string' == typeof assetName && (assetName.endsWith('.js') || assetName.endsWith('.css'))) _this.assetsWithoutSourceMap.add(assetName);
+                    continue;
+                }
+            }
+            try {
+                await collectSourceMaps(map, assetLinesCodeList, compilation, _this, sourceMapFilenameRegex, namespace, skipSources, sourceMapPath);
+            } catch (e) {
+                logger_namespaceObject.logger.debug(e);
+            }
+            _this.sourceMapSets.forEach((_value, key)=>{
+                if (!skipSources.has(key)) skipSources.add(key);
+            });
+        }
+        (0, logger_namespaceObject.timeEnd)('ensureModulesChunkGraph.afterEmit.start');
+    }
+}
+async function handleEmitAssets(options) {
+    const { compilation, pluginInstance, sourceMapFilenameRegex, namespace } = options;
+    if (!('rspack' in compilation.compiler)) {
+        pluginInstance.sourceMapSets = new Map();
+        (0, logger_namespaceObject.time)('ensureModulesChunkGraph.afterEmit.start');
+        const assets = Object.values(compilation.getAssets()).map((asset, index)=>({
+                name: index.toString(),
+                source: asset,
+                info: asset.info || {}
+            }));
+        for (const asset of assets){
+            const { assetLinesCodeList, map, assetName } = parseAsset(asset, assets, 'map');
+            if (!map) continue;
+            let sourceMapPath;
+            const outputPath = compilation.options.output?.path;
+            if (outputPath && 'string' == typeof outputPath && 'string' == typeof assetName) {
+                const mapFileName = assetName.endsWith('.map') ? assetName : `${assetName}.map`;
+                sourceMapPath = (0, external_path_namespaceObject.resolve)(outputPath, mapFileName);
+            }
+            try {
+                await collectSourceMaps(map, assetLinesCodeList, compilation, pluginInstance, sourceMapFilenameRegex, namespace, void 0, sourceMapPath);
+            } catch (e) {
+                logger_namespaceObject.logger.debug(e);
+            }
+        }
+        (0, logger_namespaceObject.timeEnd)('ensureModulesChunkGraph.afterEmit.start');
+    }
+}
+function parseAsset(asset, assets, type) {
+    const assetName = asset.source?.name || asset.name;
+    let assetContent = '';
+    let assetLinesCodeList = [];
+    let map = null;
+    try {
+        if ('map' === type && 'string' == typeof assetName && assetName.endsWith('.map') && !asset.name.includes('d.ts')) {
+            assetContent = asset.source?.source?.source?.() || '';
+            if (!assetContent) {
+                logger_namespaceObject.logger.debug(`Failed to get source content for asset: ${assetName}`);
+                return {
+                    assetName,
+                    assetContent: '',
+                    assetLinesCodeList: [],
+                    map: null
+                };
+            }
+            map = JSON.parse(assetContent);
+            if (!map || !map.file) {
+                logger_namespaceObject.logger.debug(`Failed to get source map file for asset: ${assetName}`);
+                return {
+                    assetName,
+                    assetContent,
+                    assetLinesCodeList: [],
+                    map: null
+                };
+            }
+            const bundledAsset = assets.find((asset2)=>asset2.source?.name === map?.file);
+            const bundledCode = bundledAsset?.source?.source?.source?.() || '';
+            if (!bundledCode) {
+                logger_namespaceObject.logger.debug(`Failed to get bundled code for asset: ${map.file}`);
+                return {
+                    assetName,
+                    assetContent,
+                    assetLinesCodeList: [],
+                    map
+                };
+            }
+            assetLinesCodeList = bundledCode.split(/\r?\n/);
+        } else if ('js/css' === type && (assetName.endsWith('.js') || assetName.endsWith('.css'))) {
+            assetContent = asset.source?.source?.() || '';
+            assetLinesCodeList = assetContent.split(/\r?\n/);
+            map = asset.source?.sourceAndMap?.()?.map || null;
+        }
+    } catch (error) {
+        logger_namespaceObject.logger.debug(`Error parsing asset ${assetName}:`, error);
+        return {
+            assetName,
+            assetContent: '',
+            assetLinesCodeList: [],
+            map: null
+        };
+    }
+    return {
+        assetName,
+        assetContent,
+        assetLinesCodeList,
+        map
+    };
+}
+exports.UNASSIGNED = __webpack_exports__.UNASSIGNED;
+exports.bindContextCache = __webpack_exports__.bindContextCache;
+exports.collectSourceMaps = __webpack_exports__.collectSourceMaps;
+exports.handleAfterEmitAssets = __webpack_exports__.handleAfterEmitAssets;
+exports.handleEmitAssets = __webpack_exports__.handleEmitAssets;
+for(var __rspack_i in __webpack_exports__)if (-1 === [
+    "UNASSIGNED",
+    "bindContextCache",
+    "collectSourceMaps",
+    "handleAfterEmitAssets",
+    "handleEmitAssets"
+].indexOf(__rspack_i)) exports[__rspack_i] = __webpack_exports__[__rspack_i];
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});

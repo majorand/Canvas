@@ -1,0 +1,21 @@
+/**
+ * @description Writes the builder port information to mcp.json.
+ *
+ * The mcp.json file uses the following format:
+ * {
+ *   portList: {
+ *     builder1: portNumber,
+ *     builder2: portNumber,
+ *   },
+ *   port: portNumber // The port of the last builder is used by default
+ * }
+ *
+ * @param {number} port - The port number to write.
+ * @param {string} [builderName] - The name of the builder.
+ */
+export declare function writeMcpPort(port: number, builderName?: string): void;
+/**
+ * @description Gets the path to the mcp.json file.
+ * @returns {string} The path to the mcp.json file.
+ */
+export declare function getMcpConfigPath(): string;

@@ -1,0 +1,84 @@
+"use strict";
+var __webpack_require__ = {};
+(()=>{
+    __webpack_require__.d = (exports1, definition)=>{
+        for(var key in definition)if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key)) Object.defineProperty(exports1, key, {
+            enumerable: true,
+            get: definition[key]
+        });
+    };
+})();
+(()=>{
+    __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop);
+})();
+(()=>{
+    __webpack_require__.r = (exports1)=>{
+        if ("u" > typeof Symbol && Symbol.toStringTag) Object.defineProperty(exports1, Symbol.toStringTag, {
+            value: 'Module'
+        });
+        Object.defineProperty(exports1, '__esModule', {
+            value: true
+        });
+    };
+})();
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+    InternalBundleTagPlugin: ()=>InternalBundleTagPlugin
+});
+const external_path_namespaceObject = require("path");
+const external_base_cjs_namespaceObject = require("./base.cjs");
+const logger_namespaceObject = require("@rsdoctor/utils/logger");
+class InternalBundleTagPlugin extends external_base_cjs_namespaceObject.InternalBasePlugin {
+    apply(compiler) {
+        (0, logger_namespaceObject.time)('InternalBundleTagPlugin.apply');
+        try {
+            const supportBannerPlugin = this.options.supports?.banner;
+            compiler.hooks.compilation.tap('RsdoctorTagBannerPlugin', (compilation)=>{
+                compilation.hooks.processAssets.tapPromise({
+                    name: 'RsdoctorTagBannerPlugin',
+                    stage: -2000
+                }, async ()=>{
+                    if (!compilation.options.plugins.map((p)=>p && p.constructor.name).includes('BannerPlugin') && true !== supportBannerPlugin || false === supportBannerPlugin || 'rspack' in compiler) return;
+                    logger_namespaceObject.logger.info(logger_namespaceObject.chalk.magenta("Rsdoctor's `supports.banner` option is enabled, this is for debugging only. Do not use it for production."));
+                    const minimizers = compiler.options.optimization?.minimizer || [];
+                    const terserPlugin = minimizers.find((plugin)=>plugin?.constructor?.name === 'TerserPlugin');
+                    const swcPlugin = minimizers.find((plugin)=>plugin?.constructor?.name === 'SwcJsMinimizerRspackPlugin');
+                    const hasTerserPlugin = !!terserPlugin;
+                    const hasSwcJsMinimizer = !!swcPlugin;
+                    if (hasTerserPlugin || hasSwcJsMinimizer) {
+                        const terserDropConsole = terserPlugin?.options?.minimizer?.options?.compress?.drop_console;
+                        const swcDropConsole = swcPlugin?._args?.[0]?.minimizerOptions?.compress?.drop_console;
+                        if (true === terserDropConsole || true === swcDropConsole) logger_namespaceObject.logger.warn(logger_namespaceObject.chalk.yellow('Warning: BannerPlugin detected in project. Please disable drop_console option in TerserPlugin or SwcJsMinimizerRspackPlugin to enable Rsdoctor analysis for BannerPlugin.'));
+                    }
+                    const chunks = compilation.chunks;
+                    for (let chunk of chunks)for (const file of chunk.files){
+                        if (!file || '.js' !== (0, external_path_namespaceObject.extname)(file)) continue;
+                        const { ConcatSource } = compiler.webpack.sources;
+                        compilation.updateAsset(file, (old)=>{
+                            const concatSource = new ConcatSource();
+                            let header = "\n console.log('RSDOCTOR_START::');\n";
+                            let footer = "\n console.log('RSDOCTOR_END::');\n";
+                            concatSource.add(header);
+                            concatSource.add(old);
+                            concatSource.add(footer);
+                            return concatSource;
+                        }, ()=>{});
+                    }
+                });
+            });
+        } finally{
+            (0, logger_namespaceObject.timeEnd)('InternalBundleTagPlugin.apply');
+        }
+    }
+    constructor(...args){
+        super(...args), this.name = 'bundleTag';
+    }
+}
+exports.InternalBundleTagPlugin = __webpack_exports__.InternalBundleTagPlugin;
+for(var __rspack_i in __webpack_exports__)if (-1 === [
+    "InternalBundleTagPlugin"
+].indexOf(__rspack_i)) exports[__rspack_i] = __webpack_exports__[__rspack_i];
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});

@@ -1,0 +1,119 @@
+"use strict";
+var __webpack_require__ = {};
+(()=>{
+    __webpack_require__.d = (exports1, definition)=>{
+        for(var key in definition)if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key)) Object.defineProperty(exports1, key, {
+            enumerable: true,
+            get: definition[key]
+        });
+    };
+})();
+(()=>{
+    __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop);
+})();
+(()=>{
+    __webpack_require__.r = (exports1)=>{
+        if ("u" > typeof Symbol && Symbol.toStringTag) Object.defineProperty(exports1, Symbol.toStringTag, {
+            value: 'Module'
+        });
+        Object.defineProperty(exports1, '__esModule', {
+            value: true
+        });
+    };
+})();
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+    rule: ()=>rule
+});
+const types_namespaceObject = require("@rsdoctor/types");
+const common_namespaceObject = require("@rsdoctor/utils/common");
+const external_rule_cjs_namespaceObject = require("../../rule.cjs");
+const external_utils_cjs_namespaceObject = require("./utils.cjs");
+const title = 'loader-performance-optimization';
+const rule = (0, external_rule_cjs_namespaceObject.defineRule)(()=>({
+        meta: {
+            code: 'E1003',
+            title,
+            category: 'compile',
+            severity: types_namespaceObject.Linter.Severity.Warn,
+            defaultConfig: {
+                ignore: [],
+                threshold: 5000,
+                extensions: [
+                    'js',
+                    'css',
+                    'jpg',
+                    'jpeg',
+                    'png',
+                    'gif',
+                    'webp',
+                    'svg'
+                ]
+            }
+        },
+        check ({ loader, configs, root, ruleConfig, report }) {
+            const { extensions, ignore = [], threshold = 5000 } = ruleConfig;
+            if (!extensions || extensions?.length === 0) return;
+            if (0 === loader.length) return;
+            const { config } = configs.find((e)=>'webpack' === e.name) || {
+                config: void 0
+            };
+            if (!config) return;
+            const cwd = config.context || root;
+            const nodeModulesPathRegexp = /\/node_modules\//;
+            const resultMap = new Map();
+            const loaders = loader.map((el)=>el.loaders).reduce((t, c)=>t.concat(c));
+            for (const item of loader){
+                const { path, ext } = item.resource;
+                if ((0, external_utils_cjs_namespaceObject.match)(ext, extensions)) {
+                    if (nodeModulesPathRegexp.test(path) || !path.startsWith(cwd)) item.loaders.forEach((el)=>{
+                        if ((0, external_utils_cjs_namespaceObject.match)(el.loader, ignore)) return;
+                        const costs = common_namespaceObject.Loader.getLoaderCosts(el, loaders);
+                        const v = {
+                            ...el,
+                            __resource__: item.resource,
+                            __costs__: costs
+                        };
+                        if (resultMap.has(el.loader)) resultMap.get(el.loader).push(v);
+                        else resultMap.set(el.loader, [
+                            v
+                        ]);
+                    });
+                }
+            }
+            const sum = (arr)=>{
+                const v1 = arr.reduce((t, c)=>t + c.__costs__, 0);
+                const v2 = Math.max.apply(null, arr.map((e)=>e.endAt)) - Math.min.apply(arr.map((e)=>e.startAt));
+                if (v2 >= v1 || v2 === -1 / 0) return v1;
+                return v2;
+            };
+            for (const [loaderName, v] of resultMap.entries()){
+                const nodeModulesFiles = v.filter((e)=>nodeModulesPathRegexp.test(e.__resource__.path));
+                const nodeModulesFilesCosts = sum(nodeModulesFiles);
+                const outofCwdFiles = v.filter((e)=>!e.__resource__.path.startsWith(cwd));
+                const outofCwdFilesCosts = sum(outofCwdFiles);
+                const msg = [
+                    nodeModulesFilesCosts >= threshold && `<b>${nodeModulesFiles.length}</b> node_modules files(costs: <b>${common_namespaceObject.Time.formatCosts(nodeModulesFilesCosts)}</b>)`,
+                    outofCwdFilesCosts >= threshold && `<b>${outofCwdFiles.length}</b> outof project files(costs: <b>${common_namespaceObject.Time.formatCosts(outofCwdFilesCosts)}</b>)`
+                ].filter(Boolean).join(' and ');
+                if (msg) {
+                    const message = `<b>${loaderName}</b> has process ${msg}.`;
+                    report({
+                        message,
+                        detail: {
+                            description: message,
+                            type: 'link'
+                        }
+                    });
+                }
+            }
+        }
+    }));
+exports.rule = __webpack_exports__.rule;
+for(var __rspack_i in __webpack_exports__)if (-1 === [
+    "rule"
+].indexOf(__rspack_i)) exports[__rspack_i] = __webpack_exports__[__rspack_i];
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});

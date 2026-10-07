@@ -1,0 +1,39 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { Linter } from "@rsdoctor/types";
+import { diff, gt } from "semver";
+import { CheckVersionMap } from "./types.js";
+import { getErrorDetail, getErrorMsg } from "./utils.js";
+import { defineRule } from "../../rule.js";
+const title = 'duplicate-package';
+const rule = defineRule(()=>({
+        meta: {
+            code: 'E1001',
+            title,
+            category: 'bundle',
+            severity: Linter.Severity.Warn,
+            defaultConfig: {
+                checkVersion: 'major',
+                ignore: []
+            }
+        },
+        check ({ packageGraph, report, root, ruleConfig }) {
+            const checkVersion = CheckVersionMap[ruleConfig.checkVersion];
+            const packages = packageGraph.getDuplicatePackages().filter((pkg)=>!ruleConfig.ignore.includes(pkg[0].name)).map((pkgs)=>pkgs.filter((current)=>{
+                    const check = pkgs.reduce((ans, pkg)=>ans | CheckVersionMap[diff(current.version, pkg.version) ?? 'null'], 0);
+                    return check <= checkVersion;
+                }).sort((_packA, _packB)=>gt(_packA.version, _packB.version) ? 1 : -1)).filter((pkgs)=>pkgs.length > 1 && pkgs.filter((pkg)=>pkg.getSize().parsedSize > 0).length > 1);
+            for (const pkg of packages){
+                const message = getErrorMsg(pkg, root);
+                const detail = {
+                    type: 'package-relation',
+                    packages: pkg.map((item)=>getErrorDetail(item, packageGraph))
+                };
+                report({
+                    message,
+                    detail
+                });
+            }
+        }
+    }));
+export { rule };

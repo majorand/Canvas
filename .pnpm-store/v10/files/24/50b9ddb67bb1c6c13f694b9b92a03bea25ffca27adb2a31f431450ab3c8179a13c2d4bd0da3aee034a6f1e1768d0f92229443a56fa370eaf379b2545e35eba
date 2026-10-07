@@ -1,0 +1,8 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import * as __rspack_external__chunks_index_js_0dff7c47 from "./chunks/index.js";
+import * as __rspack_external__utils_index_js_1ffdce1c from "./utils/index.js";
+import * as __rspack_external__loader_index_js_7618f2f0 from "./loader/index.js";
+import * as __rspack_external__types_index_js_def0ea92 from "../../types/index.js";
+import * as __rspack_external__module_graph_index_js_3ee70f67 from "./module-graph/index.js";
+export { __rspack_external__chunks_index_js_0dff7c47 as Chunks, __rspack_external__loader_index_js_7618f2f0 as Loader, __rspack_external__module_graph_index_js_3ee70f67 as ModuleGraph, __rspack_external__types_index_js_def0ea92 as Types, __rspack_external__utils_index_js_1ffdce1c as Utils };

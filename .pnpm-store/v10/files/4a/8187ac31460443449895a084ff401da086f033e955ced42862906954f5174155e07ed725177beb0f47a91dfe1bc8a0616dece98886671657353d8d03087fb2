@@ -1,0 +1,105 @@
+{
+  "name": "@rsdoctor/utils",
+  "version": "1.4.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rsdoctor",
+    "directory": "packages/utils"
+  },
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    "./common": {
+      "types": "./dist/common/index.d.ts",
+      "import": "./dist/common.js",
+      "default": "./dist/common.cjs"
+    },
+    "./build": {
+      "types": "./dist/build/index.d.ts",
+      "import": "./dist/build.js",
+      "default": "./dist/build.cjs"
+    },
+    "./error": {
+      "types": "./dist/error/index.d.ts",
+      "import": "./dist/error.js",
+      "default": "./dist/error.cjs"
+    },
+    "./ruleUtils": {
+      "types": "./dist/rule-utils/index.d.ts",
+      "import": "./dist/ruleUtils.js",
+      "default": "./dist/ruleUtils.cjs"
+    },
+    "./logger": {
+      "types": "./dist/logger.d.ts",
+      "import": "./dist/logger.js",
+      "default": "./dist/logger.cjs"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "common": [
+        "./dist/common/index.d.ts"
+      ],
+      "build": [
+        "./dist/build/index.d.ts"
+      ],
+      "error": [
+        "./dist/error/index.d.ts"
+      ],
+      "ruleUtils": [
+        "./dist/rule-utils/index.d.ts"
+      ],
+      "logger": [
+        "./dist/logger.d.ts"
+      ]
+    }
+  },
+  "main": "dist/build.cjs",
+  "module": "dist/build.js",
+  "types": "dist/build/index.d.ts",
+  "files": [
+    "dist",
+    "compiled"
+  ],
+  "dependencies": {
+    "@babel/code-frame": "7.26.2",
+    "@types/estree": "1.0.5",
+    "acorn": "^8.10.0",
+    "acorn-import-attributes": "^1.9.5",
+    "acorn-walk": "8.3.4",
+    "deep-eql": "4.1.4",
+    "envinfo": "7.21.0",
+    "fs-extra": "^11.1.1",
+    "get-port": "5.1.1",
+    "json-stream-stringify": "3.0.1",
+    "lines-and-columns": "2.0.4",
+    "picocolors": "^1.1.1",
+    "rslog": "^1.2.11",
+    "strip-ansi": "^6.0.1",
+    "@rsdoctor/types": "1.4.0"
+  },
+  "devDependencies": {
+    "@types/babel__code-frame": "7.0.6",
+    "@types/connect": "3.4.38",
+    "@types/deep-eql": "4.0.2",
+    "@types/envinfo": "7.8.4",
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^22.8.1",
+    "prebundle": "1.4.2",
+    "filesize": "^10.1.6",
+    "connect": "3.7.0",
+    "tslib": "2.8.1",
+    "typescript": "^5.9.2"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "build": "npm run prebundle && rslib build",
+    "dev": "npm run start",
+    "start": "rslib build -w",
+    "test": "rstest run",
+    "prebundle": "prebundle"
+  }
+}

@@ -1,0 +1,7 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+function getVersionNumber(ECMAString) {
+    const version = ECMAString.match(/\d/);
+    return version?.length ? Number(version[0]) : void 0;
+}
+export { getVersionNumber };

@@ -1,0 +1,85 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { ChunkGraph } from "@rsdoctor/graph";
+import { Chunks, ModuleGraph } from "../../build-utils/build/index.js";
+import { internalPluginTapPreOptions } from "../constants.js";
+import { logger } from "@rsdoctor/utils/logger";
+function applyRspackNativePlugin(compiler, plugin, RsdoctorRspackPlugin) {
+    logger.debug('[RspackNativePlugin] Apply hooks');
+    compiler.hooks.compilation.tap('RsdoctorRspackPlugin', (compilation)=>{
+        const hooks = RsdoctorRspackPlugin.getCompilationHooks(compilation);
+        const cached = {};
+        const dependOn = {
+            chunkGraphData: [],
+            moduleGraphData: [
+                'chunkGraphData'
+            ],
+            assetPatchData: [
+                'chunkGraphData'
+            ],
+            moduleIdsPatchData: [
+                'moduleGraphData'
+            ],
+            moduleSourcesPatchData: [
+                'moduleGraphData'
+            ]
+        };
+        const consumer = {
+            chunkGraphData: (data)=>{
+                plugin.chunkGraph = new ChunkGraph();
+                Chunks.patchNativeChunkGraph(plugin.chunkGraph, data);
+            },
+            moduleGraphData: (data)=>{
+                ModuleGraph.patchNativeModuleGraph(plugin.modulesGraph, plugin.chunkGraph, data);
+            },
+            moduleIdsPatchData: (data)=>{
+                ModuleGraph.patchNativeModuleIds(plugin.modulesGraph, data);
+            },
+            moduleSourcesPatchData: (data)=>{
+                ModuleGraph.patchNativeModuleSources(plugin.modulesGraph, data);
+            },
+            assetPatchData: (data)=>{
+                Chunks.patchNativeAssets(plugin.chunkGraph, data);
+            }
+        };
+        const tryConsumeData = (key, data)=>{
+            if (true === cached[key]) return;
+            cached[key] = data;
+            while(true){
+                let hasConsumed = false;
+                for (const [_task, deps] of Object.entries(dependOn)){
+                    const task = _task;
+                    if (true === cached[task] || void 0 === cached[task]) continue;
+                    const prepared = deps.every((dep)=>true === cached[dep]);
+                    if (prepared) {
+                        consumer[task](cached[task]);
+                        cached[task] = true;
+                        hasConsumed = true;
+                    }
+                }
+                if (!hasConsumed) break;
+            }
+        };
+        hooks.chunkGraph.tap(internalPluginTapPreOptions('nativeChunkGraph'), (rawChunkGraph)=>{
+            logger.debug('[RspackNativePlugin] Called chunkGraph hook');
+            tryConsumeData('chunkGraphData', rawChunkGraph);
+        });
+        hooks.moduleGraph.tap(internalPluginTapPreOptions('nativeModuleGraph'), (rawModuleGraph)=>{
+            logger.debug('[RspackNativePlugin] Called moduleGraph hook');
+            tryConsumeData('moduleGraphData', rawModuleGraph);
+        });
+        hooks.moduleIds.tap(internalPluginTapPreOptions('nativeSourcePatch'), (rawModuleIdsPatch)=>{
+            logger.debug('[RspackNativePlugin] Called moduleIds hook');
+            tryConsumeData('moduleIdsPatchData', rawModuleIdsPatch);
+        });
+        hooks.moduleSources.tap(internalPluginTapPreOptions('nativeModuleSourcesPatch'), (rawModuleSourcesPatch)=>{
+            logger.debug('[RspackNativePlugin] Called moduleSources hook');
+            tryConsumeData('moduleSourcesPatchData', rawModuleSourcesPatch);
+        });
+        hooks.assets.tap(internalPluginTapPreOptions('nativeAssetPatch'), (rawAssetPatch)=>{
+            logger.debug('[RspackNativePlugin] Called assets hook');
+            tryConsumeData('assetPatchData', rawAssetPatch);
+        });
+    });
+}
+export { applyRspackNativePlugin };

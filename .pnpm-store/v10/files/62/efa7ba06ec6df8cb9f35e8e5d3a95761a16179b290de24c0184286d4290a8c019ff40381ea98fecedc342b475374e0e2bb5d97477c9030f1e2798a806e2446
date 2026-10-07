@@ -1,0 +1,169 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import axios from "../../../compiled/axios/index.js";
+import enhanced_resolve from "enhanced-resolve";
+import fs from "fs";
+import { omit } from "es-toolkit/compat";
+import path from "path";
+import { logger } from "@rsdoctor/utils/logger";
+import { Loader, Lodash, Time } from "@rsdoctor/utils/common";
+import { SDK } from "@rsdoctor/types";
+import { DevToolError } from "@rsdoctor/utils/error";
+import { getSDK } from "./sdk.js";
+import { checkCirclePath } from "./circleDetect.js";
+import { Utils } from "../../build-utils/build/index.js";
+import { isESMLoader, parseQuery } from "../../build-utils/build/utils/index.js";
+const { CachedInputFileSystem, create: ResolverCreator } = enhanced_resolve;
+function getInternalLoaderOptions(loaderContext) {
+    const options = loaderContext.getOptions();
+    return options[Loader.LoaderInternalPropertyName];
+}
+function getLoaderOptionsWithoutInternalKeys(loaderContext) {
+    const options = loaderContext.getOptions();
+    const circlePaths = [];
+    const loaderOptions = omit(options, [
+        Loader.LoaderInternalPropertyName
+    ]);
+    checkCirclePath(loaderOptions, [], circlePaths, 0);
+    if (circlePaths.length > 0) circlePaths.forEach((_path)=>{
+        if (_path?.length > 0 && '[Circular]' !== loaderOptions[_path[0]]) loaderOptions[_path[0]] = '[Circular]';
+    });
+    return loaderOptions;
+}
+function getOriginLoaderModule(loaderContext) {
+    const { loader, cwd } = getInternalLoaderOptions(loaderContext);
+    return Utils.loadLoaderModule(loader, cwd);
+}
+function shouldSkipLoader(loaderContext) {
+    const { skipLoaders, cwd, loader } = getInternalLoaderOptions(loaderContext) || {};
+    if (!loader) return true;
+    if (Array.isArray(skipLoaders) && skipLoaders.length) {
+        if (skipLoaders.includes(loader)) return true;
+        const loaderName = Utils.extractLoaderName(loader, cwd);
+        if (skipLoaders.includes(loaderName)) return true;
+    }
+    return false;
+}
+function interceptLoader(rules, loaderPath, options, cwd = process.cwd(), resolveLoader) {
+    const loaderResolver = ResolverCreator.sync({
+        fileSystem: new CachedInputFileSystem(fs, 4000),
+        conditionNames: [
+            'loader',
+            'require',
+            'node'
+        ],
+        exportsFields: [
+            'exports'
+        ],
+        mainFiles: [
+            'index'
+        ],
+        mainFields: [
+            'loader',
+            'main'
+        ],
+        extensions: [
+            'js',
+            '.json'
+        ],
+        modules: [
+            'node_modules'
+        ],
+        ...resolveLoader
+    });
+    const resolve = (target)=>{
+        try {
+            const result = loaderResolver({}, cwd, target);
+            if ('string' == typeof result) return result;
+        } catch (e) {}
+        return target;
+    };
+    return Utils.mapEachRules(rules, (rule)=>{
+        if (rule.loader?.startsWith('builtin:') || rule.loader?.endsWith('.mjs') || isESMLoader(rule)) return rule;
+        const opts = {
+            ...'options' in rule ? 'string' == typeof rule.options ? JSON.parse(rule.options) : rule.options : {}
+        };
+        opts[Loader.LoaderInternalPropertyName] = rule.loader && /proxy\.(js|cjs)/.test(rule.loader) && 'options' in rule && 'object' == typeof rule.options ? rule.options[Loader.LoaderInternalPropertyName] : {
+            ...options,
+            hasOptions: 'options' in rule && Boolean(rule.options),
+            loader: 'loader' in rule ? resolve(rule.loader) : ''
+        };
+        return {
+            ...rule,
+            loader: loaderPath,
+            options: opts
+        };
+    });
+}
+async function reportLoader(ctx, start, startHRTime, isPitch, sync, code, err, res, sourceMap) {
+    const end = Time.getCurrentTimestamp(start, startHRTime);
+    const { loader, host } = getInternalLoaderOptions(ctx);
+    const loaderData = [
+        {
+            resource: {
+                path: ctx._module?.layer ? `${ctx.resourcePath}[${ctx._module.layer}]` : ctx.resourcePath,
+                query: parseQuery(ctx.resourceQuery || '?'),
+                queryRaw: ctx.resourceQuery,
+                ext: path.extname(ctx.resourcePath).slice(1),
+                ...ctx._module?.layer ? {
+                    layer: ctx._module.layer
+                } : {}
+            },
+            loaders: [
+                {
+                    loader: Utils.extractLoaderName(loader),
+                    loaderIndex: ctx.loaderIndex,
+                    path: loader,
+                    input: code,
+                    result: 'string' == typeof res || Buffer.isBuffer(res) ? res.toString() : res,
+                    startAt: start,
+                    endAt: end,
+                    options: getLoaderOptionsWithoutInternalKeys(ctx),
+                    isPitch,
+                    sync,
+                    errors: err ? [
+                        new DevToolError(code, err.message, {
+                            controller: {
+                                noStack: false,
+                                noColor: true
+                            },
+                            stack: err.stack
+                        })
+                    ] : [],
+                    pid: process.pid,
+                    ppid: process.ppid
+                }
+            ]
+        }
+    ];
+    const data = sourceMap ? Lodash.isString(sourceMap) ? JSON.parse(sourceMap) : sourceMap : {};
+    const sourceMapData = {
+        version: data.version ?? -1,
+        sources: data.sources ?? [],
+        names: data.names ?? [],
+        sourceRoot: data.sourceRoot,
+        sourcesContent: data.sourcesContent,
+        mappings: data.mappings,
+        file: loaderData[0].resource.path
+    };
+    const sdk = getSDK(ctx._compilation?.name);
+    if (sdk?.reportLoader && !('parent' in sdk && sdk.parent)) {
+        sdk.reportLoader(loaderData);
+        sdk.reportSourceMap(sourceMapData);
+        return loaderData;
+    }
+    await Promise.all([
+        axios.post(`${host}${SDK.ServerAPI.API.ReportLoader}`, loaderData, {
+            timeout: 8888
+        }).catch((err)=>{
+            logger.debug(`${err.message}`, '[WebpackPlugin.ReportLoader][error]');
+        }),
+        axios.post(`${host}${SDK.ServerAPI.API.ReportSourceMap}`, sourceMapData, {
+            timeout: 8888
+        }).catch((err)=>{
+            logger.debug(`${err.message}`, '[WebpackPlugin.ReportSourceMap][error]');
+        })
+    ]);
+    return loaderData;
+}
+export { getInternalLoaderOptions, getLoaderOptionsWithoutInternalKeys, getOriginLoaderModule, interceptLoader, reportLoader, shouldSkipLoader };

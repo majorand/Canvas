@@ -1,0 +1,97 @@
+"use strict";
+var __webpack_require__ = {};
+(()=>{
+    __webpack_require__.d = (exports1, definition)=>{
+        for(var key in definition)if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key)) Object.defineProperty(exports1, key, {
+            enumerable: true,
+            get: definition[key]
+        });
+    };
+})();
+(()=>{
+    __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop);
+})();
+(()=>{
+    __webpack_require__.r = (exports1)=>{
+        if ("u" > typeof Symbol && Symbol.toStringTag) Object.defineProperty(exports1, Symbol.toStringTag, {
+            value: 'Module'
+        });
+        Object.defineProperty(exports1, '__esModule', {
+            value: true
+        });
+    };
+})();
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+    InternalRulesPlugin: ()=>InternalRulesPlugin
+});
+const external_base_cjs_namespaceObject = require("./base.cjs");
+const index_cjs_namespaceObject = require("../../rules/index.cjs");
+const error_namespaceObject = require("@rsdoctor/utils/error");
+const compat_namespaceObject = require("es-toolkit/compat");
+const logger_namespaceObject = require("@rsdoctor/utils/logger");
+class InternalRulesPlugin extends external_base_cjs_namespaceObject.InternalBasePlugin {
+    apply(compiler) {
+        (0, logger_namespaceObject.time)('InternalRulesPlugin.apply');
+        try {
+            compiler.hooks.done.tapPromise(this.tapPreOptions, this.done);
+        } finally{
+            (0, logger_namespaceObject.timeEnd)('InternalRulesPlugin.apply');
+        }
+    }
+    async lint(compilation) {
+        (0, logger_namespaceObject.time)('InternalRulesPlugin.lint');
+        try {
+            const options = this.options ?? {};
+            const linter = new index_cjs_namespaceObject.Linter(options.linter);
+            const result = await linter.validate(this.sdk.getRuleContext({}));
+            const validateErrors = result.errors.map((err)=>error_namespaceObject.DevToolError.from(err, {
+                    detail: err.detail,
+                    controller: {
+                        noColor: true
+                    }
+                }));
+            const errors = validateErrors.filter((item)=>'Error' === item.level);
+            const warnings = validateErrors.filter((item)=>'Warn' === item.level);
+            const toWebpackError = (err)=>err.toError();
+            result.replace.forEach((item)=>{
+                if (Array.isArray(compilation.errors) && compilation.errors.includes(item)) (0, compat_namespaceObject.pull)(compilation.errors, item);
+                if (Array.isArray(compilation.warnings) && compilation.warnings.includes(item)) (0, compat_namespaceObject.pull)(compilation.warnings, item);
+            });
+            if (Array.isArray(compilation.errors)) errors.forEach((err)=>{
+                compilation.warnings.push(toWebpackError(err));
+            });
+            if (Array.isArray(compilation.warnings)) warnings.forEach((err)=>{
+                compilation.warnings.push(toWebpackError(err));
+            });
+            this.sdk.reportError(validateErrors);
+            await linter.afterValidate({
+                data: this.sdk.getRuleContext({}),
+                validateResult: result,
+                hooks: {
+                    afterSaveManifest: this.sdk.hooks.afterSaveManifest
+                }
+            });
+        } finally{
+            (0, logger_namespaceObject.timeEnd)('InternalRulesPlugin.lint');
+        }
+    }
+    constructor(...args){
+        super(...args), this.name = 'rules', this.done = async (stats)=>{
+            (0, logger_namespaceObject.time)('InternalRulesPlugin.done');
+            try {
+                await this.lint(stats.compilation);
+            } finally{
+                (0, logger_namespaceObject.timeEnd)('InternalRulesPlugin.done');
+            }
+        };
+    }
+}
+exports.InternalRulesPlugin = __webpack_exports__.InternalRulesPlugin;
+for(var __rspack_i in __webpack_exports__)if (-1 === [
+    "InternalRulesPlugin"
+].indexOf(__rspack_i)) exports[__rspack_i] = __webpack_exports__[__rspack_i];
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});

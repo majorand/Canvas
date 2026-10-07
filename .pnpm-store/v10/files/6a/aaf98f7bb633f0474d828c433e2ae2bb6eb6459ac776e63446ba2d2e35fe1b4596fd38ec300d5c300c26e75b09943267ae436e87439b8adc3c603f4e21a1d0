@@ -1,0 +1,60 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { isNumber } from "es-toolkit/compat";
+import { parser } from "@rsdoctor/utils/ruleUtils";
+function getDefaultExportIdentifier(node, module, searchId) {
+    const { declaration } = node;
+    if (parser.asserts.isLiteral(declaration) && declaration.loc) return module.getStatement(declaration.loc);
+    if (parser.asserts.isIdentifier(declaration)) {
+        if (searchId) {
+            const result = getDeclarationIdentifier(declaration.name, module);
+            if (result) return result;
+        } else if (declaration.loc) return module.getStatement(declaration.loc);
+    }
+    if (parser.asserts.isClassDeclaration(declaration) || parser.asserts.isFunctionDeclaration(declaration)) {
+        if (declaration.id?.loc) return module.getStatement(declaration.id.loc);
+    }
+    const startLine = node.declaration.loc?.start.line;
+    if (!isNumber(startLine)) return;
+    const { transformed } = module.getSource();
+    const endColumn = transformed.split('\n')[startLine - 1].length - 1;
+    return module.getStatement({
+        start: {
+            line: startLine,
+            column: 0
+        },
+        end: {
+            line: startLine,
+            column: endColumn
+        }
+    });
+}
+function getExportIdentifierStatement(name, module) {
+    const ast = module.getProgram();
+    if (!ast) return;
+    for (const node of ast.body){
+        if (parser.asserts.isExportDefaultDeclaration(node)) {
+            const result = getDefaultExportIdentifier(node, module, false);
+            if (result) return result;
+        }
+        const id = parser.utils.getIdentifierInExport(name, node);
+        if (id?.loc) return module.getStatement(id.loc);
+    }
+}
+function getDeclarationIdentifier(name, module) {
+    const ast = module.getProgram();
+    if (!ast) return;
+    for (const node of ast.body){
+        const id = parser.utils.getIdentifierInDeclaration(name, node);
+        if (id?.loc) return module.getStatement(id.loc);
+        if (parser.asserts.isExportNamedDeclaration(node) && node.declaration) {
+            const id = parser.utils.getIdentifierInDeclaration(name, node.declaration);
+            if (id?.loc) return module.getStatement(id.loc);
+        }
+        if ('default' === name && parser.asserts.isExportDefaultDeclaration(node)) {
+            const result = getDefaultExportIdentifier(node, module, true);
+            if (result) return result;
+        }
+    }
+}
+export { getDeclarationIdentifier, getExportIdentifierStatement };

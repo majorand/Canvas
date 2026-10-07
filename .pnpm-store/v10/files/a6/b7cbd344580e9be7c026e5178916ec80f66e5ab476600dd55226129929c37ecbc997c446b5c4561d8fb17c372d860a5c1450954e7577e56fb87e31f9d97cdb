@@ -1,0 +1,237 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import fs from "fs";
+import { find, mapValues } from "es-toolkit/compat";
+import { filesize } from "filesize";
+import { parser } from "@rsdoctor/utils/ruleUtils";
+import { extname } from "path";
+import { logger } from "@rsdoctor/utils/logger";
+const parseBundle = (bundlePath, modulesData)=>{
+    if (bundlePath.indexOf('.worker.') > 0) return {};
+    if ('.js' !== extname(bundlePath)) return {};
+    let content = fs.readFileSync(bundlePath, 'utf8');
+    const tagCache = new Map();
+    let hasBannerPlugin = content.indexOf('RSDOCTOR_START::') > 0;
+    if (hasBannerPlugin && !tagCache.get(bundlePath)) {
+        const tagMatchResult = getStringBetween(content, 0, /([a-z|A-Z|_]+\.[a-z]+)\(\SRSDOCTOR_START::(.*?)[;,]/, /([a-z|A-Z|_]+\.[a-z]+)\(\SRSDOCTOR_END::(.*?)\)/);
+        content = tagMatchResult.result?.trim() || content;
+        tagCache.set(bundlePath, tagMatchResult.loc);
+        hasBannerPlugin = true;
+    } else if (hasBannerPlugin && !tagCache.get(bundlePath)) {
+        const loc = tagCache.get(bundlePath);
+        content = content.slice(loc.start, loc.end);
+        hasBannerPlugin = true;
+    }
+    const ast = parser.internal.parse(content, {
+        sourceType: "script",
+        ecmaVersion: 'latest'
+    });
+    const walkState = {
+        locations: null,
+        expressionStatementDepth: 0
+    };
+    parser.walk.recursive(ast, walkState, {
+        ExpressionStatement (node, state, c) {
+            if (state.locations) return;
+            state.expressionStatementDepth++;
+            try {
+                if (1 === state.expressionStatementDepth && isIIFE(node)) {
+                    const fn = getIIFECallExpression(node);
+                    if (0 === fn.arguments.length && 0 === fn.callee.params.length) {
+                        const firstVariableDeclaration = fn.callee.body.body.find((node)=>'VariableDeclaration' === node.type);
+                        if (firstVariableDeclaration) {
+                            for (const declaration of firstVariableDeclaration.declarations)if (declaration.init) {
+                                state.locations = getModulesLocations(declaration.init);
+                                if (state.locations) break;
+                            }
+                        }
+                    }
+                }
+                if (!state.locations) c(node.expression, state);
+            } catch (e) {
+                logger.debug(e);
+            }
+            state.expressionStatementDepth--;
+        },
+        Program (node, state, _c) {
+            if (state.locations) return;
+            try {
+                if (hasBannerPlugin) {
+                    const firstVariableDeclaration = node.body.find((node)=>'VariableDeclaration' === node.type && node.declarations?.[0]?.init?.type === 'ObjectExpression' && node.declarations?.[0]?.init?.properties?.length);
+                    if (firstVariableDeclaration) {
+                        for (const declaration of firstVariableDeclaration.declarations)if (declaration.init) {
+                            state.locations = getModulesLocations(declaration.init);
+                            if (state.locations) break;
+                        }
+                    }
+                }
+                if (!state.locations) node.body.forEach((n)=>_c(n, state));
+            } catch (e) {
+                logger.debug(e);
+            }
+            state.expressionStatementDepth--;
+        },
+        AssignmentExpression (node, state) {
+            if (state.locations) return;
+            const { left, right } = node;
+            if (left?.object && 'exports' === left.object.name && left.property && 'modules' === left.property.name && isModulesHash(right)) state.locations = getModulesLocations(right);
+        },
+        CallExpression (node, state, c) {
+            if (state.locations) return;
+            const args = node.arguments;
+            if ('FunctionExpression' === node.callee.type && !node.callee.id && 1 === args.length && isSimpleModulesList(args[0])) {
+                state.locations = getModulesLocations(args[0]);
+                return;
+            }
+            if ('Identifier' === node.callee.type && mayBeAsyncChunkArguments(args) && isModulesList(args[1])) {
+                state.locations = getModulesLocations(args[1]);
+                return;
+            }
+            if (isAsyncChunkPushExpression(node)) {
+                state.locations = getModulesLocations(args[0].elements[1]);
+                return;
+            }
+            if (isAsyncWebWorkerChunkExpression(node)) {
+                state.locations = getModulesLocations(args[1]);
+                return;
+            }
+            args.forEach((arg)=>c(arg, state));
+        }
+    });
+    let modules;
+    modules = walkState.locations ? mapValues(walkState.locations, (loc)=>content.slice(loc.start, loc.end)) : {};
+    const modulesObj = {};
+    for(const module in modules){
+        if (!module) return {};
+        const moduleContent = modules[module];
+        const size = moduleContent && Buffer.byteLength(moduleContent);
+        const identifier = find(modulesData, {
+            renderId: module
+        })?.webpackId || '';
+        modulesObj[identifier] = {
+            size,
+            sizeConvert: filesize(size || 0),
+            content: moduleContent
+        };
+    }
+    return {
+        modules: modulesObj,
+        src: content,
+        runtimeSrc: getBundleRuntime(content, walkState.locations)
+    };
+};
+function getBundleRuntime(content, modulesLocations) {
+    const sortedLocations = Object.values(modulesLocations || {}).sort((a, b)=>a.start - b.start);
+    let result = '';
+    let lastIndex = 0;
+    for (const { start, end } of sortedLocations){
+        result += content.slice(lastIndex, start);
+        lastIndex = end;
+    }
+    return result + content.slice(lastIndex, content.length);
+}
+function isIIFE(node) {
+    return 'ExpressionStatement' === node.type && ('CallExpression' === node.expression.type || 'UnaryExpression' === node.expression.type && 'CallExpression' === node.expression.argument.type);
+}
+function getIIFECallExpression(node) {
+    if ('UnaryExpression' === node.expression.type) return node.expression.argument;
+    return node.expression;
+}
+function isModulesList(node) {
+    return isSimpleModulesList(node) || isOptimizedModulesArray(node);
+}
+function isSimpleModulesList(node) {
+    return isModulesHash(node) || isModulesArray(node);
+}
+function isModulesHash(node) {
+    return 'ObjectExpression' === node.type && node.properties.map((node)=>node.value).every(isModuleWrapper);
+}
+function isModulesArray(node) {
+    return 'ArrayExpression' === node.type && node.elements.every((elem)=>!elem || isModuleWrapper(elem));
+}
+function isOptimizedModulesArray(node) {
+    return 'CallExpression' === node.type && 'MemberExpression' === node.callee.type && 'CallExpression' === node.callee.object.type && 'Identifier' === node.callee.object.callee.type && 'Array' === node.callee.object.callee.name && 1 === node.callee.object.arguments.length && isNumericId(node.callee.object.arguments[0]) && 'Identifier' === node.callee.property.type && 'concat' === node.callee.property.name && 1 === node.arguments.length && isModulesArray(node.arguments[0]);
+}
+function isModuleWrapper(node) {
+    return ('FunctionExpression' === node.type || 'ArrowFunctionExpression' === node.type) && !node.id || isModuleId(node) || 'ArrayExpression' === node.type && node.elements.length > 1 && isModuleId(node.elements[0]);
+}
+function isModuleId(node) {
+    return 'Literal' === node.type && (isNumericId(node) || 'string' == typeof node.value);
+}
+function isNumericId(node) {
+    return 'Literal' === node.type && Number.isInteger(node.value) && node.value >= 0;
+}
+function isChunkIds(node) {
+    return 'ArrayExpression' === node.type && node.elements.every(isModuleId);
+}
+function isAsyncChunkPushExpression(node) {
+    const { callee, arguments: args } = node;
+    return 'MemberExpression' === callee.type && 'push' === callee.property.name && 'AssignmentExpression' === callee.object.type && 1 === args.length && 'ArrayExpression' === args[0].type && mayBeAsyncChunkArguments(args[0].elements) && isModulesList(args[0].elements[1]);
+}
+function mayBeAsyncChunkArguments(args) {
+    return args.length >= 2 && isChunkIds(args[0]);
+}
+function isAsyncWebWorkerChunkExpression(node) {
+    const { callee, type, arguments: args } = node;
+    return 'CallExpression' === type && 'MemberExpression' === callee.type && 2 === args.length && isChunkIds(args[0]) && isModulesList(args[1]);
+}
+function getModulesLocations(node) {
+    if ('ObjectExpression' === node.type) {
+        const modulesNodes = node.properties;
+        return modulesNodes.reduce((result, moduleNode)=>{
+            const moduleId = moduleNode.key.name || moduleNode.key.value;
+            result[moduleId] = getModuleLocation(moduleNode.value);
+            return result;
+        }, {});
+    }
+    const isOptimizedArray = 'CallExpression' === node.type;
+    if ('ArrayExpression' === node.type || isOptimizedArray) {
+        const minId = isOptimizedArray ? node.callee.object.arguments[0].value : 0;
+        const modulesNodes = isOptimizedArray ? node.arguments[0].elements : node.elements;
+        return modulesNodes.reduce((result, moduleNode, i)=>{
+            if (moduleNode) result[i + minId] = getModuleLocation(moduleNode);
+            return result;
+        }, {});
+    }
+    return {};
+}
+function getModuleLocation(node) {
+    return {
+        start: node.start,
+        end: node.end
+    };
+}
+function getStringBetween(raw, position, start, end) {
+    try {
+        const matchStart = raw.match(start);
+        const startFlagIndex = matchStart?.length ? raw.indexOf(matchStart[0], position) : -1;
+        if (-1 === startFlagIndex || !matchStart?.length) return {
+            result: null,
+            remain: position
+        };
+        const startTagLength = matchStart[0].length;
+        const matchEnd = raw.match(end);
+        const endFlagIndex = matchEnd?.length ? raw.indexOf(matchEnd[0], startFlagIndex + startTagLength) : -1;
+        if (-1 === endFlagIndex || !matchEnd?.length) return {
+            result: null,
+            remain: position
+        };
+        let innerContent = raw.slice(startFlagIndex + startTagLength, endFlagIndex).trim();
+        if (innerContent.endsWith(',')) innerContent = innerContent.slice(0, -1);
+        return {
+            result: innerContent,
+            remain: matchEnd?.length ? endFlagIndex + matchEnd[0].length : endFlagIndex,
+            loc: {
+                start: startFlagIndex + startTagLength,
+                end: endFlagIndex
+            }
+        };
+    } catch (e) {
+        logger.debug(()=>e);
+        return {
+            result: null,
+            remain: position
+        };
+    }
+}
+export { parseBundle };

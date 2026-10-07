@@ -1,0 +1,7 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { Chunks } from "@rsdoctor/graph";
+function chunkTransform(assetMap, bundleStats) {
+    return Chunks.chunkTransform(assetMap, bundleStats);
+}
+export { chunkTransform };

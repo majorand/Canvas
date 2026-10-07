@@ -1,0 +1,59 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { Utils } from "../../build-utils/build/index.js";
+import { getOriginLoaderModule, reportLoader, shouldSkipLoader } from "../utils/index.js";
+const loaderModule = function(...args) {
+    if (shouldSkipLoader(this)) return void this.callback(null, ...args);
+    this.cacheable(false);
+    const mod = getOriginLoaderModule(this);
+    if (mod.default) {
+        if (false === mod.raw && Buffer.isBuffer(args[0])) args[0] = args[0].toString();
+        let start;
+        let startHRTime;
+        const trap = Utils.createLoaderContextTrap.call(this, (err, res, sourceMap)=>{
+            reportLoader(this, start, startHRTime, false, false, args[0].toString(), err, res, sourceMap);
+        });
+        start = Date.now();
+        startHRTime = process.hrtime();
+        try {
+            const result = mod.default.apply(trap, args);
+            if (result) {
+                if (!(result instanceof Promise)) reportLoader(this, start, startHRTime, false, true, args[0].toString(), null, result);
+            }
+            return result || '';
+        } catch (error) {
+            reportLoader(this, start, startHRTime, false, true, args[0].toString(), error, null);
+            throw error;
+        }
+    }
+    this.callback(null, ...args);
+};
+const pitch = function() {
+    if (shouldSkipLoader(this)) return;
+    this.cacheable(false);
+    const mod = getOriginLoaderModule(this);
+    if (mod.pitch && 'function' == typeof mod.pitch) {
+        let start;
+        let startHRTime;
+        const trap = Utils.createLoaderContextTrap.call(this, (err, res)=>{
+            reportLoader(this, start, startHRTime, true, false, err ? 'Loader Pitch Async Error' : '', err, res);
+        });
+        start = Date.now();
+        startHRTime = process.hrtime();
+        try {
+            const res = mod.pitch.apply(trap, arguments);
+            if (res) {
+                if (!(res instanceof Promise)) reportLoader(this, start, startHRTime, true, true, '', null, res);
+            }
+            return res;
+        } catch (error) {
+            reportLoader(this, start, startHRTime, true, true, 'Loader Pitch Sync Error', error, null);
+            throw error;
+        }
+    }
+};
+loaderModule.raw = true;
+loaderModule.pitch = pitch;
+const raw = true;
+const proxy = loaderModule;
+export { proxy as default, pitch, raw };

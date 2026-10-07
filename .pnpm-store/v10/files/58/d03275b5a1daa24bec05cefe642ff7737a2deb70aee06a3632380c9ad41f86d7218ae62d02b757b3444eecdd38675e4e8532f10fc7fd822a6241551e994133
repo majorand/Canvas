@@ -1,0 +1,9 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.IMode = void 0;
+var IMode;
+(function (IMode) {
+    IMode["brief"] = "brief";
+    IMode["lite"] = "lite";
+    IMode["normal"] = "normal";
+})(IMode || (exports.IMode = IMode = {}));

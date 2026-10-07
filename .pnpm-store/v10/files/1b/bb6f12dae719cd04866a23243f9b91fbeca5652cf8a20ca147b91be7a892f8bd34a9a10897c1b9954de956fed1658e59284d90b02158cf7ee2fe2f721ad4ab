@@ -1,0 +1,41 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { Linter } from "@rsdoctor/types";
+import { defineRule } from "../../rule.js";
+import { getErrorMsgForDupPckChunks } from "./utils.js";
+import { uniq } from "es-toolkit/compat";
+const title = 'cross-chunks-package';
+const rule = defineRule(()=>({
+        meta: {
+            code: 'E1002',
+            title,
+            category: 'bundle',
+            severity: Linter.Severity.Warn,
+            defaultConfig: {
+                ignore: []
+            }
+        },
+        check ({ packageGraph, report }) {
+            const packages = packageGraph.getPackages().filter((pkg)=>pkg.duplicates.length > 0);
+            for (const pkg of packages){
+                const detail = {
+                    type: title,
+                    chunks: pkg.duplicates,
+                    package: {
+                        name: pkg.name,
+                        id: pkg.id,
+                        size: pkg.getSize(),
+                        version: pkg.version
+                    }
+                };
+                const chunks = [];
+                pkg.duplicates.forEach((dup)=>chunks.push(...dup.chunks.map((ck)=>ck.name)));
+                const message = getErrorMsgForDupPckChunks(uniq(chunks), pkg.name);
+                report({
+                    message,
+                    detail
+                });
+            }
+        }
+    }));
+export { rule };

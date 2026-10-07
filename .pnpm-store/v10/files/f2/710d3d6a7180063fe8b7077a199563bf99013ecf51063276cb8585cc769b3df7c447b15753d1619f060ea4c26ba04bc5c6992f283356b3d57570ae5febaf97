@@ -1,0 +1,66 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { Rule } from "@rsdoctor/types";
+import { InternalBasePlugin } from "./base.js";
+import { DevToolError } from "@rsdoctor/utils/error";
+import { time, timeEnd } from "@rsdoctor/utils/logger";
+class InternalErrorReporterPlugin extends InternalBasePlugin {
+    apply(compiler) {
+        time('InternalErrorReporterPlugin.apply');
+        try {
+            compiler.hooks.done.tapPromise(this.tapPreOptions, this.done);
+        } finally{
+            timeEnd('InternalErrorReporterPlugin.apply');
+        }
+    }
+    handleWebpackError(err, category, level) {
+        return DevToolError.from(err, {
+            category,
+            code: Rule.RuleMessageCodeEnumerated.Overlay,
+            controller: {
+                noStack: false
+            },
+            detail: {
+                stack: 'stack' in err ? err.stack : err.message
+            },
+            level
+        });
+    }
+    async reportWarnings(warnings) {
+        time('InternalErrorReporterPlugin.reportWarnings');
+        try {
+            const arr = warnings.map((warning)=>this.handleWebpackError(warning, Rule.RuleMessageCategory.Compile, 'Warn'));
+            this.sdk.reportError(arr);
+        } finally{
+            timeEnd('InternalErrorReporterPlugin.reportWarnings');
+        }
+    }
+    async reportErrors(errors) {
+        time('InternalErrorReporterPlugin.reportErrors');
+        try {
+            const arr = errors.map((err)=>this.handleWebpackError(err, Rule.RuleMessageCategory.Bundle, 'Error'));
+            this.sdk.reportError(arr);
+        } finally{
+            timeEnd('InternalErrorReporterPlugin.reportErrors');
+        }
+    }
+    constructor(...args){
+        super(...args), this.name = 'error-reporter', this.done = async (stats)=>{
+            time('InternalErrorReporterPlugin.done');
+            try {
+                const tasks = [];
+                const statsData = stats.toJson({
+                    all: false,
+                    errors: true,
+                    warnings: true
+                });
+                if (stats.hasErrors()) tasks.push(this.reportErrors(statsData.errors || []));
+                if (stats.hasWarnings()) tasks.push(this.reportWarnings(statsData.warnings || []));
+                await Promise.all(tasks);
+            } finally{
+                timeEnd('InternalErrorReporterPlugin.done');
+            }
+        };
+    }
+}
+export { InternalErrorReporterPlugin };

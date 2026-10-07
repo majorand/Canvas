@@ -1,0 +1,17 @@
+export declare const JSExtension = ".js";
+export declare const CSSExtension = ".css";
+export declare const HtmlExtension = ".html";
+export declare const ImgExtensions: string[];
+export declare const MediaExtensions: string[];
+export declare const FontExtensions: string[];
+export declare const MapExtensions: string[];
+export declare const RsdoctorOutputFolder = ".rsdoctor";
+export declare const RsdoctorOutputManifest = "manifest.json";
+export declare const RsdoctorOutputManifestPath: ".rsdoctor/manifest.json";
+export declare const StatsFilePath = "dist/stats.json";
+export declare const RsdoctorMonitorNodeBId = "Rsdoctor";
+export declare const RsdoctorMonitorWebBId = "Rsdoctor-Client";
+export declare const RsdoctorMonitorDocBId = "Rsdoctor-Doc";
+export declare const RsdoctorProcessEnvDebugKey = "rsdoctor";
+export declare const RsdoctorClientUrl = "";
+export declare const WINDOW_RSDOCTOR_TAG = "__RSDOCTOR__";

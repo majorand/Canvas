@@ -1,0 +1,98 @@
+"use strict";
+var __webpack_require__ = {};
+(()=>{
+    __webpack_require__.d = (exports1, definition)=>{
+        for(var key in definition)if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key)) Object.defineProperty(exports1, key, {
+            enumerable: true,
+            get: definition[key]
+        });
+    };
+})();
+(()=>{
+    __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop);
+})();
+(()=>{
+    __webpack_require__.r = (exports1)=>{
+        if ("u" > typeof Symbol && Symbol.toStringTag) Object.defineProperty(exports1, Symbol.toStringTag, {
+            value: 'Module'
+        });
+        Object.defineProperty(exports1, '__esModule', {
+            value: true
+        });
+    };
+})();
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+    InternalErrorReporterPlugin: ()=>InternalErrorReporterPlugin
+});
+const types_namespaceObject = require("@rsdoctor/types");
+const external_base_cjs_namespaceObject = require("./base.cjs");
+const error_namespaceObject = require("@rsdoctor/utils/error");
+const logger_namespaceObject = require("@rsdoctor/utils/logger");
+class InternalErrorReporterPlugin extends external_base_cjs_namespaceObject.InternalBasePlugin {
+    apply(compiler) {
+        (0, logger_namespaceObject.time)('InternalErrorReporterPlugin.apply');
+        try {
+            compiler.hooks.done.tapPromise(this.tapPreOptions, this.done);
+        } finally{
+            (0, logger_namespaceObject.timeEnd)('InternalErrorReporterPlugin.apply');
+        }
+    }
+    handleWebpackError(err, category, level) {
+        return error_namespaceObject.DevToolError.from(err, {
+            category,
+            code: types_namespaceObject.Rule.RuleMessageCodeEnumerated.Overlay,
+            controller: {
+                noStack: false
+            },
+            detail: {
+                stack: 'stack' in err ? err.stack : err.message
+            },
+            level
+        });
+    }
+    async reportWarnings(warnings) {
+        (0, logger_namespaceObject.time)('InternalErrorReporterPlugin.reportWarnings');
+        try {
+            const arr = warnings.map((warning)=>this.handleWebpackError(warning, types_namespaceObject.Rule.RuleMessageCategory.Compile, 'Warn'));
+            this.sdk.reportError(arr);
+        } finally{
+            (0, logger_namespaceObject.timeEnd)('InternalErrorReporterPlugin.reportWarnings');
+        }
+    }
+    async reportErrors(errors) {
+        (0, logger_namespaceObject.time)('InternalErrorReporterPlugin.reportErrors');
+        try {
+            const arr = errors.map((err)=>this.handleWebpackError(err, types_namespaceObject.Rule.RuleMessageCategory.Bundle, 'Error'));
+            this.sdk.reportError(arr);
+        } finally{
+            (0, logger_namespaceObject.timeEnd)('InternalErrorReporterPlugin.reportErrors');
+        }
+    }
+    constructor(...args){
+        super(...args), this.name = 'error-reporter', this.done = async (stats)=>{
+            (0, logger_namespaceObject.time)('InternalErrorReporterPlugin.done');
+            try {
+                const tasks = [];
+                const statsData = stats.toJson({
+                    all: false,
+                    errors: true,
+                    warnings: true
+                });
+                if (stats.hasErrors()) tasks.push(this.reportErrors(statsData.errors || []));
+                if (stats.hasWarnings()) tasks.push(this.reportWarnings(statsData.warnings || []));
+                await Promise.all(tasks);
+            } finally{
+                (0, logger_namespaceObject.timeEnd)('InternalErrorReporterPlugin.done');
+            }
+        };
+    }
+}
+exports.InternalErrorReporterPlugin = __webpack_exports__.InternalErrorReporterPlugin;
+for(var __rspack_i in __webpack_exports__)if (-1 === [
+    "InternalErrorReporterPlugin"
+].indexOf(__rspack_i)) exports[__rspack_i] = __webpack_exports__[__rspack_i];
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});

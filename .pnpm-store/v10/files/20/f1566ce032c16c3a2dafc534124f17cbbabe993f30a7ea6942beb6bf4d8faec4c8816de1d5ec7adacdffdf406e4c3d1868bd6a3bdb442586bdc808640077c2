@@ -1,0 +1,15 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { rule } from "./duplicate-package/index.js";
+import { rule as index_js_rule } from "./default-import-check/index.js";
+import { rule as external_loader_performance_optimization_index_js_rule } from "./loader-performance-optimization/index.js";
+import { rule as external_ecma_version_check_index_js_rule } from "./ecma-version-check/index.js";
+import { rule as external_cross_chunks_package_index_js_rule } from "./cross-chunks-package/index.js";
+const rules = [
+    rule,
+    index_js_rule,
+    external_loader_performance_optimization_index_js_rule,
+    external_ecma_version_check_index_js_rule,
+    external_cross_chunks_package_index_js_rule
+];
+export { rules };

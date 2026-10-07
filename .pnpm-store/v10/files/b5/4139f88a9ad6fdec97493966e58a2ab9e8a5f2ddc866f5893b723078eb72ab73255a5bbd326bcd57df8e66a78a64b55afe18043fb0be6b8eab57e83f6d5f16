@@ -1,0 +1,37 @@
+import { Common, SDK, Thirdparty, Client } from '@rsdoctor/types';
+export * from './utils.js';
+export type ISocketType = {
+    port: number;
+    socketUrl: string;
+};
+export declare class RsdoctorServer implements SDK.RsdoctorServerInstance {
+    protected sdk: SDK.RsdoctorBuilderSDKInstance;
+    private _server;
+    port: number;
+    private _socket?;
+    private disposed;
+    private _router;
+    private _innerClientPath;
+    private _printServerUrl;
+    constructor(sdk: SDK.RsdoctorBuilderSDKInstance, port?: number, config?: {
+        innerClientPath?: string;
+        printServerUrl?: boolean;
+    });
+    get app(): SDK.RsdoctorServerInstance['app'];
+    get host(): string;
+    get origin(): string;
+    get socketUrl(): ISocketType;
+    get innerClientPath(): string;
+    bootstrap(): Promise<void>;
+    protected wrapNextHandleFunction(method: 'GET' | 'POST', cb: (...args: Parameters<Thirdparty.connect.NextHandleFunction>) => Common.PlainObject | string): Thirdparty.connect.NextHandleFunction;
+    proxy(api: SDK.ServerAPI.API, method: 'GET' | 'POST', cb: (...args: Parameters<Thirdparty.connect.NextHandleFunction>) => Common.PlainObject | string): void;
+    get: SDK.RsdoctorServerInstance['get'];
+    post: SDK.RsdoctorServerInstance['post'];
+    getClientUrl(route: Client.RsdoctorClientRoutes, baselineUrl: string, currentUrl: string): string;
+    getClientUrl(route?: 'homepage'): string;
+    openClientPage(route: Client.RsdoctorClientRoutes, baselineUrl: string, currentUrl: string): Promise<void>;
+    openClientPage(route?: 'homepage'): Promise<void>;
+    sendAPIDataToClient<T extends SDK.ServerAPI.API | SDK.ServerAPI.APIExtends>(api: T, msg: SDK.ServerAPI.SocketResponseType<T>): void;
+    broadcast(): Promise<void>;
+    dispose: (exitCode?: number) => Promise<void>;
+}

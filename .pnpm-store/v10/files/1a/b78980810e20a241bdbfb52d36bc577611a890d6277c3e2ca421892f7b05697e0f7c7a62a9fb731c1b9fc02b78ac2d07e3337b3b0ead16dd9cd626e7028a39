@@ -1,0 +1,116 @@
+"use strict";
+var __webpack_require__ = {};
+(()=>{
+    __webpack_require__.d = (exports1, definition)=>{
+        for(var key in definition)if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key)) Object.defineProperty(exports1, key, {
+            enumerable: true,
+            get: definition[key]
+        });
+    };
+})();
+(()=>{
+    __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop);
+})();
+(()=>{
+    __webpack_require__.r = (exports1)=>{
+        if ("u" > typeof Symbol && Symbol.toStringTag) Object.defineProperty(exports1, Symbol.toStringTag, {
+            value: 'Module'
+        });
+        Object.defineProperty(exports1, '__esModule', {
+            value: true
+        });
+    };
+})();
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+    rule: ()=>rule
+});
+const external_module_namespaceObject = require("module");
+const types_namespaceObject = require("@rsdoctor/types");
+const ruleUtils_namespaceObject = require("@rsdoctor/utils/ruleUtils");
+const external_utils_cjs_namespaceObject = require("./utils.cjs");
+const external_rule_cjs_namespaceObject = require("../../rule.cjs");
+const title = 'default-import-check';
+const rule = (0, external_rule_cjs_namespaceObject.defineRule)(()=>{
+    const parserOpt = {
+        ecmaVersion: 6
+    };
+    const exportsDefault = ruleUtils_namespaceObject.parser.internal.parseExpressionAt('exports.default', 0, parserOpt);
+    const moduleExportsDefault = ruleUtils_namespaceObject.parser.internal.parseExpressionAt('module.exports.default', 0, parserOpt);
+    return {
+        meta: {
+            code: 'E1005',
+            title,
+            category: 'compile',
+            severity: types_namespaceObject.Linter.Severity.Warn,
+            defaultConfig: {
+                ignore: []
+            }
+        },
+        check ({ moduleGraph, report, ruleConfig }) {
+            const dependencyWithNode = moduleGraph.getDependencies().filter((dep)=>'dynamic' === dep.meta.exportsType).filter((dep)=>!dep.module.path.includes('node_modules')).filter((dep)=>!ruleConfig.ignore.includes(dep.request) && !external_module_namespaceObject.builtinModules.includes(dep.request)).filter((dep)=>dep.dependency.meta.hasSetEsModuleStatement).filter((dep)=>dep.dependency.getProgram()).filter((dep)=>!(0, external_utils_cjs_namespaceObject.hasSameLeftInAssignStatement)(dep.dependency.getProgram(), [
+                    exportsDefault,
+                    moduleExportsDefault
+                ])).map((dependency)=>{
+                const { module, request } = dependency;
+                const node = module.getProgram() && (0, external_utils_cjs_namespaceObject.getDefaultImportByRequest)(module.getProgram(), request);
+                return node ? {
+                    dependency,
+                    node
+                } : {};
+            }).filter((dep)=>dep?.dependency);
+            for (const { dependency, node } of dependencyWithNode){
+                if (!dependency) continue;
+                const document = (0, external_utils_cjs_namespaceObject.getSourceRangeFromTransformedOffset)(dependency.module, node);
+                if (!document) continue;
+                const message = 'Do not to use the default import when you import a cjs module.';
+                const canFix = !document.isTransformed && !document.path.includes('node_modules');
+                if (canFix) {
+                    const fixData = (0, external_utils_cjs_namespaceObject.getFixData)(dependency.module, node, document.range);
+                    const detail = {
+                        type: 'code-change',
+                        file: {
+                            path: document.path,
+                            actual: document.content,
+                            line: document.range.start.line,
+                            expected: (0, ruleUtils_namespaceObject.getDocument)(document.content).edit(fixData)
+                        }
+                    };
+                    report({
+                        message,
+                        document,
+                        detail,
+                        suggestions: {
+                            description: 'Use namespace import instead.',
+                            fixData
+                        }
+                    });
+                } else {
+                    const detail = {
+                        type: 'code-view',
+                        file: {
+                            path: document.path,
+                            content: document.content,
+                            ranges: [
+                                node.loc
+                            ]
+                        }
+                    };
+                    report({
+                        message,
+                        document,
+                        detail
+                    });
+                }
+            }
+        }
+    };
+});
+exports.rule = __webpack_exports__.rule;
+for(var __rspack_i in __webpack_exports__)if (-1 === [
+    "rule"
+].indexOf(__rspack_i)) exports[__rspack_i] = __webpack_exports__[__rspack_i];
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});

@@ -1,0 +1,16 @@
+import { Compilation, Dependency, ExternalModule, Module, ModuleGraph, NormalModule } from 'webpack';
+import { SDK, Plugin } from '@rsdoctor/types';
+export declare function isNormalModule(mod: Module): mod is NormalModule;
+export declare function getWebpackModuleId(mod: Module): string;
+export declare function getWebpackModulePath(mod: NormalModule): string;
+export declare function getWebpackDependencyRequest(dep: Dependency, module?: NormalModule): string;
+export declare function getResolveRequest(dep: Dependency, graph: ModuleGraph): string;
+export declare function isExternalModule(mod: Module): mod is ExternalModule;
+export declare function getModuleSource(mod: NormalModule): string;
+export declare function getEntryModule(entryMap: Map<string, Plugin.EntryPoint>): NormalModule[];
+export declare function getDependencyPosition(dep: Dependency, module: SDK.ModuleInstance, getSource?: boolean): SDK.StatementInstance | undefined;
+export declare function getExportDependency(info: Plugin.ExportInfo, module: NormalModule): Dependency | undefined;
+export declare function getSdkDependencyByWebpackDependency(dep: Dependency, module: NormalModule, graph: SDK.ModuleGraphInstance): SDK.DependencyInstance | undefined;
+export declare function getExportStatement(info: Plugin.ExportInfo, normalModule: NormalModule, graph: SDK.ModuleGraphInstance): SDK.StatementInstance | undefined;
+export declare function getLastExportInfo(info: Plugin.ExportInfo, webpackGraph: ModuleGraph): Plugin.ExportInfo | undefined;
+export declare function getAllModules(compilation: Compilation): NormalModule[];

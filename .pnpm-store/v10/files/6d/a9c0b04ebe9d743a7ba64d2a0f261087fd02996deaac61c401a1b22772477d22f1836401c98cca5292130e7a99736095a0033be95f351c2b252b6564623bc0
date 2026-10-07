@@ -1,0 +1,96 @@
+"use strict";
+const __rslib_import_meta_url__ = "u" < typeof document ? new (require('url'.replace('', ''))).URL('file:' + __filename).href : document.currentScript && document.currentScript.src || new URL('main.js', document.baseURI).href;
+var __webpack_modules__ = {
+    "@rsdoctor/types" (module) {
+        module.exports = require("@rsdoctor/types");
+    }
+}, __webpack_module_cache__ = {};
+function __webpack_require__(moduleId) {
+    var cachedModule = __webpack_module_cache__[moduleId];
+    if (void 0 !== cachedModule) return cachedModule.exports;
+    var module = __webpack_module_cache__[moduleId] = {
+        exports: {}
+    };
+    return __webpack_modules__[moduleId](module, module.exports, __webpack_require__), module.exports;
+}
+__webpack_require__.n = (module)=>{
+    var getter = module && module.__esModule ? ()=>module.default : ()=>module;
+    return __webpack_require__.d(getter, {
+        a: getter
+    }), getter;
+}, __webpack_require__.d = (exports1, definition)=>{
+    for(var key in definition)__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key) && Object.defineProperty(exports1, key, {
+        enumerable: !0,
+        get: definition[key]
+    });
+}, __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop), __webpack_require__.r = (exports1)=>{
+    "u" > typeof Symbol && Symbol.toStringTag && Object.defineProperty(exports1, Symbol.toStringTag, {
+        value: 'Module'
+    }), Object.defineProperty(exports1, '__esModule', {
+        value: !0
+    });
+};
+var __webpack_exports__ = {};
+for(var __rspack_i in (()=>{
+    __webpack_require__.r(__webpack_exports__), __webpack_require__.d(__webpack_exports__, {
+        debug: ()=>debug,
+        chalk: ()=>external_picocolors_default(),
+        logger: ()=>rsdoctorLogger,
+        timeEnd: ()=>timeEnd,
+        time: ()=>time
+    });
+    let external_picocolors_namespaceObject = require("picocolors");
+    var external_picocolors_default = __webpack_require__.n(external_picocolors_namespaceObject);
+    let external_rslog_namespaceObject = require("rslog");
+    var types_ = __webpack_require__("@rsdoctor/types");
+    function debug(getMsg, prefix = '') {
+        process.env.DEBUG && (external_rslog_namespaceObject.logger.level = 'verbose', external_rslog_namespaceObject.logger.debug(`${prefix} ${getMsg()}`));
+    }
+    let rsdoctorLogger = (0, external_rslog_namespaceObject.createLogger)();
+    rsdoctorLogger.override({
+        log: (message)=>{
+            console.log(`${external_picocolors_default().green('[RSDOCTOR LOG]')} ${message}`);
+        },
+        info: (message)=>{
+            console.log(`${external_picocolors_default().yellow('[RSDOCTOR INFO]')} ${message}`);
+        },
+        warn: (message)=>{
+            console.warn(`${external_picocolors_default().yellow('[RSDOCTOR WARN]')} ${message}`);
+        },
+        start: (message)=>{
+            console.log(`${external_picocolors_default().green('[RSDOCTOR START]')} ${message}`);
+        },
+        ready: (message)=>{
+            console.log(`${external_picocolors_default().green('[RSDOCTOR READY]')} ${message}`);
+        },
+        error: (message)=>{
+            console.error(`${external_picocolors_default().red('[RSDOCTOR ERROR]')} ${message}`);
+        },
+        success: (message)=>{
+            console.error(`${external_picocolors_default().green('[RSDOCTOR SUCCESS]')} ${message}`);
+        },
+        debug: (message)=>{
+            process.env.DEBUG && console.log(`${external_picocolors_default().blue('[RSDOCTOR DEBUG]')} ${message}`);
+        }
+    });
+    let _timers = new Map();
+    function time(label) {
+        process.env.DEBUG !== types_.Constants.RsdoctorProcessEnvDebugKey || _timers.has(label) || _timers.set(label, Date.now());
+    }
+    function timeEnd(label) {
+        if (process.env.DEBUG !== types_.Constants.RsdoctorProcessEnvDebugKey) return;
+        let start = _timers.get(label);
+        if (null == start) return void external_rslog_namespaceObject.logger.debug(`Timer '${label}' does not exist.`);
+        let duration = Date.now() - start;
+        external_rslog_namespaceObject.logger.debug(`Timer '${label}' ended: ${duration}ms`), _timers.delete(label);
+    }
+})(), exports.chalk = __webpack_exports__.chalk, exports.debug = __webpack_exports__.debug, exports.logger = __webpack_exports__.logger, exports.time = __webpack_exports__.time, exports.timeEnd = __webpack_exports__.timeEnd, __webpack_exports__)-1 === [
+    "chalk",
+    "debug",
+    "logger",
+    "time",
+    "timeEnd"
+].indexOf(__rspack_i) && (exports[__rspack_i] = __webpack_exports__[__rspack_i]);
+Object.defineProperty(exports, '__esModule', {
+    value: !0
+});

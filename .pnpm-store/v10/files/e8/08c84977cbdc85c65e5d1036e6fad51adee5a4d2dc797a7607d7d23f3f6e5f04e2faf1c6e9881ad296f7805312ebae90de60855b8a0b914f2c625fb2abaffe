@@ -1,0 +1,91 @@
+{
+  "name": "chafa-wasm",
+  "version": "0.3.1",
+  "description": "Chafa WebAssembly module to convert images to text",
+  "keywords": [
+    "chafa",
+    "images",
+    "ansi",
+    "ansi-art",
+    "ascii",
+    "ascii-art",
+    "unicode",
+    "unicode-art",
+    "terminal",
+    "terminal-graphics"
+  ],
+  "author": "Héctor Molinero Fernández <hector@molinero.dev>",
+  "license": "LGPL-3.0",
+  "homepage": "https://github.com/hectorm/chafa-wasm",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hectorm/chafa-wasm.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hectorm/chafa-wasm/issues"
+  },
+  "funding": "https://github.com/hectorm/chafa-wasm?sponsor=1",
+  "type": "module",
+  "main": "./dist/chafa.js",
+  "browser": "./dist/chafa.js",
+  "exports": {
+    ".": {
+      "types": "./dist/chafa.d.ts",
+      "default": "./dist/chafa.js"
+    }
+  },
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "all": "run-s build docs lint test",
+    "build": "run-s build:wasm build:types",
+    "build:wasm": "run-s build:wasm:clean build:wasm:docker",
+    "build:wasm:clean": "node --import=fs -e \"['./dist/chafa.js', './dist/chafa.wasm'].map(f => fs.rmSync(f, { force: true }))\"",
+    "build:wasm:docker": "docker buildx build ./ --file ./Dockerfile --output type=local,dest=./dist/",
+    "build:native": "run-s build:native:clean build:native:docker",
+    "build:native:clean": "node --import=fs -e \"fs.rmSync('./dist/chafa', { force: true })\"",
+    "build:native:docker": "docker buildx build ./ --file ./Dockerfile.native --output type=local,dest=./dist/",
+    "build:types": "run-s build:types:clean build:types:copy",
+    "build:types:clean": "node --import=fs -e \"fs.rmSync('./dist/chafa.d.ts', { force: true })\"",
+    "build:types:copy": "node --import=fs -e \"fs.cpSync('./src/chafa.d.ts', './dist/chafa.d.ts')\"",
+    "docs": "run-s docs:clean docs:build",
+    "docs:clean": "node --import=fs -e \"fs.rmSync('./docs/', { force: true, recursive: true })\"",
+    "docs:build": "typedoc ./dist/chafa.d.ts --tsconfig ./tsconfig.docs.json --plugin typedoc-plugin-markdown --readme none --disableSources --treatWarningsAsErrors --out ./docs/",
+    "lint": "run-s lint:*",
+    "lint:eslint": "eslint --max-warnings 0 ./",
+    "lint:prettier": "prettier --list-different ./",
+    "lint:tsc": "tsc --noEmit",
+    "format": "run-s format:*",
+    "format:eslint": "eslint --fix ./",
+    "format:prettier": "prettier --write ./",
+    "test": "run-s test:*",
+    "test:node": "node ./test/node.test.js",
+    "test:deno": "deno test --no-lock --allow-read=./dist/ ./test/deno.test.js",
+    "test:bun": "bun test --cwd ./test/ bun",
+    "test:browser": "run-s test:browser:*",
+    "test:browser:chromium": "node ./test/browser.test.js chromium",
+    "test:browser:firefox": "node ./test/browser.test.js firefox",
+    "test:browser:webkit": "node ./test/browser.test.js webkit",
+    "version": "run-s all version:git",
+    "version:git": "git add -A ./docs/"
+  },
+  "devDependencies": {
+    "@eslint/js": "~9.33.0",
+    "@types/bun": "~1.2.20",
+    "@types/eslint": "~9.6.1",
+    "@types/eslint-config-prettier": "~6.11.3",
+    "@types/node": "~24.3.0",
+    "chai": "5.3.0",
+    "eslint": "~9.33.0",
+    "eslint-config-prettier": "~10.1.8",
+    "globals": "~16.3.0",
+    "mocha": "~11.7.1",
+    "npm-run-all2": "~8.0.4",
+    "playwright": "~1.55.0",
+    "prettier": "~3.6.2",
+    "typedoc": "~0.28.10",
+    "typedoc-plugin-markdown": "~4.8.1",
+    "typescript": "~5.9.2"
+  }
+}

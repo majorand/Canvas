@@ -1,0 +1,54 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import path from "path";
+import { CheckSyntax } from "@rsbuild/plugin-check-syntax";
+import { loadConfig } from "browserslist-load-config";
+import { defineRule } from "../../rule.js";
+import { Linter } from "@rsdoctor/types";
+const title = 'ecma-version-check';
+const rule = defineRule(()=>({
+        meta: {
+            code: 'E1004',
+            title,
+            category: 'bundle',
+            severity: Linter.Severity.Warn,
+            defaultConfig: {
+                ecmaVersion: void 0,
+                targets: []
+            }
+        },
+        async check ({ chunkGraph, report, ruleConfig, root, configs }) {
+            for (const asset of chunkGraph.getAssets()){
+                if ('.js' !== path.extname(asset.path)) continue;
+                const browserslistConfig = loadConfig({
+                    path: root,
+                    env: 'production'
+                });
+                const { exclude, excludeOutput, targets, ecmaVersion } = ruleConfig;
+                const finalTargets = targets || browserslistConfig || [];
+                if (!finalTargets.length && !ecmaVersion) return;
+                const buildConfig = configs[0]?.config;
+                const context = buildConfig?.context || root;
+                const checkSyntax = new CheckSyntax({
+                    exclude,
+                    excludeOutput,
+                    ecmaVersion,
+                    rootPath: context,
+                    targets: finalTargets
+                });
+                const outputDir = buildConfig?.output?.path || path.resolve(root, 'dist');
+                const assetPath = path.resolve(outputDir, asset.path);
+                await checkSyntax.check(assetPath, asset.content);
+                checkSyntax.errors.forEach((err)=>{
+                    report({
+                        message: `Found syntax that does not match "ecmaVersion <= ${checkSyntax.ecmaVersion}"`,
+                        detail: {
+                            error: err,
+                            type: 'link'
+                        }
+                    });
+                });
+            }
+        }
+    }));
+export { rule };

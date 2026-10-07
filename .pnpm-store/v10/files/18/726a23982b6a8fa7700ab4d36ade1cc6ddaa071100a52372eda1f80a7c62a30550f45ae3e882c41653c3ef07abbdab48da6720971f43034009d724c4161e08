@@ -1,0 +1,60 @@
+"use strict";
+var __webpack_require__ = {};
+(()=>{
+    __webpack_require__.d = (exports1, definition)=>{
+        for(var key in definition)if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key)) Object.defineProperty(exports1, key, {
+            enumerable: true,
+            get: definition[key]
+        });
+    };
+})();
+(()=>{
+    __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop);
+})();
+(()=>{
+    __webpack_require__.r = (exports1)=>{
+        if ("u" > typeof Symbol && Symbol.toStringTag) Object.defineProperty(exports1, Symbol.toStringTag, {
+            value: 'Module'
+        });
+        Object.defineProperty(exports1, '__esModule', {
+            value: true
+        });
+    };
+})();
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+    CheckVersion: ()=>CheckVersion,
+    CheckVersionMap: ()=>CheckVersionMap
+});
+var CheckVersion = /*#__PURE__*/ function(CheckVersion) {
+    CheckVersion[CheckVersion["null"] = 0] = "null";
+    CheckVersion[CheckVersion["prerelease"] = 1] = "prerelease";
+    CheckVersion[CheckVersion["prepatch"] = 16] = "prepatch";
+    CheckVersion[CheckVersion["patch"] = 256] = "patch";
+    CheckVersion[CheckVersion["preminor"] = 4096] = "preminor";
+    CheckVersion[CheckVersion["minor"] = 65536] = "minor";
+    CheckVersion[CheckVersion["premajor"] = 1048576] = "premajor";
+    CheckVersion[CheckVersion["major"] = 16777216] = "major";
+    return CheckVersion;
+}({});
+var CheckVersionMap = /*#__PURE__*/ function(CheckVersionMap) {
+    CheckVersionMap[CheckVersionMap["null"] = 0] = "null";
+    CheckVersionMap[CheckVersionMap["prerelease"] = 1] = "prerelease";
+    CheckVersionMap[CheckVersionMap["prepatch"] = 17] = "prepatch";
+    CheckVersionMap[CheckVersionMap["patch"] = 273] = "patch";
+    CheckVersionMap[CheckVersionMap["preminor"] = 4369] = "preminor";
+    CheckVersionMap[CheckVersionMap["minor"] = 69905] = "minor";
+    CheckVersionMap[CheckVersionMap["premajor"] = 1118481] = "premajor";
+    CheckVersionMap[CheckVersionMap["major"] = 17895697] = "major";
+    return CheckVersionMap;
+}({});
+exports.CheckVersion = __webpack_exports__.CheckVersion;
+exports.CheckVersionMap = __webpack_exports__.CheckVersionMap;
+for(var __rspack_i in __webpack_exports__)if (-1 === [
+    "CheckVersion",
+    "CheckVersionMap"
+].indexOf(__rspack_i)) exports[__rspack_i] = __webpack_exports__[__rspack_i];
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});

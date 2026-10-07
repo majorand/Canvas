@@ -1,0 +1,23 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { ModuleGraphTrans } from "@rsdoctor/graph";
+function shouldInterceptPluginHook(hook) {
+    if (hook && hook._fakeHook) return false;
+    if (hook?.isUsed && 'function' == typeof hook.isUsed) return hook.isUsed();
+    if (hook?._map && 0 === hook._map.size) return false;
+    return true;
+}
+function interceptCompilerHooks(compiler, interceptor) {
+    Object.keys(compiler.hooks).forEach((hook)=>{
+        const v = compiler.hooks[hook];
+        if (shouldInterceptPluginHook(v)) interceptor(hook, v, 'compiler');
+    });
+}
+function interceptCompilationHooks(compilation, interceptor) {
+    Object.keys(compilation.hooks).forEach((hook)=>{
+        if ('normalModuleLoader' === hook && ModuleGraphTrans.isWebpack5orRspack(compilation)) return;
+        const v = compilation.hooks[hook];
+        if (shouldInterceptPluginHook(v)) interceptor(hook, v, 'compilation');
+    });
+}
+export { interceptCompilationHooks, interceptCompilerHooks, shouldInterceptPluginHook };

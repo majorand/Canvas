@@ -1,0 +1,78 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+function processModeConfigurations(finalMode, output, brief) {
+    let finalBrief = {};
+    let finalNormalOptions = {};
+    if ('brief' === finalMode) finalBrief = processBriefHtmlModeConfig(output, brief);
+    else if ('normal' === finalMode) finalNormalOptions = {};
+    return {
+        finalBrief,
+        finalNormalOptions
+    };
+}
+function processBriefHtmlModeConfig(output, brief) {
+    let htmlOptions = {
+        reportHtmlName: void 0,
+        writeDataJson: false
+    };
+    let jsonOptions = {};
+    const briefOptions = output?.options || {};
+    if ('type' in briefOptions && briefOptions.type?.includes('json')) jsonOptions = briefOptions.jsonOptions || {
+        fileName: 'rsdoctor-data.json',
+        sections: {
+            moduleGraph: true,
+            chunkGraph: true,
+            rules: true
+        }
+    };
+    if ('type' in briefOptions && briefOptions.type?.includes('html') || !briefOptions.type) {
+        const outputBriefOptions = briefOptions?.htmlOptions;
+        const outputBrief = brief;
+        htmlOptions = {
+            reportHtmlName: outputBriefOptions?.reportHtmlName || outputBrief?.reportHtmlName || void 0,
+            writeDataJson: outputBriefOptions?.writeDataJson || outputBrief?.writeDataJson || false
+        };
+    }
+    return {
+        type: output.options?.type || [
+            'html'
+        ],
+        htmlOptions,
+        jsonOptions
+    };
+}
+function convertReportCodeTypeObject(reportCodeType) {
+    if (!reportCodeType) return;
+    if (reportCodeType.noCode) return 'noCode';
+    if (reportCodeType.noAssetsAndModuleSource) return 'noAssetsAndModuleSource';
+    if (reportCodeType.noModuleSource) return 'noModuleSource';
+}
+function makeRuleSetSerializable(item) {
+    if (!item) return;
+    if (item instanceof RegExp) item.toJSON = item.toString;
+    else if (Array.isArray(item)) item.forEach((i)=>makeRuleSetSerializable(i));
+    else if ('object' == typeof item) {
+        makeRuleSetSerializable(item.and);
+        makeRuleSetSerializable(item.or);
+        makeRuleSetSerializable(item.not);
+    }
+}
+function makeRulesSerializable(rules) {
+    if (!Array.isArray(rules)) return;
+    if (!rules.length) return;
+    rules.forEach((rule)=>{
+        if (!rule) return;
+        makeRuleSetSerializable(rule.test);
+        makeRuleSetSerializable(rule.resourceQuery);
+        makeRuleSetSerializable(rule.resource);
+        makeRuleSetSerializable(rule.resourceFragment);
+        makeRuleSetSerializable(rule.scheme);
+        makeRuleSetSerializable(rule.issuer);
+        if ('issuerLayer' in rule) makeRuleSetSerializable(rule.issuerLayer);
+        makeRuleSetSerializable(rule.include);
+        makeRuleSetSerializable(rule.exclude);
+        if (rule.oneOf) makeRulesSerializable(rule.oneOf);
+        if ('rules' in rule && rule.rules) makeRulesSerializable(rule.rules);
+    });
+}
+export { convertReportCodeTypeObject, makeRuleSetSerializable, makeRulesSerializable, processBriefHtmlModeConfig, processModeConfigurations };

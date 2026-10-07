@@ -1,0 +1,50 @@
+{
+  "name": "browserslist-load-config",
+  "version": "1.0.1",
+  "repository": "https://github.com/rspack-contrib/browserslist-load-config",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "rslib build",
+    "dev": "rslib build --watch",
+    "lint": "biome check .",
+    "lint:write": "biome check . --write",
+    "prepare": "simple-git-hooks && npm run build",
+    "test": "rstest run",
+    "test:watch": "rstest",
+    "bump": "npx bumpp"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "npx nano-staged"
+  },
+  "nano-staged": {
+    "*.{js,jsx,ts,tsx,mjs,cjs}": [
+      "biome check --write --no-errors-on-unmatched"
+    ]
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@rslib/core": "^0.10.4",
+    "@rstest/core": "0.0.4",
+    "@types/node": "^22.15.34",
+    "nano-staged": "^0.8.0",
+    "simple-git-hooks": "^2.13.0",
+    "typescript": "^5.8.3"
+  },
+  "packageManager": "pnpm@10.12.4",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

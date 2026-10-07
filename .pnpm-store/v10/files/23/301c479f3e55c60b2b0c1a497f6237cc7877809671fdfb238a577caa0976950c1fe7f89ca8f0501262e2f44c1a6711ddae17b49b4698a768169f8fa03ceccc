@@ -1,0 +1,36 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { Linter } from "@rsdoctor/types";
+import { Rule } from "./rule.js";
+import { rules as index_js_rules } from "./rules/index.js";
+import { toSeverity } from "./utils.js";
+class linter_Linter {
+    getRules(ruleMap, extendRules, filterLevel) {
+        const outside = extendRules.map((item)=>Rule.from(item));
+        const rules = index_js_rules.map((item)=>new Rule(item)).concat(outside);
+        rules.forEach((rule)=>{
+            if (ruleMap[rule.title]) rule.setOption(ruleMap[rule.title]);
+        });
+        return rules.filter((rule)=>rule.match(filterLevel));
+    }
+    async validate(context) {
+        const lintResult = {
+            errors: [],
+            replace: []
+        };
+        await Promise.all(this.rules.map(async (rule)=>{
+            const result = await rule.validate(context);
+            lintResult.errors.push(...result.errors);
+            lintResult.replace.push(...result.replace);
+        }));
+        return lintResult;
+    }
+    async afterValidate(context) {
+        await Promise.all(this.rules.map((rule)=>rule.afterValidate(context)));
+    }
+    constructor({ rules, extends: extendRules, level } = {}){
+        this.rules = [];
+        this.rules = this.getRules(rules ?? {}, extendRules ?? [], toSeverity(level ?? 'Error', Linter.Severity.Error));
+    }
+}
+export { linter_Linter as Linter, Linter as LinterType };

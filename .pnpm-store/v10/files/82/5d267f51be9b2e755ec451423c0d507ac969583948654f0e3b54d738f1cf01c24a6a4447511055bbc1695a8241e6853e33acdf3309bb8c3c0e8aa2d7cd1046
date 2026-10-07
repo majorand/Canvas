@@ -1,0 +1,105 @@
+{
+  "name": "@rsdoctor/core",
+  "version": "1.4.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rsdoctor",
+    "directory": "packages/core"
+  },
+  "license": "MIT",
+  "main": "dist/index.cjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "compiled"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.cjs"
+    },
+    "./build-utils": {
+      "types": "./dist/build-utils/build/index.d.ts",
+      "import": "./dist/build-utils/build/index.js",
+      "default": "./dist/build-utils/build/index.cjs"
+    },
+    "./plugins": {
+      "types": "./dist/inner-plugins/index.d.ts",
+      "import": "./dist/inner-plugins/index.js",
+      "default": "./dist/inner-plugins/index.cjs"
+    },
+    "./rules": {
+      "types": "./dist/rules/index.d.ts",
+      "import": "./dist/rules/index.js",
+      "default": "./dist/rules/index.cjs"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js",
+      "default": "./dist/types/index.cjs"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      ".": [
+        "./dist/index.d.ts"
+      ],
+      "build-utils": [
+        "./dist/build-utils/build/index.d.ts"
+      ],
+      "plugins": [
+        "./dist/inner-plugins/index.d.ts"
+      ],
+      "rules": [
+        "./dist/rules/index.d.ts"
+      ],
+      "types": [
+        "./dist/types/index.d.ts"
+      ]
+    }
+  },
+  "dependencies": {
+    "browserslist-load-config": "^1.0.1",
+    "@rsbuild/plugin-check-syntax": "1.5.0",
+    "enhanced-resolve": "5.12.0",
+    "es-toolkit": "^1.41.0",
+    "filesize": "^10.1.6",
+    "fs-extra": "^11.1.1",
+    "semver": "^7.7.3",
+    "source-map": "^0.7.6",
+    "@rsdoctor/graph": "1.4.0",
+    "@rsdoctor/sdk": "1.4.0",
+    "@rsdoctor/types": "1.4.0",
+    "@rsdoctor/utils": "1.4.0"
+  },
+  "devDependencies": {
+    "axios": "^1.13.2",
+    "@rspack/core": "1.6.8",
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^22.8.1",
+    "@types/node-fetch": "^2.6.13",
+    "@types/semver": "^7.7.1",
+    "@types/tapable": "2.2.7",
+    "babel-loader": "10.0.0",
+    "prebundle": "1.4.2",
+    "string-loader": "0.0.1",
+    "ts-loader": "^9.5.4",
+    "tslib": "2.8.1",
+    "typescript": "^5.9.2",
+    "webpack": "^5.97.1",
+    "@scripts/test-helper": "0.1.1"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "dev": "npm run start",
+    "build": "npm run prebundle && rslib build",
+    "start": "rslib build -w",
+    "test": "rstest run",
+    "prebundle": "prebundle"
+  }
+}

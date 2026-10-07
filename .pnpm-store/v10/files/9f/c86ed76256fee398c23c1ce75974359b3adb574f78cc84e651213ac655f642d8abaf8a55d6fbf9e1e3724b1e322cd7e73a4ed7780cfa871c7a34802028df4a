@@ -1,0 +1,58 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { Manifest } from "@rsdoctor/types";
+import { Time } from "@rsdoctor/utils/common";
+import { InternalBasePlugin } from "./base.js";
+class InternalResolverPlugin extends InternalBasePlugin {
+    apply(compiler) {
+        this.scheduler.ensureModulesChunksGraphApplied(compiler);
+        compiler.hooks.normalModuleFactory.tap(this.tapPostOptions, this.handleNormalModuleFactory);
+        this.sdk.addClientRoutes([
+            Manifest.RsdoctorManifestClientRoutes.ModuleResolve
+        ]);
+    }
+    constructor(...args){
+        super(...args), this.name = 'resolver', this.resolveDataMap = new Map(), this.handleNormalModuleFactory = (normalModuleFactory)=>{
+            normalModuleFactory.hooks.beforeResolve.tap(this.tapPostOptions, (resolveData)=>{
+                if (!resolveData) return;
+                const issuer = resolveData.contextInfo?.issuer || resolveData.context || '';
+                const request = resolveData.request;
+                if (issuer && request) {
+                    const key = `${issuer}::${request}`;
+                    this.resolveDataMap.set(key, {
+                        startAt: Date.now(),
+                        startHRTime: process.hrtime(),
+                        request
+                    });
+                }
+            });
+            normalModuleFactory.hooks.afterResolve.tap(this.tapPostOptions, (resolveData)=>{
+                if (!resolveData) return;
+                const issuer = resolveData.contextInfo?.issuer || resolveData.context || '';
+                const request = resolveData.request;
+                const result = resolveData.createData?.resource || resolveData.resourceResolveData?.path;
+                if (issuer && request) {
+                    const key = `${issuer}::${request}`;
+                    const startData = this.resolveDataMap.get(key);
+                    if (startData) {
+                        const data = {
+                            isEntry: Boolean(issuer),
+                            issuerPath: issuer,
+                            request: startData.request,
+                            startAt: startData.startAt,
+                            endAt: Time.getCurrentTimestamp(startData.startAt, startData.startHRTime),
+                            result: result || '',
+                            pid: process.pid,
+                            ppid: process.ppid
+                        };
+                        this.sdk.reportResolver([
+                            data
+                        ]);
+                        this.resolveDataMap.delete(key);
+                    }
+                }
+            });
+        };
+    }
+}
+export { InternalResolverPlugin };

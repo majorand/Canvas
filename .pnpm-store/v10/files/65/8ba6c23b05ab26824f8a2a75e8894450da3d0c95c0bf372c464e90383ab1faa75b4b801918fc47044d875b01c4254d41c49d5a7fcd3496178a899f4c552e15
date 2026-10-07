@@ -1,0 +1,11 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+function match(str, patterns) {
+    if (0 === patterns.length) return false;
+    return patterns.some((p)=>{
+        if ('string' == typeof p) return str === p;
+        if (p instanceof RegExp) return p.test(str);
+        return false;
+    });
+}
+export { match };

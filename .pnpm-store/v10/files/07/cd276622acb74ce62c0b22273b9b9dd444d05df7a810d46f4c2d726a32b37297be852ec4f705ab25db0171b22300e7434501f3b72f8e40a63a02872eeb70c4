@@ -1,0 +1,6 @@
+import type { Configuration } from '@rspack/core';
+/**
+ * Process compiler configuration to make it serializable
+ */
+export declare function processCompilerConfig(config: any): Configuration;
+export declare function handleBriefModeReport(sdk: any, options: any, disableClientServer: boolean): Promise<void>;

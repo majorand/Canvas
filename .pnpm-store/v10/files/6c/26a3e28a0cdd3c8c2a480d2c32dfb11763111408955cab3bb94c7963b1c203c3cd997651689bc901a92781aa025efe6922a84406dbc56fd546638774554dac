@@ -1,0 +1,19 @@
+import { Stateful } from 'dreamland/core';
+
+interface SpringOptions {
+    stiffness?: number;
+    damping?: number;
+    precision?: number;
+}
+interface SpringState<T> {
+    stiffness: number;
+    damping: number;
+    precision: number;
+    target: T;
+    current: T;
+}
+type Spring<T> = Stateful<SpringState<T>>;
+declare let createSpring: <T>(val: T, opts?: SpringOptions) => Spring<T>;
+
+export { createSpring };
+export type { Spring, SpringOptions, SpringState };

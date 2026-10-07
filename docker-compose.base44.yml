@@ -1,0 +1,34 @@
+services:
+  scramjet:
+    build:
+      context: .
+      dockerfile: Dockerfile.base44
+    restart: on-failure
+    ports:
+      - "3000:3000"   # Vite dev server (demo page)
+      - "4142:4142"   # Wisp WebSocket server
+    volumes:
+      - ./:/app
+      - scramjet_cargo_target:/app/packages/core/rewriter/target
+      - scramjet_pnpm_store:/root/.local/share/pnpm/store
+    environment:
+      - DEMO_PORT=3000
+      - WISP_PORT=4142
+      - VITE_WISP_URL=wss://4142-${BASE44_PUBLIC_HOST_SUFFIX}/
+      - BASE44_PREVIEW_MODE=1
+      - __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS
+    command:
+      [
+        "sh", "-ec",
+        "pnpm install --frozen-lockfile && (cd packages/core/rewriter/wasm && bash build.sh) && exec pnpm dev"
+      ]
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 600s
+
+volumes:
+  scramjet_cargo_target:
+  scramjet_pnpm_store:

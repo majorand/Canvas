@@ -1,0 +1,20 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+const pluginTapName = 'RsdoctorWebpackPlugin';
+const pluginTapPostOptions = {
+    name: pluginTapName,
+    stage: 999
+};
+const pluginTapPreOptions = {
+    name: pluginTapName,
+    stage: -999
+};
+const internalPluginTapPreOptions = (namespace)=>({
+        name: `${pluginTapName}:${namespace}`,
+        stage: -998
+    });
+const internalPluginTapPostOptions = (namespace)=>({
+        name: `${pluginTapName}:${namespace}`,
+        stage: 1000
+    });
+export { internalPluginTapPostOptions, internalPluginTapPreOptions, pluginTapName, pluginTapPostOptions, pluginTapPreOptions };

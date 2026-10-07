@@ -1,0 +1,4 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import * as __rspack_external__build_index_js_0bf6183b from "./build/index.js";
+export { __rspack_external__build_index_js_0bf6183b as Build };

@@ -1,0 +1,20 @@
+import { Plugin, SDK } from '@rsdoctor/types';
+/**
+ * Patch native module graph data from Rspack into ModuleGraph instance
+ * @param mg The ModuleGraph instance to be patched
+ * @param cg The ChunkGraph instance to be patched
+ * @param rawModuleGraph Raw module graph data from Rspack native plugin
+ */
+export declare function patchNativeModuleGraph(mg: SDK.ModuleGraphInstance, cg: SDK.ChunkGraphInstance, rawModuleGraph: Plugin.RspackNativeModuleGraph): void;
+/**
+ * Patch native ids data from Rspack into ModuleGraph instance
+ * @param mg The ModuleGraph instance to be patched
+ * @param rawModuleIdsPatch Raw ids patch data from Rspack native plugin
+ */
+export declare function patchNativeModuleIds(mg: SDK.ModuleGraphInstance, rawModuleIdsPatch: Plugin.RspackNativeModuleIdsPatch): void;
+/**
+ * Patch native sources data from Rspack into ModuleGraph instance
+ * @param mg The ModuleGraph instance to be patched
+ * @param rawModuleIdsPatch Raw sources patch data from Rspack native plugin
+ */
+export declare function patchNativeModuleSources(mg: SDK.ModuleGraphInstance, rawModuleSourcesPatch: Plugin.RspackNativeModuleSourcePatch): void;

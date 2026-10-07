@@ -1,0 +1,38 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { SDK } from "@rsdoctor/types";
+import { InternalBasePlugin } from "./base.js";
+import { logger } from "@rsdoctor/utils/logger";
+class InternalProgressPlugin extends InternalBasePlugin {
+    apply(compiler) {
+        const { sdk, currentProgress } = this;
+        if (compiler.webpack && compiler.webpack.ProgressPlugin) {
+            const progress = new compiler.webpack.ProgressPlugin({
+                handler (percentage, msg) {
+                    currentProgress.percentage = percentage;
+                    currentProgress.message = msg || '';
+                    const api = SDK.ServerAPI.APIExtends.GetCompileProgress;
+                    try {
+                        sdk.server.sendAPIDataToClient(api, {
+                            req: {
+                                api,
+                                body: void 0
+                            },
+                            res: currentProgress
+                        });
+                    } catch (e) {
+                        logger.debug(e);
+                    }
+                }
+            });
+            progress.apply(compiler);
+        }
+    }
+    constructor(...args){
+        super(...args), this.name = 'progress', this.currentProgress = {
+            percentage: 100,
+            message: ''
+        };
+    }
+}
+export { InternalProgressPlugin };

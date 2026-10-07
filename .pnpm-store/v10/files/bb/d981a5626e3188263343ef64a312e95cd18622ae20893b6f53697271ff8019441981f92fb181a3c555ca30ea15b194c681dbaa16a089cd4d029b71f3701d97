@@ -1,0 +1,118 @@
+import __rslib_shim_module__ from 'module';
+const require = /*#__PURE__*/ __rslib_shim_module__.createRequire(import.meta.url);
+import { Manifest } from "@rsdoctor/types";
+import { Loader } from "@rsdoctor/utils/common";
+import { cloneDeep, isEqual, omit } from "es-toolkit/compat";
+import { interceptLoader } from "../utils/index.js";
+import { InternalBasePlugin } from "./base.js";
+import { time, timeEnd } from "@rsdoctor/utils/logger";
+import path from "path";
+import { fileURLToPath } from "url";
+const loader_filename = fileURLToPath(import.meta.url);
+const loader_dirname = path.dirname(loader_filename);
+class InternalLoaderPlugin extends InternalBasePlugin {
+    apply(compiler) {
+        time('InternalLoaderPlugin.apply');
+        try {
+            compiler.hooks.afterPlugins.tap(this.tapPostOptions, this.afterPlugins.bind(this, compiler));
+            compiler.hooks.compilation.tap(this.tapPreOptions, (compilation)=>this.compilation(compiler, compilation));
+        } finally{
+            timeEnd('InternalLoaderPlugin.apply');
+        }
+    }
+    compilation(compiler, compilation) {
+        time('InternalLoaderPlugin.compilation');
+        try {
+            if (compiler.isChild()) return;
+            const wrapper = (callback)=>(loaderContext, module)=>{
+                    const proxyLoaders = module?.loaders || loaderContext?.loaders || [];
+                    const originLoaders = proxyLoaders.map((loader)=>{
+                        const opts = loader.options || {};
+                        if (opts[Loader.LoaderInternalPropertyName]) return {
+                            ...loader,
+                            loader: opts[Loader.LoaderInternalPropertyName].loader,
+                            options: omit(opts, Loader.LoaderInternalPropertyName)
+                        };
+                        return loader;
+                    });
+                    const newLoaders = cloneDeep(originLoaders);
+                    if ('object' == typeof compiler.options.cache && 'version' in compiler.options.cache && 'string' == typeof compiler.options.cache.version && compiler.options.cache.version.indexOf('next/dist/build') > -1) callback(loaderContext, module || {});
+                    else {
+                        const proxyModule = new Proxy(module || {}, {
+                            get (target, p, receiver) {
+                                if ('loaders' === p) return newLoaders;
+                                return Reflect.get(target, p, receiver);
+                            },
+                            set (target, p, newValue, receiver) {
+                                const _newValue = cloneDeep(newValue);
+                                if ('loaders' === p) {
+                                    if (Array.isArray(_newValue)) {
+                                        newLoaders.length = 0;
+                                        _newValue.forEach((e)=>{
+                                            newLoaders.push(e);
+                                        });
+                                    }
+                                }
+                                return Reflect.set(target, p, _newValue, receiver);
+                            },
+                            deleteProperty (target, p) {
+                                return Reflect.deleteProperty(target, p);
+                            }
+                        });
+                        callback(loaderContext, proxyModule);
+                    }
+                    if (!isEqual(originLoaders, newLoaders)) {
+                        const rules = this.getInterceptRules(compiler, newLoaders.map((e)=>({
+                                loader: e.loader,
+                                options: e.options
+                            })));
+                        module.loaders = rules.map((e, i)=>({
+                                ...newLoaders[i],
+                                loader: e.loader,
+                                options: e.options
+                            }));
+                    }
+                };
+            const interceptor = {
+                register (tap) {
+                    const originFn = tap.fn;
+                    if ('function' == typeof originFn) tap.fn = wrapper(originFn);
+                    return tap;
+                }
+            };
+            compiler.webpack.NormalModule.getCompilationHooks(compilation).loader.intercept(interceptor);
+        } finally{
+            timeEnd('InternalLoaderPlugin.compilation');
+        }
+    }
+    getInterceptRules(compiler, rules) {
+        return interceptLoader(rules, this.internalLoaderPath, {
+            cwd: compiler.context || process.cwd(),
+            host: this.sdk.server.origin,
+            skipLoaders: this.options.loaderInterceptorOptions.skipLoaders
+        }, this.sdk.root, 'resolveLoader' in compiler.options ? compiler.options.resolveLoader : {});
+    }
+    constructor(...args){
+        super(...args), this.name = 'loader', this.internalLoaderPath = (()=>{
+            const isCJS = loader_filename.endsWith('.cjs');
+            if (isCJS) return require.resolve(path.join(loader_dirname, "../loaders/proxy.cjs"));
+            try {
+                return require.resolve(path.join(loader_dirname, "../loaders/proxy.js"));
+            } catch  {
+                return require.resolve(path.join(loader_dirname, "../loaders/proxy.cjs"));
+            }
+        })(), this.afterPlugins = (compiler)=>{
+            time('InternalLoaderPlugin.afterPlugins');
+            try {
+                if (compiler.isChild()) return;
+                compiler.options.module.rules = this.getInterceptRules(compiler, compiler.options.module.rules);
+                this.sdk.addClientRoutes([
+                    Manifest.RsdoctorManifestClientRoutes.WebpackLoaders
+                ]);
+            } finally{
+                timeEnd('InternalLoaderPlugin.afterPlugins');
+            }
+        };
+    }
+}
+export { InternalLoaderPlugin };

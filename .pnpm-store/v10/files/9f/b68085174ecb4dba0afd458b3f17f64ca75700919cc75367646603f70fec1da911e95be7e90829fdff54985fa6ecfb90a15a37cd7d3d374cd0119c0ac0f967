@@ -1,0 +1,4 @@
+import type { SDK } from '@rsdoctor/types';
+export declare function isSamePosition(po1: SDK.SourcePosition, po2: SDK.SourcePosition): boolean;
+export declare function isSameRange(po1: SDK.SourceRange, po2: SDK.SourceRange): boolean;
+export declare function getModuleName(name?: string): string;

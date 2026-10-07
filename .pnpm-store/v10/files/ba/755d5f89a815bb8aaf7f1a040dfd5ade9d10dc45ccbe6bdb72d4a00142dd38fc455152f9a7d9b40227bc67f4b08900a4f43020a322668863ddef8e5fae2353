@@ -1,0 +1,61 @@
+"use strict";
+var __webpack_require__ = {};
+(()=>{
+    __webpack_require__.d = (exports1, definition)=>{
+        for(var key in definition)if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key)) Object.defineProperty(exports1, key, {
+            enumerable: true,
+            get: definition[key]
+        });
+    };
+})();
+(()=>{
+    __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop);
+})();
+(()=>{
+    __webpack_require__.r = (exports1)=>{
+        if ("u" > typeof Symbol && Symbol.toStringTag) Object.defineProperty(exports1, Symbol.toStringTag, {
+            value: 'Module'
+        });
+        Object.defineProperty(exports1, '__esModule', {
+            value: true
+        });
+    };
+})();
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+    interceptCompilerHooks: ()=>interceptCompilerHooks,
+    shouldInterceptPluginHook: ()=>shouldInterceptPluginHook,
+    interceptCompilationHooks: ()=>interceptCompilationHooks
+});
+const graph_namespaceObject = require("@rsdoctor/graph");
+function shouldInterceptPluginHook(hook) {
+    if (hook && hook._fakeHook) return false;
+    if (hook?.isUsed && 'function' == typeof hook.isUsed) return hook.isUsed();
+    if (hook?._map && 0 === hook._map.size) return false;
+    return true;
+}
+function interceptCompilerHooks(compiler, interceptor) {
+    Object.keys(compiler.hooks).forEach((hook)=>{
+        const v = compiler.hooks[hook];
+        if (shouldInterceptPluginHook(v)) interceptor(hook, v, 'compiler');
+    });
+}
+function interceptCompilationHooks(compilation, interceptor) {
+    Object.keys(compilation.hooks).forEach((hook)=>{
+        if ('normalModuleLoader' === hook && graph_namespaceObject.ModuleGraphTrans.isWebpack5orRspack(compilation)) return;
+        const v = compilation.hooks[hook];
+        if (shouldInterceptPluginHook(v)) interceptor(hook, v, 'compilation');
+    });
+}
+exports.interceptCompilationHooks = __webpack_exports__.interceptCompilationHooks;
+exports.interceptCompilerHooks = __webpack_exports__.interceptCompilerHooks;
+exports.shouldInterceptPluginHook = __webpack_exports__.shouldInterceptPluginHook;
+for(var __rspack_i in __webpack_exports__)if (-1 === [
+    "interceptCompilationHooks",
+    "interceptCompilerHooks",
+    "shouldInterceptPluginHook"
+].indexOf(__rspack_i)) exports[__rspack_i] = __webpack_exports__[__rspack_i];
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});

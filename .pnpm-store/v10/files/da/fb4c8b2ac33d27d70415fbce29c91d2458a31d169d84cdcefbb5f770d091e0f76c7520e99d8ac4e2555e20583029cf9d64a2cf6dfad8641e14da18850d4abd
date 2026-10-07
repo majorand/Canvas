@@ -1,0 +1,32 @@
+import { SDK } from '@rsdoctor/types';
+import { RsdoctorSDK } from '../sdk/index.js';
+import type { RsdoctorSDKController } from './controller.js';
+interface RsdoctorSlaveSDKOptions {
+    name: string;
+    /**
+     * use to sort for display in the client page.
+     * the smaller the front.
+     * @default 1
+     */
+    stage?: number;
+    extraConfig?: SDK.SDKOptionsType;
+    controller: RsdoctorSDKController;
+    type: SDK.ToDataType;
+}
+export declare class RsdoctorPrimarySDK extends RsdoctorSDK implements SDK.RsdoctorBuilderSDKInstance {
+    id: number;
+    parent: RsdoctorSDKController;
+    readonly stage: number;
+    dependencies: Array<string> | undefined;
+    private uploadPieces;
+    private finishUploadPieceSwitch;
+    constructor({ name, stage, controller, extraConfig, type, }: RsdoctorSlaveSDKOptions);
+    private clearSwitch;
+    get isMaster(): boolean;
+    protected writePieces(): Promise<void>;
+    protected writeManifest(): Promise<string>;
+    getSeriesData(serverUrl?: boolean): import("@rsdoctor/types/dist/manifest").RsdoctorManifestSeriesData[];
+    setName(name: string): void;
+    getManifestData(): import("@rsdoctor/types/dist/manifest").RsdoctorManifestWithShardingFiles;
+}
+export {};

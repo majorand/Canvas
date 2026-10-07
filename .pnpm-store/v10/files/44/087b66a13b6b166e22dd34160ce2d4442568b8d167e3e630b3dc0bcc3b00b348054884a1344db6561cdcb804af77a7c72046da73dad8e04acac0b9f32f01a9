@@ -1,0 +1,13 @@
+export declare const getCPUInfo: () => Promise<string>;
+export declare const getOSInfo: () => Promise<string>;
+export declare const getMemoryInfo: () => Promise<string>;
+export declare const getNodeVersion: () => Promise<string>;
+export declare const getYarnVersion: () => Promise<string>;
+export declare const getNpmVersion: () => Promise<string>;
+export declare const getPnpmVersion: () => Promise<string>;
+export declare function getNpmPackageVersion(pkg: string): Promise<string>;
+export declare function getNpmPackageVersion(pkgs: string[]): Promise<string[]>;
+export declare function getGlobalNpmPackageVersion(pkg: string): Promise<string>;
+export declare function getGlobalNpmPackageVersion(pkgs: string[]): Promise<string[]>;
+export declare function getGitBranch(): Promise<string>;
+export declare function getGitRepo(): Promise<string>;

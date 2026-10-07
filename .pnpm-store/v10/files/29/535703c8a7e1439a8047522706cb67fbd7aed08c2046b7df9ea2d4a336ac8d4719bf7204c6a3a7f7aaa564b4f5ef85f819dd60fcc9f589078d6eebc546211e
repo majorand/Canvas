@@ -1,0 +1,102 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { Linter, Rule } from "@rsdoctor/types";
+import { Lodash } from "@rsdoctor/utils/common";
+import { noop, toSeverity } from "./utils.js";
+class rule_Rule {
+    static from(data) {
+        return new rule_Rule({
+            check: data.check,
+            onCheckEnd: data.onCheckEnd,
+            meta: {
+                ...data.meta,
+                code: Rule.RuleMessageCodeEnumerated.Extend,
+                severity: toSeverity(data.meta.severity, Linter.Severity.Warn)
+            }
+        });
+    }
+    get code() {
+        return this.meta.code;
+    }
+    get title() {
+        return this.meta.title;
+    }
+    get severity() {
+        return this._severity;
+    }
+    get config() {
+        return this._config;
+    }
+    get category() {
+        return this.meta.category;
+    }
+    setOption(opt) {
+        let severity;
+        let config;
+        if (Array.isArray(opt)) {
+            severity = toSeverity(opt[0], this.meta.severity);
+            config = opt[1];
+        } else {
+            severity = toSeverity(opt, this.meta.severity);
+            config = void 0;
+        }
+        this._severity = severity;
+        this._config = Lodash.isPlainObject(config) ? {
+            ...this.meta.defaultConfig,
+            ...config
+        } : config || this.meta.defaultConfig;
+    }
+    match(level) {
+        if (level === Linter.Severity.Ignore || this.severity === Linter.Severity.Ignore) return false;
+        if (level === Linter.Severity.Error) return this.severity === Linter.Severity.Error || this.severity === Linter.Severity.Warn;
+        if (level === Linter.Severity.Warn) return this.severity === Linter.Severity.Warn;
+        return false;
+    }
+    async validate(context) {
+        const errors = [];
+        const replace = [];
+        const report = (data, remove)=>{
+            if (remove) replace.push(remove);
+            let severity = data.severity ? toSeverity(data.severity, this.severity) : this.severity;
+            const error = {
+                ...data,
+                code: this.code,
+                severity,
+                category: this.category,
+                title: this.title.toUpperCase()
+            };
+            if (severity !== Linter.Severity.Ignore) errors.push(error);
+        };
+        await this.check({
+            ...context,
+            ruleConfig: this.config,
+            report
+        });
+        return {
+            errors,
+            replace
+        };
+    }
+    async afterValidate({ hooks, validateResult, data }) {
+        if (this.onCheckEnd === noop) return;
+        await this.onCheckEnd({
+            data: {
+                ...data,
+                ruleConfig: this.config
+            },
+            hooks,
+            validateResult
+        });
+    }
+    constructor(data){
+        this.check = data.check;
+        this.meta = data.meta;
+        this.onCheckEnd = 'function' == typeof data.onCheckEnd ? data.onCheckEnd : noop;
+        this._severity = this.meta.severity;
+        this._config = this.meta.defaultConfig;
+    }
+}
+function defineRule(ruleCreator) {
+    return ruleCreator();
+}
+export { rule_Rule as Rule, defineRule };

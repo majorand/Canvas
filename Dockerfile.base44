@@ -1,0 +1,30 @@
+FROM node:22-bookworm
+
+# System build dependencies (needed for Rust compilation)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl git build-essential pkg-config libssl-dev ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# pnpm (pinned to the version the project expects)
+RUN corepack enable && corepack prepare pnpm@10.12.1 --activate
+
+# --- Rust nightly toolchain (for building the WASM rewriter) ---
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
+ENV PATH="/root/.cargo/bin:${PATH}"
+RUN rustup target add wasm32-unknown-unknown && rustup component add rust-src
+
+# wasm-bindgen-cli (pinned to the version the build script checks for)
+RUN cargo install wasm-bindgen-cli --version 0.2.105
+
+# Binaryen (provides wasm-opt)
+RUN BINARYEN_VER=$(curl -s https://api.github.com/repos/WebAssembly/binaryen/releases/latest \
+        | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//') \
+    && curl -LO "https://github.com/WebAssembly/binaryen/releases/download/${BINARYEN_VER}/binaryen-${BINARYEN_VER}-x86_64-linux.tar.gz" \
+    && tar xzf "binaryen-${BINARYEN_VER}-x86_64-linux.tar.gz" \
+    && cp "binaryen-${BINARYEN_VER}/bin/"* /usr/local/bin/ \
+    && rm -rf "binaryen-${BINARYEN_VER}"*
+
+# wasm-snip (fork required by the build script)
+RUN cargo install --git https://github.com/r58Playz/wasm-snip
+
+WORKDIR /app

@@ -1,0 +1,177 @@
+"use strict";
+var __webpack_require__ = {};
+(()=>{
+    __webpack_require__.n = (module)=>{
+        var getter = module && module.__esModule ? ()=>module['default'] : ()=>module;
+        __webpack_require__.d(getter, {
+            a: getter
+        });
+        return getter;
+    };
+})();
+(()=>{
+    __webpack_require__.d = (exports1, definition)=>{
+        for(var key in definition)if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key)) Object.defineProperty(exports1, key, {
+            enumerable: true,
+            get: definition[key]
+        });
+    };
+})();
+(()=>{
+    __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop);
+})();
+(()=>{
+    __webpack_require__.r = (exports1)=>{
+        if ("u" > typeof Symbol && Symbol.toStringTag) Object.defineProperty(exports1, Symbol.toStringTag, {
+            value: 'Module'
+        });
+        Object.defineProperty(exports1, '__esModule', {
+            value: true
+        });
+    };
+})();
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+    normalizeUserConfig: ()=>normalizeUserConfig,
+    normalizeReportType: ()=>normalizeReportType,
+    normalizeRspackUserOptions: ()=>normalizeRspackUserOptions
+});
+const types_namespaceObject = require("@rsdoctor/types");
+const logger_namespaceObject = require("@rsdoctor/utils/logger");
+const external_assert_namespaceObject = require("assert");
+var external_assert_default = /*#__PURE__*/ __webpack_require__.n(external_assert_namespaceObject);
+const external_normalize_config_cjs_namespaceObject = require("./normalize-config.cjs");
+function defaultBoolean(v, dft) {
+    return 'boolean' == typeof v ? v : dft;
+}
+function getDefaultOutput() {
+    return {
+        mode: void 0,
+        reportCodeType: {
+            noModuleSource: false,
+            noAssetsAndModuleSource: false,
+            noCode: false
+        },
+        options: void 0,
+        reportDir: '',
+        compressData: void 0
+    };
+}
+function getDefaultSupports() {
+    return {
+        parseBundle: true,
+        banner: void 0,
+        gzip: true
+    };
+}
+function normalizeFeatures(features, mode) {
+    if (Array.isArray(features)) return {
+        loader: features.includes('loader'),
+        plugins: features.includes('plugins'),
+        resolver: features.includes('resolver'),
+        bundle: features.includes('bundle'),
+        treeShaking: features.includes('treeShaking'),
+        lite: features.includes('lite') || mode === types_namespaceObject.SDK.IMode[types_namespaceObject.SDK.IMode.lite]
+    };
+    return {
+        loader: defaultBoolean(features.loader, true),
+        plugins: defaultBoolean(features.plugins, true),
+        resolver: defaultBoolean(features.resolver, false),
+        bundle: defaultBoolean(features.bundle, true),
+        treeShaking: defaultBoolean(features.treeShaking, false),
+        lite: defaultBoolean(features.lite, false) || mode === types_namespaceObject.SDK.IMode[types_namespaceObject.SDK.IMode.lite]
+    };
+}
+function normalizeLinter(linter) {
+    return {
+        rules: {},
+        extends: [],
+        level: 'Error',
+        ...linter
+    };
+}
+function isValidMode(mode) {
+    return 'string' == typeof mode && [
+        'brief',
+        'normal',
+        'lite'
+    ].includes(mode);
+}
+function normalizeUserConfig(config = {}) {
+    const { linter = {}, features = {}, loaderInterceptorOptions = {}, disableClientServer: userDisableClientServer = false, sdkInstance, innerClientPath = '', output = getDefaultOutput(), supports = getDefaultSupports(), port, printLog = {
+        serverUrls: true
+    }, mode, brief } = config;
+    const disableClientServer = 'true' === process.env.RSTEST ? false : process.env.CI ? true : userDisableClientServer;
+    external_assert_default()('object' == typeof linter);
+    external_assert_default()('object' == typeof features || Array.isArray(features));
+    external_assert_default()('object' == typeof loaderInterceptorOptions);
+    external_assert_default()('boolean' == typeof disableClientServer);
+    let finalMode = ('mode' in output && isValidMode(output.mode) ? 'lite' === output.mode ? types_namespaceObject.SDK.IMode[types_namespaceObject.SDK.IMode.normal] : output.mode : void 0) || mode || types_namespaceObject.SDK.IMode[types_namespaceObject.SDK.IMode.normal];
+    if (mode) logger_namespaceObject.logger.info(logger_namespaceObject.chalk.yellow("The 'mode' configuration will be deprecated in a future version. Please use 'output.mode' instead."));
+    const _features = normalizeFeatures(features, finalMode);
+    const _linter = normalizeLinter(linter);
+    if (_features.lite || finalMode === types_namespaceObject.SDK.IMode[types_namespaceObject.SDK.IMode.lite]) logger_namespaceObject.logger.info(logger_namespaceObject.chalk.yellow("Lite features will be deprecated in a future version. Please use 'output: { reportCodeType: { noAssetsAndModuleSource: true }}' instead."));
+    const { finalBrief, finalNormalOptions } = (0, external_normalize_config_cjs_namespaceObject.processModeConfigurations)(finalMode, output, brief);
+    if (_features.lite && finalMode !== types_namespaceObject.SDK.IMode[types_namespaceObject.SDK.IMode.brief]) finalMode = types_namespaceObject.SDK.IMode[types_namespaceObject.SDK.IMode.lite];
+    const reportCodeType = output.reportCodeType ? normalizeReportType(output.reportCodeType, finalMode) : normalizeReportType(getDefaultOutput().reportCodeType, finalMode);
+    const res = {
+        linter: _linter,
+        features: _features,
+        loaderInterceptorOptions: {
+            skipLoaders: Array.isArray(loaderInterceptorOptions.skipLoaders) ? loaderInterceptorOptions.skipLoaders : []
+        },
+        disableClientServer,
+        sdkInstance,
+        output: {
+            mode: finalMode,
+            options: 'brief' === finalMode ? finalBrief : finalNormalOptions,
+            reportCodeType,
+            reportDir: output.reportDir || ''
+        },
+        innerClientPath,
+        supports,
+        port,
+        printLog
+    };
+    if (void 0 !== output.compressData) logger_namespaceObject.logger.info(logger_namespaceObject.chalk.yellow("The 'compressData' configuration will be deprecated in a future version."));
+    return res;
+}
+const normalizeReportType = (reportCodeType, mode)=>{
+    const convertedReportCodeType = 'object' == typeof reportCodeType ? (0, external_normalize_config_cjs_namespaceObject.convertReportCodeTypeObject)(reportCodeType) : reportCodeType;
+    if ('noCode' === convertedReportCodeType) return types_namespaceObject.SDK.ToDataType.NoCode;
+    if (mode === types_namespaceObject.SDK.IMode[types_namespaceObject.SDK.IMode.brief]) return types_namespaceObject.SDK.ToDataType.NoCode;
+    if (mode === types_namespaceObject.SDK.IMode[types_namespaceObject.SDK.IMode.lite]) return types_namespaceObject.SDK.ToDataType.NoSourceAndAssets;
+    if ('noAssetsAndModuleSource' === convertedReportCodeType) return types_namespaceObject.SDK.ToDataType.NoSourceAndAssets;
+    if ('noModuleSource' === convertedReportCodeType) return types_namespaceObject.SDK.ToDataType.NoSource;
+    return types_namespaceObject.SDK.ToDataType.Normal;
+};
+function normalizeRspackUserOptions(options) {
+    const config = normalizeUserConfig(options);
+    config.experiments ??= {
+        enableNativePlugin: {
+            moduleGraph: false,
+            chunkGraph: false
+        }
+    };
+    if ('boolean' == typeof options.experiments?.enableNativePlugin && options.experiments?.enableNativePlugin === true) config.experiments.enableNativePlugin = {
+        moduleGraph: true,
+        chunkGraph: true
+    };
+    else config.experiments.enableNativePlugin = {
+        moduleGraph: false,
+        chunkGraph: false
+    };
+    return config;
+}
+exports.normalizeReportType = __webpack_exports__.normalizeReportType;
+exports.normalizeRspackUserOptions = __webpack_exports__.normalizeRspackUserOptions;
+exports.normalizeUserConfig = __webpack_exports__.normalizeUserConfig;
+for(var __rspack_i in __webpack_exports__)if (-1 === [
+    "normalizeReportType",
+    "normalizeRspackUserOptions",
+    "normalizeUserConfig"
+].indexOf(__rspack_i)) exports[__rspack_i] = __webpack_exports__[__rspack_i];
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});

@@ -1,0 +1,285 @@
+import __rslib_shim_module__ from 'module';
+const require = /*#__PURE__*/ __rslib_shim_module__.createRequire(import.meta.url);
+import * as __rspack_external_module from "module";
+import node_path from "node:path";
+import { fileURLToPath } from "node:url";
+import fs_extra from "fs-extra";
+import { omit } from "es-toolkit/compat";
+import { Loader } from "@rsdoctor/utils/common";
+import { readPackageJson } from "@rsdoctor/graph";
+import { logger } from "@rsdoctor/utils/logger";
+var __webpack_modules__ = {
+    module (module) {
+        module.exports = __rspack_external_module;
+    }
+};
+var __webpack_module_cache__ = {};
+function __webpack_require__(moduleId) {
+    var cachedModule = __webpack_module_cache__[moduleId];
+    if (void 0 !== cachedModule) return cachedModule.exports;
+    var module = __webpack_module_cache__[moduleId] = {
+        exports: {}
+    };
+    __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+    return module.exports;
+}
+const loader_filename = fileURLToPath(import.meta.url);
+const loader_dirname = node_path.dirname(loader_filename);
+const PATH_QUERY_FRAGMENT_REGEXP = /^((?:\0.|[^?#\0])*)(\?(?:\0.|[^#\0])*)?(#.*)?$/;
+function parsePathQueryFragment(str) {
+    const match = PATH_QUERY_FRAGMENT_REGEXP.exec(str);
+    return {
+        path: match?.[1].replace(/\0(.)/g, '$1') || '',
+        query: match?.[2] ? match[2].replace(/\0(.)/g, '$1') : '',
+        fragment: match?.[3] || ''
+    };
+}
+function loadLoaderModule(loaderPath, cwd = process.cwd()) {
+    const cleanLoaderPath = parsePathQueryFragment(loaderPath).path;
+    const { createRequire } = __webpack_require__("module");
+    const requireFn = createRequire(import.meta.url);
+    const mod = requireFn(process.env.DOCTOR_TEST ? node_path.resolve(cwd, cleanLoaderPath) : requireFn.resolve(cleanLoaderPath, {
+        paths: [
+            cwd,
+            node_path.resolve(cwd, 'node_modules')
+        ]
+    }));
+    const isESM = mod.__esModule && 'function' == typeof mod.default;
+    return {
+        default: isESM ? mod.default : 'function' == typeof mod ? mod : null,
+        pitch: mod.default?.pitch || mod.pitch,
+        raw: mod.default?.raw || mod.raw || false
+    };
+}
+function extractLoaderName(loaderPath, cwd = '') {
+    let res = loaderPath.replace(cwd, '');
+    if (!node_path.isAbsolute(res)) return res;
+    const nms = '/node_modules/';
+    const idx = res.lastIndexOf(nms);
+    if (-1 !== idx) {
+        res = res.slice(idx + nms.length);
+        const ln = 'loader';
+        const lnIdx = res.lastIndexOf(ln);
+        if (lnIdx > -1) res = res.slice(0, lnIdx + ln.length);
+    }
+    return res;
+}
+function mapEachRules(rules, callback) {
+    return rules.filter(Boolean).map((rule)=>{
+        if ('string' == typeof rule) return callback({
+            loader: rule
+        });
+        if (rule.loader && 'string' == typeof rule.loader) return callback(rule);
+        if (Array.isArray(rule.loaders)) {
+            const { loaders, ...rest } = rule;
+            return {
+                ...rest,
+                use: mapEachRules(loaders, callback)
+            };
+        }
+        if (rule.use && (!Array.isArray(rule.use) || 0 !== rule.use.length)) {
+            if ('string' == typeof rule.use) return {
+                ...rule,
+                use: mapEachRules([
+                    {
+                        loader: rule.use,
+                        options: rule.options
+                    }
+                ], callback)
+            };
+            if ('function' == typeof rule.use) {
+                const funcUse = rule.use;
+                const newRule = {
+                    ...rule,
+                    use: (...args)=>{
+                        const rules = funcUse.apply(null, args);
+                        return mapEachRules(rules, callback);
+                    }
+                };
+                return newRule;
+            }
+            if (Array.isArray(rule.use)) return {
+                ...rule,
+                use: mapEachRules(rule.use, callback)
+            };
+            return {
+                ...rule,
+                use: mapEachRules([
+                    rule.use
+                ], callback)
+            };
+        }
+        if ('rules' in rule && Array.isArray(rule.rules)) return {
+            ...rule,
+            rules: mapEachRules(rule.rules, callback)
+        };
+        if (Array.isArray(rule.oneOf)) return {
+            ...rule,
+            oneOf: mapEachRules(rule.oneOf, callback)
+        };
+        return rule;
+    });
+}
+function isESMLoader(r) {
+    let _loaderName = 'object' == typeof r && 'string' == typeof r?.loader ? r.loader : 'string' == typeof r ? r : '';
+    if (!_loaderName) return false;
+    const isPath = node_path.isAbsolute(_loaderName) || _loaderName.startsWith('./') || _loaderName.startsWith('../');
+    if (isPath) {
+        const packageJsonData = readPackageJson(_loaderName, (file)=>{
+            try {
+                return fs_extra.readJsonSync(file, {
+                    encoding: 'utf8'
+                });
+            } catch (e) {
+                logger.debug(`isESMLoader function error：${e}`);
+            }
+        });
+        if (packageJsonData?.type === 'module' && !packageJsonData?.name.includes('@rsdoctor/')) return true;
+    }
+    return false;
+}
+function appendProbeLoaders(compiler, loaderConfig) {
+    const _options = 'object' == typeof loaderConfig ? 'string' == typeof loaderConfig.options ? {
+        options: loaderConfig.options
+    } : loaderConfig.options : {};
+    const loaderPath = process.env.DOCTOR_TEST ? node_path.resolve(loader_dirname, '../loader/probeLoader.ts') : require.resolve(node_path.join(loader_dirname, '../loader/probeLoader'));
+    const loader = 'string' == typeof loaderConfig ? loaderConfig : 'object' == typeof loaderConfig && loaderConfig.loader;
+    const createProbeLoader = (type)=>({
+            loader: loaderPath,
+            options: {
+                ..._options,
+                loader,
+                ident: void 0,
+                type,
+                builderName: compiler.options.name
+            }
+        });
+    return [
+        createProbeLoader('end'),
+        loaderConfig,
+        createProbeLoader('start')
+    ];
+}
+function getLoaderNameMatch(r, loaderName, strict = true) {
+    if (!strict) return 'object' == typeof r && 'string' == typeof r?.loader && r.loader.includes(loaderName) || 'string' == typeof r && r.includes(loaderName);
+    return 'object' == typeof r && 'string' == typeof r?.loader && r.loader === loaderName || 'string' == typeof r && r === loaderName;
+}
+function addProbeLoader2Rules(rules, compiler, fn) {
+    return rules.map((rule)=>{
+        if (!rule || 'string' == typeof rule) return rule;
+        if (fn(rule) && !rule.use) {
+            const loaderConfig = {
+                loader: rule.loader ?? '',
+                options: rule.options,
+                ident: 'ident' in rule && 'string' == typeof rule.ident ? rule.ident : void 0
+            };
+            return {
+                ...rule,
+                use: appendProbeLoaders(compiler, loaderConfig),
+                loader: void 0,
+                options: void 0
+            };
+        }
+        if (rule.use) {
+            if (Array.isArray(rule.use)) rule.use = rule.use.flatMap((loaderConfig)=>{
+                if ('string' == typeof loaderConfig || 'object' == typeof loaderConfig && loaderConfig && 'loader' in loaderConfig) return fn(loaderConfig) ? appendProbeLoaders(compiler, loaderConfig) : [
+                    loaderConfig
+                ];
+                return [
+                    loaderConfig
+                ];
+            });
+            else if ('object' != typeof rule.use || Array.isArray(rule.use) || 'function' == typeof rule.use) {
+                if ('string' == typeof rule.use) rule.use = fn(rule.use) ? appendProbeLoaders(compiler, {
+                    loader: rule.use
+                }) : [
+                    {
+                        loader: rule.use
+                    }
+                ];
+            } else if ('loader' in rule.use) rule.use = fn(rule.use) ? appendProbeLoaders(compiler, rule.use) : [
+                rule.use
+            ];
+        }
+        if ('oneOf' in rule && rule.oneOf) return {
+            ...rule,
+            oneOf: addProbeLoader2Rules(rule.oneOf, compiler, fn)
+        };
+        if ('rules' in rule && rule.rules) return {
+            ...rule,
+            rules: addProbeLoader2Rules(rule.rules, compiler, fn)
+        };
+        return rule;
+    });
+}
+function createLoaderContextTrap(final) {
+    const cb = this.callback;
+    let callback = (...args)=>{
+        final(args[0], args[1] ?? null, args[2]);
+        return cb.call(this, ...args);
+    };
+    const ac = this.async;
+    let async = (...args)=>{
+        const cb = ac(...args);
+        return (...args)=>{
+            final(args[0], args[1] ?? null, args[2]);
+            return cb(...args);
+        };
+    };
+    const trap = new Proxy(this, {
+        get (target, key, receiver) {
+            switch(key){
+                case 'async':
+                    return async;
+                case 'callback':
+                    return callback;
+                case 'query':
+                    if (target.query) {
+                        if ('string' == typeof target.query) {
+                            const res = target.query.replace(new RegExp(`"${Loader.LoaderInternalPropertyName}":\{[^\}]*\},{0,1}`), '');
+                            return res;
+                        }
+                        if ('object' == typeof target.query) {
+                            const options = target.query[Loader.LoaderInternalPropertyName];
+                            if (options.hasOptions) return omit(target.query, [
+                                Loader.LoaderInternalPropertyName
+                            ]);
+                            const innerLoaderPath = options?.loader;
+                            const loaderQuery = parsePathQueryFragment(innerLoaderPath).query;
+                            return loaderQuery;
+                        }
+                    }
+                    return Reflect.get(target, key, receiver);
+                case 'getOptions':
+                    return 'function' == typeof target.getOptions ? ()=>omit(target.getOptions(), [
+                            Loader.LoaderInternalPropertyName
+                        ]) : Reflect.get(target, key, receiver);
+                default:
+                    const _target = target;
+                    return _target[key];
+            }
+        },
+        set (target, key, value, receiver) {
+            switch(key){
+                case 'async':
+                    async = value;
+                    return true;
+                case 'callback':
+                    callback = value;
+                    return true;
+                default:
+                    return Reflect.set(target, key, value, receiver);
+            }
+        },
+        defineProperty (target, p, attrs) {
+            return Reflect.defineProperty(target, p, attrs);
+        }
+    });
+    return trap;
+}
+function parseQuery(query) {
+    if (query.startsWith('?')) query = query.slice(1);
+    const searchParams = new URLSearchParams(query);
+    return Object.fromEntries(searchParams.entries());
+}
+export { addProbeLoader2Rules, createLoaderContextTrap, extractLoaderName, getLoaderNameMatch, isESMLoader, loadLoaderModule, mapEachRules, parsePathQueryFragment, parseQuery };

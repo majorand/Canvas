@@ -1,0 +1,31 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RsdoctorClientDiffState = exports.RsdoctorClientRoutes = exports.RsdoctorClientUrlQuery = void 0;
+var RsdoctorClientUrlQuery;
+(function (RsdoctorClientUrlQuery) {
+    RsdoctorClientUrlQuery["BundleDiffFiles"] = "__bundle_files__";
+    RsdoctorClientUrlQuery["ManifestFile"] = "manifest";
+    RsdoctorClientUrlQuery["EnableRoutes"] = "enableRoutes";
+})(RsdoctorClientUrlQuery || (exports.RsdoctorClientUrlQuery = RsdoctorClientUrlQuery = {}));
+var RsdoctorClientRoutes;
+(function (RsdoctorClientRoutes) {
+    RsdoctorClientRoutes["Home"] = "/";
+    RsdoctorClientRoutes["Overall"] = "/overall";
+    RsdoctorClientRoutes["WebpackLoaderOverall"] = "/webpack/loaders/overall";
+    RsdoctorClientRoutes["WebpackLoaderAnalysis"] = "/webpack/loaders/analysis";
+    RsdoctorClientRoutes["ModuleResolve"] = "/module/resolve";
+    RsdoctorClientRoutes["WebpackPlugins"] = "/webpack/plugins";
+    RsdoctorClientRoutes["BundleSize"] = "/bundle/size";
+    RsdoctorClientRoutes["ModuleAnalyze"] = "/module/analyze";
+    RsdoctorClientRoutes["TreeShaking"] = "/treeshaking";
+    RsdoctorClientRoutes["BundleDiff"] = "/resources/bundle/diff";
+    RsdoctorClientRoutes["RuleIndex"] = "/resources/rules";
+    RsdoctorClientRoutes["Uploader"] = "/resources/uploader";
+    RsdoctorClientRoutes["EmoCheck"] = "/emo/check";
+})(RsdoctorClientRoutes || (exports.RsdoctorClientRoutes = RsdoctorClientRoutes = {}));
+var RsdoctorClientDiffState;
+(function (RsdoctorClientDiffState) {
+    RsdoctorClientDiffState["Equal"] = "-";
+    RsdoctorClientDiffState["Up"] = "UP";
+    RsdoctorClientDiffState["Down"] = "DOWN";
+})(RsdoctorClientDiffState || (exports.RsdoctorClientDiffState = RsdoctorClientDiffState = {}));

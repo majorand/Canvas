@@ -1,0 +1,137 @@
+"use strict";
+var __webpack_require__ = {};
+(()=>{
+    __webpack_require__.d = (exports1, definition)=>{
+        for(var key in definition)if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key)) Object.defineProperty(exports1, key, {
+            enumerable: true,
+            get: definition[key]
+        });
+    };
+})();
+(()=>{
+    __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop);
+})();
+(()=>{
+    __webpack_require__.r = (exports1)=>{
+        if ("u" > typeof Symbol && Symbol.toStringTag) Object.defineProperty(exports1, Symbol.toStringTag, {
+            value: 'Module'
+        });
+        Object.defineProperty(exports1, '__esModule', {
+            value: true
+        });
+    };
+})();
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+    defineRule: ()=>defineRule,
+    Rule: ()=>Rule
+});
+const types_namespaceObject = require("@rsdoctor/types");
+const common_namespaceObject = require("@rsdoctor/utils/common");
+const external_utils_cjs_namespaceObject = require("./utils.cjs");
+class Rule {
+    static from(data) {
+        return new Rule({
+            check: data.check,
+            onCheckEnd: data.onCheckEnd,
+            meta: {
+                ...data.meta,
+                code: types_namespaceObject.Rule.RuleMessageCodeEnumerated.Extend,
+                severity: (0, external_utils_cjs_namespaceObject.toSeverity)(data.meta.severity, types_namespaceObject.Linter.Severity.Warn)
+            }
+        });
+    }
+    get code() {
+        return this.meta.code;
+    }
+    get title() {
+        return this.meta.title;
+    }
+    get severity() {
+        return this._severity;
+    }
+    get config() {
+        return this._config;
+    }
+    get category() {
+        return this.meta.category;
+    }
+    setOption(opt) {
+        let severity;
+        let config;
+        if (Array.isArray(opt)) {
+            severity = (0, external_utils_cjs_namespaceObject.toSeverity)(opt[0], this.meta.severity);
+            config = opt[1];
+        } else {
+            severity = (0, external_utils_cjs_namespaceObject.toSeverity)(opt, this.meta.severity);
+            config = void 0;
+        }
+        this._severity = severity;
+        this._config = common_namespaceObject.Lodash.isPlainObject(config) ? {
+            ...this.meta.defaultConfig,
+            ...config
+        } : config || this.meta.defaultConfig;
+    }
+    match(level) {
+        if (level === types_namespaceObject.Linter.Severity.Ignore || this.severity === types_namespaceObject.Linter.Severity.Ignore) return false;
+        if (level === types_namespaceObject.Linter.Severity.Error) return this.severity === types_namespaceObject.Linter.Severity.Error || this.severity === types_namespaceObject.Linter.Severity.Warn;
+        if (level === types_namespaceObject.Linter.Severity.Warn) return this.severity === types_namespaceObject.Linter.Severity.Warn;
+        return false;
+    }
+    async validate(context) {
+        const errors = [];
+        const replace = [];
+        const report = (data, remove)=>{
+            if (remove) replace.push(remove);
+            let severity = data.severity ? (0, external_utils_cjs_namespaceObject.toSeverity)(data.severity, this.severity) : this.severity;
+            const error = {
+                ...data,
+                code: this.code,
+                severity,
+                category: this.category,
+                title: this.title.toUpperCase()
+            };
+            if (severity !== types_namespaceObject.Linter.Severity.Ignore) errors.push(error);
+        };
+        await this.check({
+            ...context,
+            ruleConfig: this.config,
+            report
+        });
+        return {
+            errors,
+            replace
+        };
+    }
+    async afterValidate({ hooks, validateResult, data }) {
+        if (this.onCheckEnd === external_utils_cjs_namespaceObject.noop) return;
+        await this.onCheckEnd({
+            data: {
+                ...data,
+                ruleConfig: this.config
+            },
+            hooks,
+            validateResult
+        });
+    }
+    constructor(data){
+        this.check = data.check;
+        this.meta = data.meta;
+        this.onCheckEnd = 'function' == typeof data.onCheckEnd ? data.onCheckEnd : external_utils_cjs_namespaceObject.noop;
+        this._severity = this.meta.severity;
+        this._config = this.meta.defaultConfig;
+    }
+}
+function defineRule(ruleCreator) {
+    return ruleCreator();
+}
+exports.Rule = __webpack_exports__.Rule;
+exports.defineRule = __webpack_exports__.defineRule;
+for(var __rspack_i in __webpack_exports__)if (-1 === [
+    "Rule",
+    "defineRule"
+].indexOf(__rspack_i)) exports[__rspack_i] = __webpack_exports__[__rspack_i];
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});

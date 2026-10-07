@@ -1,0 +1,7 @@
+import { Component } from 'dreamland/core';
+
+declare let mountOne: (root: HTMLElement, component: Component<any, any, any>) => void;
+declare let mount: (roots: string | HTMLElement[], component: Component<any, any, any>) => void;
+declare let discover: (controllers: Record<string, () => Promise<any>>) => Promise<void>;
+
+export { discover, mount, mountOne };

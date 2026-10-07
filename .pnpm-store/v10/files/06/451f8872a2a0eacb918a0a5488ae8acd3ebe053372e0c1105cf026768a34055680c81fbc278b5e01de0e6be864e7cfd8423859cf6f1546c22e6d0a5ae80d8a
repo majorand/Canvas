@@ -1,0 +1,310 @@
+"use strict";
+const __rslib_import_meta_url__ = "u" < typeof document ? new (require('url'.replace('', ''))).URL('file:' + __filename).href : document.currentScript && document.currentScript.src || new URL('main.js', document.baseURI).href;
+var __webpack_require__ = {};
+__webpack_require__.n = (module)=>{
+    var getter = module && module.__esModule ? ()=>module.default : ()=>module;
+    return __webpack_require__.d(getter, {
+        a: getter
+    }), getter;
+}, __webpack_require__.d = (exports1, definition)=>{
+    for(var key in definition)__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key) && Object.defineProperty(exports1, key, {
+        enumerable: !0,
+        get: definition[key]
+    });
+}, __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop), __webpack_require__.r = (exports1)=>{
+    "u" > typeof Symbol && Symbol.toStringTag && Object.defineProperty(exports1, Symbol.toStringTag, {
+        value: 'Module'
+    }), Object.defineProperty(exports1, '__esModule', {
+        value: !0
+    });
+};
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__), __webpack_require__.d(__webpack_exports__, {
+    printErrors: ()=>printErrors,
+    DevToolError: ()=>DevToolError
+});
+const code_frame_namespaceObject = require("@babel/code-frame"), types_namespaceObject = require("@rsdoctor/types"), external_picocolors_namespaceObject = require("picocolors"), external_deep_eql_namespaceObject = require("deep-eql");
+var external_deep_eql_default = __webpack_require__.n(external_deep_eql_namespaceObject);
+const external_strip_ansi_namespaceObject = require("strip-ansi");
+var external_strip_ansi_default = __webpack_require__.n(external_strip_ansi_namespaceObject);
+function isEsbuildError(err) {
+    return 'pluginName' in err && 'text' in err && 'location' in err;
+}
+function isBabelError(err) {
+    return 'code' in err && 'reasonCode' in err;
+}
+function isDiagnosticError(err) {
+    return 'severity' in err && 'title' in err;
+}
+function parseBabelErrorMessage(input) {
+    let lines = external_strip_ansi_default()(input).split('\n'), filePath = lines[0].replace(/^([^:]+):.*/, '$1');
+    return {
+        message: lines[0].replace(/.*: (.*) \(\d+:\d+\)*/, '$1'),
+        filePath,
+        lineText: lines.find((line)=>line.startsWith('> '))?.replace(/> \d+ \| /, '') ?? ''
+    };
+}
+function clearMessage(str) {
+    return external_strip_ansi_default()(str).replace(/.*: (.*)\n\n[\s\S]*/g, '$1');
+}
+function clearStack(str) {
+    return str.slice(str.indexOf('  at')).replace(/\s*at(.*) \((.*)\)/g, '$1\n$2\n');
+}
+function transformEsbuildError(err, opt) {
+    if (isEsbuildError(err)) {
+        let errorCode = opt?.code ?? 'ESBUILD_ERROR', speedyError = 'object' == typeof err.detail ? DevToolError.from(err.detail) : new DevToolError(errorCode, clearMessage(err.text), {
+            ...opt,
+            hint: err.location?.suggestion,
+            codeFrame: {
+                filePath: err.text.split(':')[0]
+            }
+        });
+        return err.location && speedyError.setCodeFrame({
+            filePath: err.location.file,
+            lineText: err.location.lineText,
+            length: err.location.length,
+            start: {
+                line: err.location.line,
+                column: err.location.column + 1
+            }
+        }), speedyError;
+    }
+}
+function transformBabelError(err, opt) {
+    if (isBabelError(err)) {
+        let errorCode = opt?.code ?? err.code ?? 'BABEL', title = err.reasonCode, errorParsed = parseBabelErrorMessage(err.message), speedyError = new DevToolError(title, errorParsed.message, {
+            ...opt,
+            code: errorCode,
+            stack: err.stack && clearStack(err.stack)
+        });
+        return err.loc && speedyError.setCodeFrame({
+            ...errorParsed,
+            start: {
+                line: err.loc.line,
+                column: err.loc.column + 1
+            }
+        }), speedyError;
+    }
+}
+function transformNormalError(err, opt) {
+    if (err instanceof Error) {
+        let filePath = [][0]?.getFileName?.();
+        return new DevToolError(err.name, clearMessage(err.message), {
+            ...opt,
+            codeFrame: filePath ? {
+                filePath
+            } : void 0,
+            stack: err.stack && clearStack(err.stack)
+        });
+    }
+}
+function transformErrorLike(err, opt) {
+    if (err && 'object' == typeof err && err.message) {
+        let filePath = [][0]?.getFileName?.();
+        return new DevToolError(err.name || 'UNKNOWN_ERROR', clearMessage(err.message), {
+            ...opt,
+            codeFrame: filePath ? {
+                filePath
+            } : void 0,
+            stack: err.stack && clearStack(err.stack)
+        });
+    }
+}
+function transformDiagnostic(err, opt) {
+    if (isDiagnosticError(err)) return new DevToolError(err.title, err.message, {
+        ...err,
+        ...opt,
+        hint: err.suggestions?.description,
+        fixData: err.suggestions?.fixData,
+        codeFrame: err.document ? {
+            filePath: err.document.path,
+            fileContent: err.document.content,
+            start: err.document.range.start,
+            end: err.document.range.end
+        } : void 0,
+        level: types_namespaceObject.Linter.Severity[err.severity]
+    });
+}
+function defaultError(err, opt) {
+    return new DevToolError('UNKNOWN_ERROR', JSON.stringify(err), opt);
+}
+function transform(err, opt) {
+    for (let fn of [
+        transformEsbuildError,
+        transformBabelError,
+        transformDiagnostic,
+        transformNormalError,
+        transformErrorLike
+    ]){
+        let result = fn(err, opt);
+        if (result) return result;
+    }
+    return defaultError(err, opt);
+}
+function toLevel(level) {
+    return types_namespaceObject.Err.ErrorLevel[level];
+}
+function insertSpace(rawLines, line, width) {
+    let lines = rawLines.split('\n');
+    return lines[line - 1] = Array(width).fill(' ').join('') + lines[line - 1], lines.join('\n');
+}
+function printErrors({ errors, warnings }, logLevel = 'Error') {
+    let onlyError = 'Error' === logLevel;
+    if ('Silent' === logLevel || onlyError && 0 === errors.length || !onlyError && 0 === errors.length && 0 === warnings.length) return '';
+    let msgs = [];
+    if (onlyError) msgs.push(`Build failed with ${errors.length} error:`, ...errors.map((item)=>item.toString()), '');
+    else {
+        let title = 0 === errors.length ? `Build succuss with ${warnings.length} warning:` : `Build failed with ${errors.length} error, ${warnings.length} warning:`;
+        msgs.push(title, ...errors.map((item)=>item.toString()), ...warnings.map((item)=>item.toString()), '');
+    }
+    return msgs.join('\n\n');
+}
+function isUndefined(value) {
+    return void 0 === value;
+}
+function isNumber(value) {
+    return 'number' == typeof value && !Number.isNaN(value);
+}
+function isObject(value) {
+    return 'object' == typeof value && null !== value;
+}
+function isEmpty(value) {
+    return null == value || Array.isArray(value) && 0 === value.length || 'object' == typeof value && 0 === Object.keys(value).length;
+}
+function last(array) {
+    return array[array.length - 1];
+}
+function compact(array) {
+    return array.filter((item)=>null != item || !item);
+}
+function isNil(value) {
+    return null == value;
+}
+const isPlainObject = (obj)=>null !== obj && 'object' == typeof obj && Object.getPrototypeOf(obj) === Object.prototype, isString = (v)=>'string' == typeof v || !!v && 'object' == typeof v && !Array.isArray(v) && '[object String]' === ({}).toString.call(v);
+function pick(obj, keys) {
+    let result = {};
+    for(let i = 0; i < keys.length; i++){
+        let key = keys[i];
+        Object.hasOwn(obj, key) && (result[key] = obj[key]);
+    }
+    return result;
+}
+let id = 1;
+class DevToolError extends Error {
+    static from(err, opt) {
+        return err instanceof DevToolError ? err : transform(err, opt);
+    }
+    id;
+    code;
+    category;
+    title;
+    detail;
+    fixData;
+    hint;
+    referenceUrl;
+    _codeFrame;
+    _controller = {
+        noStack: !0,
+        noColor: !1
+    };
+    _level;
+    constructor(title, message, opts){
+        super(message), this.id = id++, this.title = title, this.code = opts?.code, this.hint = opts?.hint, this.stack = opts?.stack, this.detail = opts?.detail, this.fixData = opts?.fixData, this.category = opts?.category, this.referenceUrl = opts?.referenceUrl, this._level = opts?.level ? toLevel(opts.level) : types_namespaceObject.Err.ErrorLevel.Error, this._codeFrame = opts?.codeFrame, this.setControllerOption(opts?.controller ?? {});
+    }
+    get level() {
+        return types_namespaceObject.Err.ErrorLevel[this._level];
+    }
+    get path() {
+        return this._codeFrame?.filePath;
+    }
+    set path(file) {
+        if (file) {
+            if (this._codeFrame) {
+                this._codeFrame.filePath = file;
+                return;
+            }
+            this._codeFrame = {
+                filePath: file
+            };
+        }
+    }
+    get codeFrame() {
+        return this._codeFrame;
+    }
+    printCodeFrame(print) {
+        let msgs = [], { _codeFrame: codeFrameOpt, _controller: controller } = this;
+        if (!codeFrameOpt) return msgs;
+        if ('start' in codeFrameOpt && codeFrameOpt.start) {
+            let { filePath, start } = codeFrameOpt;
+            if (msgs.push(`\n ${print.red(print.bold('File: '))}${print.bold(filePath)}:${start.line}${start.column ? `:${start.column}` : ''}`), 'fileContent' in codeFrameOpt) {
+                let { end, fileContent } = codeFrameOpt;
+                msgs.push((0, code_frame_namespaceObject.codeFrameColumns)(fileContent, {
+                    start,
+                    end
+                }, {
+                    highlightCode: !controller.noColor
+                }));
+            } else if ('lineText' in codeFrameOpt) {
+                let { length, lineText } = codeFrameOpt, lineCodeFrame = (0, code_frame_namespaceObject.codeFrameColumns)(lineText, {
+                    start: {
+                        line: 1,
+                        column: start.column
+                    },
+                    end: {
+                        line: 1,
+                        column: isNil(start.column) || isNil(length) ? void 0 : start.column + length
+                    }
+                }, {
+                    highlightCode: !controller.noColor
+                });
+                start.line > 1 && (lineCodeFrame = lineCodeFrame.replace(' 1 |', ` ${start.line} |`), start.line >= 10 && (lineCodeFrame = insertSpace(lineCodeFrame, 2, String(start.line).length - 1))), msgs.push(lineCodeFrame);
+            }
+        } else msgs.push(`\n ${print.red(print.bold('File: '))}${print.bold(codeFrameOpt.filePath)}\n`);
+        return msgs;
+    }
+    toString() {
+        let msgs = [], { code, title, message, hint, referenceUrl, _controller: controller } = this, print = (0, external_picocolors_namespaceObject.createColors)(!controller.noColor), mainColorPrint = this._level === types_namespaceObject.Err.ErrorLevel.Error ? print.red : print.yellow, codeText = code ? `${mainColorPrint(print.blue(code))}:` : '';
+        return msgs.push(mainColorPrint(print.bold(`[${codeText}${this.level}:${title.toUpperCase()}] `) + message)), msgs.push(...this.printCodeFrame(print)), (hint || referenceUrl) && msgs.push(''), hint && msgs.push(` ${print.blue(`HINT: ${hint}`)}`), referenceUrl && msgs.push(print.magenta(print.bold(` See: ${referenceUrl}`))), !controller.noStack && this.stack && msgs.push(print.red(print.bold(` Error Stack:\n${this.stack}\n`))), msgs.join('\n');
+    }
+    toData() {
+        return {
+            ...this.detail,
+            id: this.id,
+            category: this.category,
+            description: external_strip_ansi_default()(this.detail?.description ?? this.message),
+            title: this.title.toUpperCase(),
+            code: this.code,
+            level: this.level.toLowerCase()
+        };
+    }
+    toError() {
+        let error = Error();
+        return error.message = this.toString(), error.name = this.name, error.stack = this.stack, error;
+    }
+    toJSON() {
+        return {
+            message: this.toString(),
+            name: this.name,
+            stack: this.stack
+        };
+    }
+    setControllerOption(opt) {
+        this._controller = {
+            noStack: opt.noStack ?? this._controller.noStack ?? !0,
+            noColor: opt.noColor ?? this._controller.noColor ?? !1
+        };
+    }
+    setCodeFrame(opt) {
+        this._codeFrame = opt;
+    }
+    isSame(error) {
+        return this.code === error.code && this.message === error.message && this.hint === error.hint && this.level === error.level && this.title === error.title && this.referenceUrl === error.referenceUrl && this.code === error.code && external_deep_eql_default()(this.codeFrame, error.codeFrame);
+    }
+}
+for(var __rspack_i in exports.DevToolError = __webpack_exports__.DevToolError, exports.printErrors = __webpack_exports__.printErrors, __webpack_exports__)-1 === [
+    "DevToolError",
+    "printErrors"
+].indexOf(__rspack_i) && (exports[__rspack_i] = __webpack_exports__[__rspack_i]);
+Object.defineProperty(exports, '__esModule', {
+    value: !0
+});

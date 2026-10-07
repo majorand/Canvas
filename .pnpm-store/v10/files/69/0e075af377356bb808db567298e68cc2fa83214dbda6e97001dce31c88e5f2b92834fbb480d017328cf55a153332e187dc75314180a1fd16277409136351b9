@@ -1,0 +1,9 @@
+import { Rule, SDK } from '@rsdoctor/types';
+export declare function getModulesByAsset(asset: SDK.AssetData, chunks: SDK.ChunkData[], modules: SDK.ModuleData[], filterModules?: (keyof SDK.ModuleData)[], checkModules?: (module: SDK.ModuleData) => boolean): SDK.ModuleData[];
+export declare function getModuleIdsByChunk(chunk: SDK.ChunkData): number[];
+export declare function getModuleIdsByModulesIds(moduleIds: number[], modules: SDK.ModuleData[]): SDK.ModuleData[];
+export declare function getModulesByChunk(chunk: SDK.ChunkData, modules: SDK.ModuleData[], filterModules?: (keyof SDK.ModuleData)[]): SDK.ModuleData[];
+export declare function getModulesByChunks(chunks: SDK.ChunkData[], modules: SDK.ModuleData[], filterModules?: (keyof SDK.ModuleData)[], checkModules?: (module: SDK.ModuleData) => boolean): SDK.ModuleData[];
+export declare function getModuleByDependency(dep: SDK.DependencyData, modules: SDK.ModuleData[]): SDK.ModuleData | undefined;
+export declare function filterModulesAndDependenciesByPackageDeps(deps: Rule.DependencyWithPackageData[], dependencies: SDK.DependencyData[], modules: SDK.ModuleData[]): Pick<SDK.ModuleGraphData, 'dependencies' | 'modules'>;
+export declare function getModuleDetails(moduleId: number, modules: SDK.ModuleData[], dependencies: SDK.DependencyData[]): SDK.ServerAPI.InferResponseType<SDK.ServerAPI.API.GetModuleDetails>;

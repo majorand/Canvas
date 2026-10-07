@@ -1,0 +1,340 @@
+import fs_0 from "fs";
+import path_0, { dirname, join } from "path";
+import node_fs from "node:fs";
+import { JsonStreamStringify } from "json-stream-stringify";
+import "zlib";
+import "buffer";
+import picocolors from "picocolors";
+import { createLogger } from "rslog";
+import "@rsdoctor/types";
+import { memoryUsage, pid as external_process_pid } from "process";
+import os_0 from "os";
+import { Transform } from "stream";
+import connect from "../compiled/connect/index.js";
+import http from "http";
+import get_port from "get-port";
+import { exec, execSync } from "child_process";
+import envinfo_0 from "envinfo";
+import { filesize } from "../compiled/filesize/index.js";
+import * as __rspack_external_fs_extra_ce68a66b from "fs-extra";
+var __webpack_require__ = {};
+__webpack_require__.d = (exports, definition)=>{
+    for(var key in definition)__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key) && Object.defineProperty(exports, key, {
+        enumerable: !0,
+        get: definition[key]
+    });
+}, __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop), __webpack_require__.r = (exports)=>{
+    "u" > typeof Symbol && Symbol.toStringTag && Object.defineProperty(exports, Symbol.toStringTag, {
+        value: 'Module'
+    }), Object.defineProperty(exports, '__esModule', {
+        value: !0
+    });
+};
+var cache_namespaceObject = {};
+__webpack_require__.r(cache_namespaceObject), __webpack_require__.d(cache_namespaceObject, {
+    readFile: ()=>cache_readFile,
+    readFileSync: ()=>readFileSync,
+    readJSON: ()=>readJSON,
+    readJSONSync: ()=>readJSONSync
+});
+var file_namespaceObject = {};
+__webpack_require__.r(file_namespaceObject), __webpack_require__.d(file_namespaceObject, {
+    FileSharding: ()=>FileSharding,
+    cache: ()=>cache_namespaceObject,
+    fse: ()=>__rspack_external_fs_extra_ce68a66b
+});
+var json_namespaceObject = {};
+__webpack_require__.r(json_namespaceObject), __webpack_require__.d(json_namespaceObject, {
+    readPackageJson: ()=>readPackageJson,
+    stringify: ()=>stringify
+});
+var server_namespaceObject = {};
+__webpack_require__.r(server_namespaceObject), __webpack_require__.d(server_namespaceObject, {
+    createApp: ()=>createApp,
+    createGetPortSyncFunctionString: ()=>createGetPortSyncFunctionString,
+    createServer: ()=>createServer,
+    defaultPort: ()=>defaultPort,
+    getPort: ()=>getPort,
+    getPortSync: ()=>getPortSync
+});
+var envinfo_namespaceObject = {};
+__webpack_require__.r(envinfo_namespaceObject), __webpack_require__.d(envinfo_namespaceObject, {
+    getCPUInfo: ()=>getCPUInfo,
+    getGitBranch: ()=>getGitBranch,
+    getGitRepo: ()=>getGitRepo,
+    getGlobalNpmPackageVersion: ()=>getGlobalNpmPackageVersion,
+    getMemoryInfo: ()=>getMemoryInfo,
+    getNodeVersion: ()=>getNodeVersion,
+    getNpmPackageVersion: ()=>getNpmPackageVersion,
+    getNpmVersion: ()=>getNpmVersion,
+    getOSInfo: ()=>getOSInfo,
+    getPnpmVersion: ()=>getPnpmVersion,
+    getYarnVersion: ()=>getYarnVersion
+});
+var process_namespaceObject = {};
+__webpack_require__.r(process_namespaceObject), __webpack_require__.d(process_namespaceObject, {
+    getMemoryUsage: ()=>getMemoryUsage,
+    getMemoryUsageMessage: ()=>getMemoryUsageMessage
+});
+class FileSharding {
+    content;
+    limitBytes;
+    encoding;
+    constructor(content, limitBytes = 10485760, encoding = 'utf-8'){
+        this.content = content, this.limitBytes = limitBytes, this.encoding = encoding;
+    }
+    createVirtualShardingFiles(ext = '', index = 0) {
+        let bf = Buffer.from(this.content, this.encoding), res = [], threshold = this.limitBytes, tmpBytes = 0;
+        for(; bf.byteLength > tmpBytes;)res.push(bf.subarray(tmpBytes, tmpBytes + threshold)), tmpBytes += threshold;
+        return res.map((e, i)=>({
+                filename: `${i + index}${ext}`,
+                content: e
+            }));
+    }
+    async writeStringToFolder(folder, ext = '', index) {
+        let dist = path_0.resolve(folder);
+        await __rspack_external_fs_extra_ce68a66b.default.ensureDir(dist);
+        let res = this.createVirtualShardingFiles(ext, index);
+        return await Promise.all(res.map((e)=>new Promise((resolve, reject)=>{
+                let stream = fs_0.createWriteStream(path_0.join(dist, e.filename), this.encoding);
+                stream.end(e.content), stream.once('close', ()=>resolve(void 0)), stream.once('error', (err)=>reject(err));
+            }))), res;
+    }
+}
+let cache = new Map();
+async function cache_readFile(path) {
+    if (cache.has(path)) return cache.get(path);
+    let res = await node_fs.promises.readFile(path, 'utf-8');
+    return cache.set(path, res), res;
+}
+function readFileSync(path) {
+    if (cache.has(path)) return cache.get(path);
+    let res = node_fs.readFileSync(path, 'utf-8');
+    return cache.set(path, res), res;
+}
+async function readJSON(path) {
+    return JSON.parse(await cache_readFile(path));
+}
+function readJSONSync(path) {
+    return JSON.parse(readFileSync(path));
+}
+function last(array) {
+    return array[array.length - 1];
+}
+createLogger().override({
+    log: (message)=>{
+        console.log(`${picocolors.green('[RSDOCTOR LOG]')} ${message}`);
+    },
+    info: (message)=>{
+        console.log(`${picocolors.yellow('[RSDOCTOR INFO]')} ${message}`);
+    },
+    warn: (message)=>{
+        console.warn(`${picocolors.yellow('[RSDOCTOR WARN]')} ${message}`);
+    },
+    start: (message)=>{
+        console.log(`${picocolors.green('[RSDOCTOR START]')} ${message}`);
+    },
+    ready: (message)=>{
+        console.log(`${picocolors.green('[RSDOCTOR READY]')} ${message}`);
+    },
+    error: (message)=>{
+        console.error(`${picocolors.red('[RSDOCTOR ERROR]')} ${message}`);
+    },
+    success: (message)=>{
+        console.error(`${picocolors.green('[RSDOCTOR SUCCESS]')} ${message}`);
+    },
+    debug: (message)=>{
+        process.env.DEBUG && console.log(`${picocolors.blue('[RSDOCTOR DEBUG]')} ${message}`);
+    }
+}), RegExp(`(.*)${/[-|.]/.source}${/[a-z|A-Z|0-9]{4,32}/.source}(${/(?:\.[a-z｜A-Z|0-9]{2,}){1,}/.source})$`);
+let PACKAGE_SLUG = /[a-zA-Z0-9]+(?:[-|_|.]+[a-zA-Z0-9]+)*/, MODULE_PATH_PACKAGES = RegExp(`(?:${/(?:node_modules|~)(?:\/\.pnpm)?/.source}/)(?:(?:@${PACKAGE_SLUG.source}[/|+])?(?:${PACKAGE_SLUG.source}\\+)*(?:${PACKAGE_SLUG.source})(?:${/@[\w|\-|_|.]+/.source})?)(?:_(?:@${PACKAGE_SLUG.source}[/|+])?(?:${PACKAGE_SLUG.source})(?:@${PACKAGE_SLUG.source})?)*/`, 'g'), PACKAGE_PATH_NAME = /(?:(?:node_modules|~)(?:\/\.pnpm)?\/)(?:((?:@[a-zA-Z0-9]+(?:[-|_|.]+[a-zA-Z0-9]+)*[/|+])?(?:(?:[a-zA-Z0-9]+(?:[-|_|.]+[a-zA-Z0-9]+)*\+)*)(?:[a-zA-Z0-9]+(?:[-|_|.]+[a-zA-Z0-9]+)*))(?:@[\w|\-|_|.]+)?)(?:_((?:@[a-zA-Z0-9]+(?:[-|_|.]+[a-zA-Z0-9]+)*[/|+])?(?:[a-zA-Z0-9]+(?:[-|_|.]+[a-zA-Z0-9]+)*))(?:@[a-zA-Z0-9]+(?:[-|_|.]+[a-zA-Z0-9]+)*))*\//gm, getPackageMetaFromModulePath = (modulePath)=>{
+    var data;
+    let res, paths = modulePath.match(MODULE_PATH_PACKAGES);
+    if (!paths) return {
+        name: '',
+        version: ''
+    };
+    let names = (data = paths.flatMap((packagePath)=>{
+        let found = packagePath.matchAll(PACKAGE_PATH_NAME);
+        return found ? [
+            ...found
+        ].flat().filter((item)=>null != item || !item).slice(1).filter(Boolean).map((name)=>name.replace(/\+/g, '/')) : [];
+    }), res = [], data.forEach((item, index)=>{
+        data.slice(index + 1).includes(item) || res.push(item);
+    }), res);
+    if (null == names || Array.isArray(names) && 0 === names.length || 'object' == typeof names && 0 === Object.keys(names).length) return {
+        name: '',
+        version: ''
+    };
+    let name = last(names), pattern = RegExp(`(.*)(${last(paths)}).*`), path = modulePath.replace(pattern, '$1$2').replace(/\/$/, '');
+    return {
+        name,
+        version: path && name && path.match(RegExp(`${name}@([\\d.]+)`))?.flat().slice(1)?.[0] || ''
+    };
+};
+function stringify(json, replacer, space, cycle) {
+    let jsonList = [];
+    return json && 'object' == typeof json ? new Promise((resolve, reject)=>{
+        let stream = new JsonStreamStringify(json, replacer, space, cycle), currentLength = 0, currentContent = '', batchProcessor = new Transform({
+            readableObjectMode: !0,
+            transform (chunk, _encoding, callback) {
+                chunk.toString().split('\\n').forEach((line)=>{
+                    currentLength + line.length > 419430400 && (jsonList.push(currentContent), currentContent = '', currentLength = 0), line.length && (currentContent += line, currentLength += line.length);
+                }), callback();
+            }
+        });
+        stream.pipe(batchProcessor).on('data', (line)=>{
+            currentLength + line.length > 419430400 && (jsonList.push(currentContent), currentContent = '', currentLength = 0), line.length && (currentContent += line, currentLength += line.length);
+        }).on('end', ()=>{
+            jsonList.length < 1 && jsonList.push(currentContent), resolve(jsonList);
+        }).on('error', (err)=>reject(err));
+    }) : Promise.resolve(JSON.stringify(json, replacer, space));
+}
+let readPackageJson = (file, readFile)=>{
+    let result, current = file;
+    for(; '/' !== current && !result;){
+        let parent = dirname(current);
+        if (parent === current) break;
+        current = parent, readFile && (result = readFile(join(current, 'package.json'))), readFile ? result?.name || (result = void 0) : result = getPackageMetaFromModulePath(file);
+    }
+    if (result) return !readFile || result.name && result.version ? {
+        ...result,
+        root: current
+    } : readPackageJson(dirname(current), readFile);
+}, RESTRICTED_PORTS = [
+    3659,
+    4045,
+    6000,
+    6665,
+    6666,
+    6667,
+    6668,
+    6669
+], defaultPort = function(min, max) {
+    let port;
+    do {
+        port = Math.floor(6000 * Math.random() + 3000);
+    }while (RESTRICTED_PORTS.includes(port));
+    return port;
+}(0, 0);
+async function getPort(expectPort) {
+    return get_port({
+        port: expectPort
+    });
+}
+let createGetPortSyncFunctionString = (expectPort)=>`
+(() => {
+const net = require('net');
+
+function getPort(expectPort) {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.unref();
+    server.on('error', reject);
+    server.listen(expectPort, () => {
+      const { port } = server.address();
+      server.close(() => {
+        resolve(port);
+      });
+    });
+  });
+}
+
+async function getAvailablePort(expectPort) {
+  let port = expectPort;
+  while (true) {
+    try {
+      const res = await getPort(port);
+      return res;
+    } catch (error) {
+      port += Math.floor(Math.random() * 100 + 1);
+    }
+  }
+}
+
+getAvailablePort(${expectPort}).then(port => process.stdout.write(port.toString()));
+})();
+`.trim();
+function getPortSync(expectPort) {
+    let statement = '\n' === os_0.EOL ? createGetPortSyncFunctionString(expectPort) : createGetPortSyncFunctionString(expectPort).replace(/\n/g, '');
+    return Number(execSync(`node -e "${statement}"`, {
+        encoding: 'utf-8'
+    }));
+}
+function createApp() {
+    return connect();
+}
+async function createServer(port) {
+    let app = createApp(), server = http.createServer(app), res = {
+        app,
+        server,
+        port,
+        close: ()=>new Promise((resolve, reject)=>{
+                'closeAllConnections' in server && server.closeAllConnections(), 'closeIdleConnections' in server && server.closeIdleConnections(), server.close((err)=>{
+                    err && reject(err), resolve();
+                });
+            })
+    };
+    return new Promise((resolve)=>{
+        server.listen(port, ()=>{
+            resolve(res);
+        });
+    });
+}
+let helpers = envinfo_0.helpers, run = envinfo_0.run, getCPUInfo = ()=>helpers.getCPUInfo().then((res)=>res[1]), getOSInfo = ()=>helpers.getOSInfo().then((res)=>res[1]), getMemoryInfo = ()=>helpers.getMemoryInfo().then((res)=>res[1]), getNodeVersion = ()=>helpers.getNodeInfo().then((res)=>res[1]), getYarnVersion = ()=>helpers.getYarnInfo().then((res)=>res[1]), getNpmVersion = ()=>helpers.getnpmInfo().then((res)=>res[1]), getPnpmVersion = ()=>helpers.getpnpmInfo().then((res)=>res[1]);
+function getNpmPackageVersion(pkg) {
+    let isArray = Array.isArray(pkg);
+    return run({
+        npmPackages: isArray ? pkg : [
+            pkg
+        ]
+    }, {
+        json: !0,
+        showNotFound: !0
+    }).then((res)=>{
+        let { npmPackages = {} } = JSON.parse(res) || {};
+        return isArray ? pkg.map((e)=>npmPackages[e] || 'Not Found') : npmPackages[pkg];
+    });
+}
+function getGlobalNpmPackageVersion(pkg) {
+    let isArray = Array.isArray(pkg);
+    return run({
+        npmGlobalPackages: isArray ? pkg : [
+            pkg
+        ]
+    }, {
+        json: !0,
+        showNotFound: !0
+    }).then((res)=>{
+        let { npmGlobalPackages = {} } = JSON.parse(res) || {};
+        return isArray ? pkg.map((e)=>npmGlobalPackages[e] || 'Not Found') : npmGlobalPackages[pkg];
+    });
+}
+function getGitBranch() {
+    return new Promise((resolve, reject)=>{
+        exec('git branch --show-current', (err, stdout)=>{
+            err ? exec('git branch', (err, stdout)=>{
+                err ? reject(err) : resolve(stdout.split('\n').map((e)=>e.replace('* ', '')).join('').trim());
+            }) : resolve(stdout.trim());
+        });
+    });
+}
+function getGitRepo() {
+    return new Promise((resolve, reject)=>{
+        exec('git config --get remote.origin.url', (err, stdout)=>{
+            err ? reject(err) : resolve(stdout.trim());
+        });
+    });
+}
+function getMemoryUsage() {
+    return memoryUsage();
+}
+function getMemoryUsageMessage() {
+    let usage = getMemoryUsage(), msgs = [
+        `RSS: ${filesize(usage.rss)}`,
+        `Heap Total: ${filesize(usage.heapTotal)}`,
+        `Heap Used: ${filesize(usage.heapUsed)}`
+    ];
+    return usage.arrayBuffers && msgs.push(`ArrayBuffers: ${filesize(usage.arrayBuffers)}`), usage.external && msgs.push(`External: ${filesize(usage.external)}`), `["${external_process_pid}" Memory Usage] ${msgs.join(', ')}`;
+}
+export { envinfo_namespaceObject as EnvInfo, file_namespaceObject as File, json_namespaceObject as Json, process_namespaceObject as Process, server_namespaceObject as Server };

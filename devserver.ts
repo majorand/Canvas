@@ -56,6 +56,11 @@ const server = await createServer({
 	server: {
 		port: Number(DEMO_PORT),
 		strictPort: true,
+		// Bind to all interfaces and allow any host when running in the
+		// Base44 preview sandbox so the proxy can reach the dev server.
+		...(process.env.BASE44_PREVIEW_MODE === "1"
+			? { host: "0.0.0.0", allowedHosts: true }
+			: {}),
 	},
 });
 

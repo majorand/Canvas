@@ -1,0 +1,5 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+export * from "./assetsModules.js";
+export * from "./chunkTransform.js";
+export * from "./rspack/transform.js";

@@ -1,0 +1,122 @@
+"use strict";
+var __webpack_require__ = {};
+(()=>{
+    __webpack_require__.d = (exports1, definition)=>{
+        for(var key in definition)if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key)) Object.defineProperty(exports1, key, {
+            enumerable: true,
+            get: definition[key]
+        });
+    };
+})();
+(()=>{
+    __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop);
+})();
+(()=>{
+    __webpack_require__.r = (exports1)=>{
+        if ("u" > typeof Symbol && Symbol.toStringTag) Object.defineProperty(exports1, Symbol.toStringTag, {
+            value: 'Module'
+        });
+        Object.defineProperty(exports1, '__esModule', {
+            value: true
+        });
+    };
+})();
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+    convertReportCodeTypeObject: ()=>convertReportCodeTypeObject,
+    makeRuleSetSerializable: ()=>makeRuleSetSerializable,
+    makeRulesSerializable: ()=>makeRulesSerializable,
+    processBriefHtmlModeConfig: ()=>processBriefHtmlModeConfig,
+    processModeConfigurations: ()=>processModeConfigurations
+});
+function processModeConfigurations(finalMode, output, brief) {
+    let finalBrief = {};
+    let finalNormalOptions = {};
+    if ('brief' === finalMode) finalBrief = processBriefHtmlModeConfig(output, brief);
+    else if ('normal' === finalMode) finalNormalOptions = {};
+    return {
+        finalBrief,
+        finalNormalOptions
+    };
+}
+function processBriefHtmlModeConfig(output, brief) {
+    let htmlOptions = {
+        reportHtmlName: void 0,
+        writeDataJson: false
+    };
+    let jsonOptions = {};
+    const briefOptions = output?.options || {};
+    if ('type' in briefOptions && briefOptions.type?.includes('json')) jsonOptions = briefOptions.jsonOptions || {
+        fileName: 'rsdoctor-data.json',
+        sections: {
+            moduleGraph: true,
+            chunkGraph: true,
+            rules: true
+        }
+    };
+    if ('type' in briefOptions && briefOptions.type?.includes('html') || !briefOptions.type) {
+        const outputBriefOptions = briefOptions?.htmlOptions;
+        const outputBrief = brief;
+        htmlOptions = {
+            reportHtmlName: outputBriefOptions?.reportHtmlName || outputBrief?.reportHtmlName || void 0,
+            writeDataJson: outputBriefOptions?.writeDataJson || outputBrief?.writeDataJson || false
+        };
+    }
+    return {
+        type: output.options?.type || [
+            'html'
+        ],
+        htmlOptions,
+        jsonOptions
+    };
+}
+function convertReportCodeTypeObject(reportCodeType) {
+    if (!reportCodeType) return;
+    if (reportCodeType.noCode) return 'noCode';
+    if (reportCodeType.noAssetsAndModuleSource) return 'noAssetsAndModuleSource';
+    if (reportCodeType.noModuleSource) return 'noModuleSource';
+}
+function makeRuleSetSerializable(item) {
+    if (!item) return;
+    if (item instanceof RegExp) item.toJSON = item.toString;
+    else if (Array.isArray(item)) item.forEach((i)=>makeRuleSetSerializable(i));
+    else if ('object' == typeof item) {
+        makeRuleSetSerializable(item.and);
+        makeRuleSetSerializable(item.or);
+        makeRuleSetSerializable(item.not);
+    }
+}
+function makeRulesSerializable(rules) {
+    if (!Array.isArray(rules)) return;
+    if (!rules.length) return;
+    rules.forEach((rule)=>{
+        if (!rule) return;
+        makeRuleSetSerializable(rule.test);
+        makeRuleSetSerializable(rule.resourceQuery);
+        makeRuleSetSerializable(rule.resource);
+        makeRuleSetSerializable(rule.resourceFragment);
+        makeRuleSetSerializable(rule.scheme);
+        makeRuleSetSerializable(rule.issuer);
+        if ('issuerLayer' in rule) makeRuleSetSerializable(rule.issuerLayer);
+        makeRuleSetSerializable(rule.include);
+        makeRuleSetSerializable(rule.exclude);
+        if (rule.oneOf) makeRulesSerializable(rule.oneOf);
+        if ('rules' in rule && rule.rules) makeRulesSerializable(rule.rules);
+    });
+}
+exports.convertReportCodeTypeObject = __webpack_exports__.convertReportCodeTypeObject;
+exports.makeRuleSetSerializable = __webpack_exports__.makeRuleSetSerializable;
+exports.makeRulesSerializable = __webpack_exports__.makeRulesSerializable;
+exports.processBriefHtmlModeConfig = __webpack_exports__.processBriefHtmlModeConfig;
+exports.processModeConfigurations = __webpack_exports__.processModeConfigurations;
+for(var __rspack_i in __webpack_exports__)if (-1 === [
+    "convertReportCodeTypeObject",
+    "makeRuleSetSerializable",
+    "makeRulesSerializable",
+    "processBriefHtmlModeConfig",
+    "processModeConfigurations"
+].indexOf(__rspack_i)) exports[__rspack_i] = __webpack_exports__[__rspack_i];
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});

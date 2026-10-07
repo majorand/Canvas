@@ -1,0 +1,80 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { Manifest } from "@rsdoctor/types";
+import { InternalBasePlugin } from "./base.js";
+import { Chunks } from "@rsdoctor/graph";
+import { logger, time, timeEnd } from "@rsdoctor/utils/logger";
+class InternalBundlePlugin extends InternalBasePlugin {
+    apply(compiler) {
+        time('InternalBundlePlugin.apply');
+        try {
+            this.scheduler.ensureModulesChunksGraphApplied(compiler);
+            this.changeDevtoolModuleFilename(compiler);
+            compiler.hooks.compilation.tap(this.tapPostOptions, this.thisCompilation);
+            compiler.hooks.done.tapPromise(this.tapPreOptions, this.done.bind(this));
+        } finally{
+            timeEnd('InternalBundlePlugin.apply');
+        }
+    }
+    changeDevtoolModuleFilename(compiler) {
+        const devtool = compiler.options.devtool;
+        if (devtool) {
+            if (!compiler.options.output) compiler.options.output = {};
+            compiler.options.output.devtoolModuleFilenameTemplate = '[absolute-resource-path]';
+            logger.warn("output.devtoolModuleFilenameTemplate has been changed to [absolute-resource-path], this is for bundle analysis.");
+            if (devtool.includes('source-map')) compiler.options.output.devtoolFallbackModuleFilenameTemplate = ()=>'[absolute-resource-path]';
+        }
+    }
+    ensureAssetContent(name) {
+        const asset = this.map.get(name);
+        if (asset) return asset;
+        const v = {
+            content: ''
+        };
+        this.map.set(name, v);
+        return v;
+    }
+    constructor(...args){
+        super(...args), this.name = 'bundle', this.map = new Map(), this.thisCompilation = (compilation)=>{
+            time('InternalBundlePlugin.thisCompilation');
+            try {
+                if (compilation.hooks.processAssets && 'afterOptimizeAssets' in compilation.hooks) compilation.hooks.afterOptimizeAssets.tap(this.tapPostOptions, (assets)=>{
+                    Object.keys(assets).forEach((file)=>{
+                        const v = this.ensureAssetContent(file);
+                        v.content = assets[file].source().toString();
+                    });
+                });
+                else if (compilation.hooks.processAssets && 'afterProcessAssets' in compilation.hooks) compilation.hooks.afterProcessAssets.tap(this.tapPostOptions, ()=>{
+                    Object.keys(compilation.assets).forEach((file)=>{
+                        const v = this.ensureAssetContent(file);
+                        v.content = compilation.assets[file].source().toString();
+                    });
+                });
+                else if ('afterOptimizeChunkAssets' in compilation.hooks) compilation.hooks.afterOptimizeChunkAssets.tap(this.tapPostOptions, (chunks)=>{
+                    [
+                        ...chunks
+                    ].reduce((t, chunk)=>t.concat([
+                            ...chunk.files
+                        ]), []).forEach((file)=>{
+                        const v = this.ensureAssetContent(file);
+                        v.content = compilation.assets[file].source().toString();
+                    });
+                });
+            } finally{
+                timeEnd('InternalBundlePlugin.thisCompilation');
+            }
+        }, this.done = async ()=>{
+            time('InternalBundlePlugin.done');
+            try {
+                if (this.scheduler.chunkGraph) Chunks.assetsContents(this.map, this.scheduler.chunkGraph, this.scheduler.options?.supports);
+                this.sdk.addClientRoutes([
+                    Manifest.RsdoctorManifestClientRoutes.ModuleGraph,
+                    Manifest.RsdoctorManifestClientRoutes.BundleSize
+                ]);
+            } finally{
+                timeEnd('InternalBundlePlugin.done');
+            }
+        };
+    }
+}
+export { InternalBundlePlugin };

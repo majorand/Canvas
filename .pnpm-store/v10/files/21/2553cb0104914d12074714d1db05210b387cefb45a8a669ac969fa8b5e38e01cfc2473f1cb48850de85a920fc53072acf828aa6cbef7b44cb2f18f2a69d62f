@@ -1,0 +1,1273 @@
+import { deflateSync, inflateSync } from "zlib";
+import { Buffer } from "buffer";
+import picocolors from "picocolors";
+import { createLogger } from "rslog";
+import { Client, Constants as types_Constants, Rule, SDK } from "@rsdoctor/types";
+import path_0, { isAbsolute, relative } from "path";
+import { hrtime } from "process";
+import fs from "fs";
+import os from "os";
+var SummaryCostsDataName, RspackSummaryCostsDataName, __webpack_require__ = {};
+__webpack_require__.d = (exports, definition)=>{
+    for(var key in definition)__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key) && Object.defineProperty(exports, key, {
+        enumerable: !0,
+        get: definition[key]
+    });
+}, __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop), __webpack_require__.r = (exports)=>{
+    "u" > typeof Symbol && Symbol.toStringTag && Object.defineProperty(exports, Symbol.toStringTag, {
+        value: 'Module'
+    }), Object.defineProperty(exports, '__esModule', {
+        value: !0
+    });
+};
+var summary_namespaceObject = {};
+__webpack_require__.r(summary_namespaceObject), __webpack_require__.d(summary_namespaceObject, {
+    SummaryCostsDataName: ()=>summary_SummaryCostsDataName
+});
+var crypto_namespaceObject = {};
+__webpack_require__.r(crypto_namespaceObject), __webpack_require__.d(crypto_namespaceObject, {
+    decode: ()=>decode,
+    encode: ()=>encode
+});
+var algorithm_namespaceObject = {};
+__webpack_require__.r(algorithm_namespaceObject), __webpack_require__.d(algorithm_namespaceObject, {
+    compressText: ()=>compressText,
+    decompressText: ()=>decompressText,
+    mergeIntervals: ()=>mergeIntervals,
+    random: ()=>random
+});
+var url_namespaceObject = {};
+__webpack_require__.r(url_namespaceObject), __webpack_require__.d(url_namespaceObject, {
+    isFilePath: ()=>isFilePath,
+    isRemoteUrl: ()=>isRemoteUrl,
+    isUrl: ()=>isUrl
+});
+var manifest_namespaceObject = {};
+__webpack_require__.r(manifest_namespaceObject), __webpack_require__.d(manifest_namespaceObject, {
+    fetchShardingData: ()=>fetchShardingData,
+    fetchShardingFiles: ()=>fetchShardingFiles,
+    isShardingData: ()=>isShardingData
+});
+var loader_namespaceObject = {};
+__webpack_require__.r(loader_namespaceObject), __webpack_require__.d(loader_namespaceObject, {
+    LoaderInternalPropertyName: ()=>LoaderInternalPropertyName,
+    findLoaderTotalTiming: ()=>findLoaderTotalTiming,
+    getDirectoriesLoaders: ()=>getDirectoriesLoaders,
+    getLoaderChartData: ()=>getLoaderChartData,
+    getLoaderCosts: ()=>getLoaderCosts,
+    getLoaderFileDetails: ()=>getLoaderFileDetails,
+    getLoaderFileFirstInput: ()=>getLoaderFileFirstInput,
+    getLoaderFileInputAndOutput: ()=>getLoaderFileInputAndOutput,
+    getLoaderFileTree: ()=>getLoaderFileTree,
+    getLoaderFolderStatistics: ()=>getLoaderFolderStatistics,
+    getLoaderNames: ()=>getLoaderNames,
+    getLoadersCosts: ()=>getLoadersCosts,
+    getLoadersTransformData: ()=>getLoadersTransformData,
+    isVue: ()=>isVue
+});
+var time_namespaceObject = {};
+__webpack_require__.r(time_namespaceObject), __webpack_require__.d(time_namespaceObject, {
+    formatCosts: ()=>formatCosts,
+    getCurrentTimestamp: ()=>getCurrentTimestamp,
+    getUnit: ()=>getUnit,
+    toFixedDigits: ()=>toFixedDigits
+});
+var resolver_namespaceObject = {};
+__webpack_require__.r(resolver_namespaceObject), __webpack_require__.d(resolver_namespaceObject, {
+    getResolverCosts: ()=>getResolverCosts,
+    getResolverFileDetails: ()=>getResolverFileDetails,
+    getResolverFileTree: ()=>getResolverFileTree,
+    isResolveFailData: ()=>isResolveFailData,
+    isResolveSuccessData: ()=>isResolveSuccessData
+});
+var graph_namespaceObject = {};
+__webpack_require__.r(graph_namespaceObject), __webpack_require__.d(graph_namespaceObject, {
+    diffAssetsByExtensions: ()=>diffAssetsByExtensions,
+    diffSize: ()=>diffSize,
+    extname: ()=>extname,
+    filterAssets: ()=>filterAssets,
+    filterAssetsByExtensions: ()=>filterAssetsByExtensions,
+    filterModulesAndDependenciesByPackageDeps: ()=>filterModulesAndDependenciesByPackageDeps,
+    formatAssetName: ()=>formatAssetName,
+    getAllBundleData: ()=>getAllBundleData,
+    getAssetDetails: ()=>getAssetDetails,
+    getAssetsDiffResult: ()=>getAssetsDiffResult,
+    getAssetsSizeInfo: ()=>getAssetsSizeInfo,
+    getAssetsSummary: ()=>getAssetsSummary,
+    getChunkByChunkId: ()=>getChunkByChunkId,
+    getChunkIdsByAsset: ()=>getChunkIdsByAsset,
+    getChunksByAsset: ()=>getChunksByAsset,
+    getChunksByChunkIds: ()=>getChunksByChunkIds,
+    getChunksByModule: ()=>getChunksByModule,
+    getChunksByModuleId: ()=>getChunksByModuleId,
+    getDependenciesByModule: ()=>getDependenciesByModule,
+    getDependencyByPackageData: ()=>getDependencyByPackageData,
+    getDependencyByResolvedRequest: ()=>getDependencyByResolvedRequest,
+    getEntryPoints: ()=>getEntryPoints,
+    getInitialAssetsSizeInfo: ()=>getInitialAssetsSizeInfo,
+    getModuleByDependency: ()=>getModuleByDependency,
+    getModuleDetails: ()=>getModuleDetails,
+    getModuleIdsByChunk: ()=>getModuleIdsByChunk,
+    getModuleIdsByModulesIds: ()=>getModuleIdsByModulesIds,
+    getModulesByAsset: ()=>getModulesByAsset,
+    getModulesByChunk: ()=>getModulesByChunk,
+    getModulesByChunks: ()=>getModulesByChunks,
+    isAssetMatchExtension: ()=>isAssetMatchExtension,
+    isAssetMatchExtensions: ()=>isAssetMatchExtensions,
+    isInitialAsset: ()=>isInitialAsset
+});
+var bundle_namespaceObject = {};
+__webpack_require__.r(bundle_namespaceObject), __webpack_require__.d(bundle_namespaceObject, {
+    getBundleDiffPageQueryString: ()=>getBundleDiffPageQueryString,
+    getBundleDiffPageUrl: ()=>getBundleDiffPageUrl,
+    parseFilesFromBundlePageUrlQuery: ()=>parseFilesFromBundlePageUrlQuery
+});
+var plugin_namespaceObject = {};
+__webpack_require__.r(plugin_namespaceObject), __webpack_require__.d(plugin_namespaceObject, {
+    getPluginData: ()=>getPluginData,
+    getPluginHooks: ()=>getPluginHooks,
+    getPluginSummary: ()=>getPluginSummary,
+    getPluginTapNames: ()=>getPluginTapNames
+});
+var alerts_namespaceObject = {};
+__webpack_require__.r(alerts_namespaceObject), __webpack_require__.d(alerts_namespaceObject, {
+    getPackageRelationAlertDetails: ()=>getPackageRelationAlertDetails
+});
+var rspack_namespaceObject = {};
+__webpack_require__.r(rspack_namespaceObject), __webpack_require__.d(rspack_namespaceObject, {
+    RspackLoaderInternalPropertyName: ()=>RspackLoaderInternalPropertyName,
+    RspackSummaryCostsDataName: ()=>rspack_RspackSummaryCostsDataName,
+    checkSourceMapSupport: ()=>checkSourceMapSupport
+});
+var data_namespaceObject = {};
+__webpack_require__.r(data_namespaceObject), __webpack_require__.d(data_namespaceObject, {
+    APIDataLoader: ()=>APIDataLoader
+});
+var lodash_namespaceObject = {};
+__webpack_require__.r(lodash_namespaceObject), __webpack_require__.d(lodash_namespaceObject, {
+    compact: ()=>compact,
+    isEmpty: ()=>isEmpty,
+    isNil: ()=>isNil,
+    isNumber: ()=>isNumber,
+    isObject: ()=>isObject,
+    isPlainObject: ()=>isPlainObject,
+    isString: ()=>isString,
+    isUndefined: ()=>isUndefined,
+    last: ()=>last,
+    pick: ()=>pick
+});
+var package_namespaceObject = {};
+__webpack_require__.r(package_namespaceObject), __webpack_require__.d(package_namespaceObject, {
+    MODULE_PATH_PACKAGES: ()=>MODULE_PATH_PACKAGES,
+    PACKAGE_PATH_NAME: ()=>PACKAGE_PATH_NAME,
+    getPackageMetaFromModulePath: ()=>getPackageMetaFromModulePath
+});
+var global_config_namespaceObject = {};
+__webpack_require__.r(global_config_namespaceObject), __webpack_require__.d(global_config_namespaceObject, {
+    getMcpConfigPath: ()=>getMcpConfigPath,
+    writeMcpPort: ()=>writeMcpPort
+});
+var file_namespaceObject = {};
+__webpack_require__.r(file_namespaceObject), __webpack_require__.d(file_namespaceObject, {
+    isJsExt: ()=>isJsExt,
+    isStyleExt: ()=>isStyleExt
+});
+var summary_SummaryCostsDataName = ((SummaryCostsDataName = {}).Bootstrap = "bootstrap->beforeCompile", SummaryCostsDataName.Compile = "beforeCompile->afterCompile", SummaryCostsDataName.Done = "afterCompile->done", SummaryCostsDataName.Minify = "minify(processAssets)", SummaryCostsDataName);
+function encode(str) {
+    let res = `${str.charCodeAt(0)}`;
+    for(let i = 1; i < str.length; i++)res += `!${str.charCodeAt(i)}`;
+    return res;
+}
+function decode(str) {
+    let res = '', tmp = '';
+    for(let i = 0; i < str.length; i++)'!' === str[i] ? (res += String.fromCharCode(+tmp), tmp = '') : tmp += str[i];
+    return tmp && (res += String.fromCharCode(+tmp)), res;
+}
+let rsdoctorLogger = createLogger();
+function mergeIntervals(intervals) {
+    let previous, current;
+    intervals.sort((a, b)=>a[0] - b[0]);
+    let result = [];
+    for(let i = 0; i < intervals.length; i++)current = intervals[i], !previous || current[0] > previous[1] ? (previous = current, result.push(current)) : previous[1] = Math.max(previous[1], current[1]);
+    return result;
+}
+function compressText(input) {
+    try {
+        return deflateSync(input).toString('base64');
+    } catch (e) {
+        return rsdoctorLogger.debug(`compressText error: ${e}`), '';
+    }
+}
+function decompressText(input) {
+    return inflateSync(Buffer.from(input, 'base64')).toString();
+}
+function random(min, max) {
+    return Math.floor(Math.random() * (max - min + 1) + min);
+}
+function isUrl(uri) {
+    return /^https?:\/\//.test(uri);
+}
+function isFilePath(uri) {
+    return isAbsolute(uri);
+}
+function isRemoteUrl(uri) {
+    return !!('string' == typeof uri && (isUrl(uri) || isAbsolute(uri)));
+}
+function isShardingData(data) {
+    return !!(Array.isArray(data) && data.length > 0 && data.every((e)=>isRemoteUrl(e)));
+}
+async function fetchShardingData(shardingFiles, fetchImplement) {
+    let res = await Promise.all(shardingFiles.map((url)=>fetchImplement(url))), strings = 0 === res.length ? [] : res.reduce((t, e)=>t + e);
+    return 'object' == typeof strings ? strings : JSON.parse(decompressText(strings));
+}
+async function fetchShardingFiles(data, fetchImplement, filterKeys) {
+    return (await Promise.all(Object.keys(data).map(async (_key)=>{
+        let val = data[_key];
+        return filterKeys?.length && 0 > filterKeys.indexOf(_key) ? {
+            [_key]: []
+        } : isShardingData(val) ? {
+            [_key]: await fetchShardingData(val, fetchImplement)
+        } : {
+            [_key]: val
+        };
+    }))).reduce((t, c)=>Object.assign(t, c));
+}
+function findLoaderTotalTiming(loaders) {
+    let start = 1 / 0, end = -1 / 0;
+    for(let i = 0; i < loaders.length; i++){
+        let loader = loaders[i];
+        loader.startAt <= start && (start = loader.startAt), loader.endAt >= end && (end = loader.endAt);
+    }
+    return {
+        start,
+        end
+    };
+}
+function getLoadersCosts(filter, loaders) {
+    let match = {}, others = {};
+    loaders.forEach((e)=>{
+        filter(e) ? (match[e.pid] || (match[e.pid] = []), match[e.pid].push([
+            e.startAt,
+            e.endAt
+        ])) : (others[e.pid] || (others[e.pid] = []), others[e.pid].push([
+            e.startAt,
+            e.endAt
+        ]));
+    });
+    let costs = 0, pids = Object.keys(match);
+    for(let i = 0; i < pids.length; i++){
+        let pid = pids[i], _match = mergeIntervals(match[pid]), _others = mergeIntervals(others[pid] || []).filter(([s, e])=>_match.some((el)=>s >= el[0] && e <= el[1]));
+        costs += (_match.length ? _match.reduce((t, c)=>t += c[1] - c[0], 0) : 0) - (_others.length ? _others.reduce((t, c)=>t += c[1] - c[0], 0) : 0);
+    }
+    return costs;
+}
+function getLoaderCosts(loader, loaders) {
+    let blocked = loaders.filter((e)=>!e.loader.includes('builtin') && e !== loader && e.pid === loader.pid && !!(e.startAt >= loader.startAt) && !!(e.endAt <= loader.endAt)), costs = loader.endAt - loader.startAt;
+    return blocked.length && mergeIntervals(blocked.map((e)=>[
+            Math.max(e.startAt, loader.startAt),
+            Math.min(e.endAt, loader.endAt)
+        ])).forEach((e)=>{
+        let sub = e[1] - e[0];
+        costs -= sub;
+    }), costs;
+}
+function getLoaderNames(loaders) {
+    let names = new Set();
+    return loaders.forEach((e)=>e.loaders.forEach((l)=>names.add(getLoadrName(l.loader)))), [
+        ...names
+    ];
+}
+function getLoadersTransformData(loaders) {
+    let res = [];
+    for(let i = 0; i < loaders.length; i++){
+        let item = loaders[i];
+        for(let j = 0; j < item.loaders.length; j++){
+            let loader = item.loaders[j];
+            res.push(loader);
+        }
+    }
+    return res;
+}
+function getLoaderChartData(loaders) {
+    let res = [], list = getLoadersTransformData(loaders);
+    return loaders.forEach((item)=>{
+        item.loaders.forEach((el)=>{
+            res.push({
+                layer: item.resource.layer,
+                loader: getLoadrName(el.loader),
+                isPitch: el.isPitch,
+                startAt: el.startAt,
+                endAt: el.endAt,
+                pid: el.pid,
+                sync: el.sync,
+                resource: item.resource.path,
+                costs: getLoaderCosts(el, list)
+            });
+        });
+    }), res;
+}
+function getLoaderFileTree(loaders) {
+    let list = getLoadersTransformData(loaders);
+    return loaders.map((data)=>{
+        let { loaders: arr, resource } = data;
+        return {
+            path: resource.path,
+            layer: resource.layer,
+            loaders: arr.map((l)=>({
+                    key: l.path,
+                    loader: getLoadrName(l.loader),
+                    path: l.path,
+                    errors: l.errors,
+                    costs: getLoaderCosts(l, list)
+                }))
+        };
+    });
+}
+function getLoaderFileDetails(path, loaders) {
+    let data = loaders.find((e)=>e.resource.path === path);
+    if (!data) throw Error(`"${path}" not match any loader data`);
+    let list = getLoadersTransformData(loaders);
+    return {
+        ...data,
+        loaders: data.loaders.map((el)=>({
+                ...el,
+                loader: getLoadrName(el.loader),
+                costs: getLoaderCosts(el, list)
+            }))
+    };
+}
+function getLoaderFolderStatistics(folder, loaders) {
+    let datas = loaders.filter((data)=>{
+        let { path } = data.resource;
+        return path.startsWith(folder);
+    }), filteredLoaders = [], uniqueLoaders = new Map();
+    return datas.forEach((data)=>{
+        data.loaders.forEach((fl)=>{
+            let uniqueLoader = uniqueLoaders.get(fl.loader);
+            return uniqueLoader ? uniqueLoaders.set(fl.loader, {
+                files: uniqueLoader.files + 1,
+                path: fl.path
+            }) : uniqueLoaders.set(fl.loader, {
+                files: 1,
+                path: fl.path
+            }), filteredLoaders.push({
+                loader: fl.loader,
+                startAt: fl.startAt,
+                endAt: fl.endAt,
+                pid: fl.pid
+            });
+        });
+    }), Array.from(uniqueLoaders).map((uniqueLoader)=>{
+        let costs = getLoadersCosts((l)=>l.loader === uniqueLoader[0], filteredLoaders);
+        return {
+            loader: uniqueLoader[0],
+            files: uniqueLoader[1].files,
+            path: uniqueLoader[1].path,
+            costs
+        };
+    });
+}
+function getDirectoriesLoaders(loaders, root) {
+    let directories, rootPath = root || process.cwd();
+    return (directories = new Set(), loaders.forEach((item)=>{
+        if (item.resource.path.startsWith(rootPath)) {
+            let pathParts = item.resource.path.split(rootPath).slice(1).join('/').split('/');
+            if (pathParts.length >= 2) {
+                let twoLevelDir = pathParts.slice(0, 2).join('/');
+                directories.add(`${rootPath}/${twoLevelDir}`);
+            }
+        } else {
+            let pathParts = item.resource.path.split('/'), twoLevelDir = pathParts.slice(0, pathParts.length - 1).join('/');
+            directories.add(twoLevelDir);
+        }
+    }), Array.from(directories)).map((directory)=>{
+        let stats = getLoaderFolderStatistics(directory, loaders);
+        return {
+            directory,
+            stats
+        };
+    });
+}
+function getLoaderFileFirstInput(file, loaders) {
+    for(let i = 0; i < loaders.length; i++){
+        let item = loaders[i];
+        if (item.resource.path === file) {
+            let nonPitchLoaders = item.loaders.filter((e)=>!e.isPitch);
+            if (!nonPitchLoaders.length) return '';
+            return nonPitchLoaders[0].input || '';
+        }
+    }
+    return '';
+}
+function getLoaderFileInputAndOutput(file, loader, loaderIndex, loaders) {
+    for(let i = 0; i < loaders.length; i++){
+        let item = loaders[i];
+        if (item.resource.path === file) for(let j = 0; j < item.loaders.length; j++){
+            let l = item.loaders[j];
+            if (l.loader === loader && l.loaderIndex === loaderIndex) return {
+                input: l.input || '',
+                output: l.result || ''
+            };
+            return {
+                input: '',
+                output: ''
+            };
+        }
+    }
+    return {
+        input: '',
+        output: ''
+    };
+}
+rsdoctorLogger.override({
+    log: (message)=>{
+        console.log(`${picocolors.green('[RSDOCTOR LOG]')} ${message}`);
+    },
+    info: (message)=>{
+        console.log(`${picocolors.yellow('[RSDOCTOR INFO]')} ${message}`);
+    },
+    warn: (message)=>{
+        console.warn(`${picocolors.yellow('[RSDOCTOR WARN]')} ${message}`);
+    },
+    start: (message)=>{
+        console.log(`${picocolors.green('[RSDOCTOR START]')} ${message}`);
+    },
+    ready: (message)=>{
+        console.log(`${picocolors.green('[RSDOCTOR READY]')} ${message}`);
+    },
+    error: (message)=>{
+        console.error(`${picocolors.red('[RSDOCTOR ERROR]')} ${message}`);
+    },
+    success: (message)=>{
+        console.error(`${picocolors.green('[RSDOCTOR SUCCESS]')} ${message}`);
+    },
+    debug: (message)=>{
+        process.env.DEBUG && console.log(`${picocolors.blue('[RSDOCTOR DEBUG]')} ${message}`);
+    }
+});
+let LoaderInternalPropertyName = '__l__', isVue = (compiler)=>('module' in compiler.options && compiler.options.module.rules || []).some((rule)=>!!(rule && 'object' == typeof rule && rule.test instanceof RegExp && rule.test?.test('.vue'))), getLoadrName = (loader)=>{
+    let regResults = loader.includes('node_modules') ? loader.split('node_modules') : null;
+    return regResults ? regResults[regResults.length - 1] : loader;
+};
+function toFixedDigits(num, digits = 2) {
+    return 0 === digits ? Math.floor(num) : +num.toFixed(digits);
+}
+function getUnit(num, type) {
+    return 'm' === type ? num > 1 ? 'mins' : 'min' : num > 1 ? 'hours' : 'hour';
+}
+function formatCosts(costs) {
+    if ((costs = Number(costs)) >= 1000) {
+        let sec = costs / 1000;
+        if (sec >= 60) {
+            let mins = sec / 60;
+            if (mins >= 60) {
+                let hours = toFixedDigits(mins / 60, 0), restMins = toFixedDigits(mins % 60, 1), hUnit = getUnit(hours, 'h');
+                return restMins > 0 ? `${hours}${hUnit} ${restMins}${getUnit(restMins, 'm')}` : `${hours}${hUnit}`;
+            }
+            let mUnit = getUnit(mins = toFixedDigits(mins, 0), 'm'), restSec = toFixedDigits(sec % 60, 0);
+            return restSec > 0 ? `${mins}${mUnit} ${restSec}s` : `${mins}${mUnit}`;
+        }
+        return `${toFixedDigits(sec, 1)}s`;
+    }
+    if (costs >= 10) return `${+toFixedDigits(costs, 0)}ms`;
+    if (costs >= 1) return `${+toFixedDigits(costs, 1)}ms`;
+    let r = +toFixedDigits(costs, 2);
+    return 0 === r && (r = +toFixedDigits(costs, 3)), `${r}ms`;
+}
+function getCurrentTimestamp(start, startHRTime) {
+    let endHRTime = hrtime(startHRTime);
+    return start + 1000 * endHRTime[0] + (process.env.RSTEST ? Math.round(endHRTime[1] / 1000000) : endHRTime[1] / 1000000);
+}
+function isResolveSuccessData(data) {
+    return !!data.result;
+}
+function isResolveFailData(data) {
+    return !!data.error;
+}
+function getResolverCosts(resolver, resolvers) {
+    let blocked = resolvers.filter((e)=>e !== resolver && e.pid === resolver.pid && e.startAt >= resolver.startAt && e.endAt <= resolver.endAt), costs = resolver.endAt - resolver.startAt;
+    return blocked.length && mergeIntervals(blocked.map((e)=>[
+            Math.max(e.startAt, resolver.startAt),
+            Math.min(e.endAt, resolver.endAt)
+        ])).forEach((e)=>{
+        let sub = e[1] - e[0];
+        costs -= sub;
+    }), costs;
+}
+function getResolverFileTree(resolver) {
+    return resolver.map((e)=>({
+            issuerPath: e.issuerPath
+        }));
+}
+function getResolverFileDetails(filepath, resolvers, modules, moduleCodeMap) {
+    let module = modules.find((item)=>item.path === filepath), matchResolvers = resolvers.filter((e)=>e.issuerPath === filepath), before = module && moduleCodeMap && moduleCodeMap[module.id] ? moduleCodeMap[module.id].source : '', after = matchResolvers.reduce((t, c)=>c.request && isResolveSuccessData(c) ? t.replace(RegExp(`["']${c.request}["']`), `"${c.result}"`) : t, before);
+    return {
+        filepath,
+        before,
+        after,
+        resolvers: matchResolvers.map((e)=>({
+                ...e,
+                costs: getResolverCosts(e, resolvers)
+            }))
+    };
+}
+function getChunkIdsByAsset(asset) {
+    return asset.chunks ? asset.chunks : [];
+}
+function getChunksByModule(module, chunks) {
+    return module.chunks.length ? getChunksByChunkIds(module.chunks, chunks) : [];
+}
+function getChunkByChunkId(chunkId, chunks) {
+    return chunks.find((e)=>e.id === chunkId);
+}
+function getChunksByChunkIds(chunkIds, chunks, filters) {
+    return chunkIds.length ? chunkIds.map((id)=>chunks.find((e)=>e.id === id)).filter(Boolean).map((chunk)=>{
+        if (filters && filters.length > 0) {
+            let filtered = {};
+            for (let key of filters)void 0 !== chunk[key] && (filtered[key] = chunk[key]);
+            return filtered;
+        }
+        return chunk;
+    }) : [];
+}
+function getChunksByAsset(asset, chunks, filters) {
+    return getChunksByChunkIds(getChunkIdsByAsset(asset), chunks, filters);
+}
+function getChunksByModuleId(id, modules, chunks) {
+    let mod = modules.find((e)=>e.id === id);
+    return mod ? getChunksByModule(mod, chunks) : [];
+}
+function getDependencyByPackageData(dep, dependencies) {
+    return dependencies.find((item)=>item.id === dep.dependencyId);
+}
+function getDependenciesByModule(module, dependencies) {
+    return module.dependencies.map((id)=>dependencies.find((dep)=>dep.id === id)).filter(Boolean);
+}
+function getDependencyByResolvedRequest(resolvedRequest, dependencies) {
+    return dependencies.find((e)=>e.resolvedRequest === resolvedRequest);
+}
+function getModulesByAsset(asset, chunks, modules, filterModules, checkModules) {
+    return getModulesByChunks(getChunksByChunkIds(getChunkIdsByAsset(asset), chunks), modules, filterModules, checkModules);
+}
+function getModuleIdsByChunk(chunk) {
+    let { modules = [] } = chunk;
+    return modules;
+}
+function getModuleIdsByModulesIds(moduleIds, modules) {
+    return moduleIds.map((id)=>modules.find((m)=>m.id === id)).filter(Boolean);
+}
+function getModulesByChunk(chunk, modules, filterModules) {
+    return getModuleIdsByChunk(chunk).map((id)=>{
+        let module = modules.find((e)=>e.id === id);
+        if (filterModules && filterModules.length > 0) {
+            if (!module) return null;
+            let filtered = {};
+            for (let key of filterModules)void 0 !== module[key] && (filtered[key] = module[key]);
+            return filtered;
+        }
+        return module;
+    }).filter(Boolean);
+}
+function getModulesByChunks(chunks, modules, filterModules, checkModules) {
+    let res = [];
+    try {
+        chunks.forEach((chunk)=>{
+            getModulesByChunk(chunk, modules, filterModules).forEach((md)=>{
+                (!checkModules || checkModules(md)) && !res.filter((_m)=>_m.id === md.id).length && res.push(md);
+            });
+        });
+    } catch (error) {
+        rsdoctorLogger.debug(error);
+    }
+    return res;
+}
+function getModuleByDependency(dep, modules) {
+    return modules.find((item)=>item.id === dep.module);
+}
+function filterModulesAndDependenciesByPackageDeps(deps, dependencies, modules) {
+    let _dependencies = [], _modules = [];
+    for(let i = 0; i < deps.length; i++){
+        let dep = getDependencyByPackageData(deps[i], dependencies);
+        if (dep) {
+            _dependencies.push(dep);
+            let module = getModuleByDependency(dep, modules);
+            module && _modules.push(module);
+        }
+    }
+    return {
+        dependencies: _dependencies,
+        modules: _modules
+    };
+}
+function getModuleDetails(moduleId, modules, dependencies) {
+    let module = modules.find((e)=>e.id === moduleId);
+    return {
+        module,
+        dependencies: getDependenciesByModule(module, dependencies)
+    };
+}
+let filenamePattern = RegExp(`(.*)${/[-|.]/.source}${/[a-z|A-Z|0-9]{4,32}/.source}(${/(?:\.[a-z｜A-Z|0-9]{2,}){1,}/.source})$`);
+function formatAssetName(assetName, fileConfig) {
+    let splitFilesList = fileConfig?.split('.'), outputFileTailName = '', unHashedFileName = assetName;
+    return splitFilesList?.length && splitFilesList.length >= 3 && splitFilesList[splitFilesList.length - 2]?.indexOf('[') < 0 && 'js|css|html'.indexOf(splitFilesList[splitFilesList.length - 1]) > -1 ? (outputFileTailName = splitFilesList[splitFilesList.length - 2], unHashedFileName = assetName.replace(/(.*)(\.[a-f0-9]{4,32})([^.]*.[^.]+){2,}/g, '$1'), `${unHashedFileName}.${outputFileTailName}.${assetName.substring(assetName.lastIndexOf('.') + 1)}`) : assetName.replace(filenamePattern, '$1$2');
+}
+function isAssetMatchExtension(asset, ext) {
+    return asset.path.slice(-ext.length) === ext || extname(asset.path) === ext;
+}
+function isAssetMatchExtensions(asset, exts) {
+    return !!exts.length && exts.some((ext)=>isAssetMatchExtension(asset, ext));
+}
+function filterAssetsByExtensions(assets, exts) {
+    return 'string' == typeof exts ? assets.filter((e)=>isAssetMatchExtension(e, exts)) : Array.isArray(exts) ? assets.filter((e)=>isAssetMatchExtensions(e, exts)) : [];
+}
+function filterAssets(assets, filterOrExtensions) {
+    return filterOrExtensions && (assets = 'function' == typeof filterOrExtensions ? assets.filter(filterOrExtensions) : filterAssetsByExtensions(assets, filterOrExtensions)), assets;
+}
+function getAssetsSizeInfo(assets, chunks, options = {}) {
+    let { withFileContent = !0, filterOrExtensions } = options;
+    return (assets = assets.filter((e)=>!isAssetMatchExtensions(e, types_Constants.MapExtensions)), filterOrExtensions && (assets = filterAssets(assets, filterOrExtensions)), assets.length) ? {
+        count: assets.length,
+        size: assets.reduce((t, c)=>t + c.size, 0),
+        files: assets.map((e)=>({
+                path: e.path,
+                size: e.size,
+                gzipSize: e.gzipSize,
+                initial: isInitialAsset(e, chunks),
+                content: withFileContent ? e.content : void 0
+            }))
+    } : {
+        count: 0,
+        size: 0,
+        files: []
+    };
+}
+function isInitialAsset(asset, chunks) {
+    return getChunksByAsset(asset, chunks).some((e)=>!!e.initial);
+}
+function getInitialAssetsSizeInfo(assets, chunks, options = {}) {
+    return options.filterOrExtensions && (assets = filterAssets(assets, options.filterOrExtensions)), getAssetsSizeInfo(assets, chunks, {
+        ...options,
+        filterOrExtensions: (asset)=>isInitialAsset(asset, chunks)
+    });
+}
+function getAssetsDiffResult(baseline, current) {
+    return {
+        all: {
+            total: diffAssetsByExtensions(baseline, current)
+        },
+        js: {
+            total: diffAssetsByExtensions(baseline, current, types_Constants.JSExtension),
+            initial: diffAssetsByExtensions(baseline, current, types_Constants.JSExtension, !0)
+        },
+        css: {
+            total: diffAssetsByExtensions(baseline, current, types_Constants.CSSExtension),
+            initial: diffAssetsByExtensions(baseline, current, types_Constants.CSSExtension, !0)
+        },
+        imgs: {
+            total: diffAssetsByExtensions(baseline, current, types_Constants.ImgExtensions)
+        },
+        html: {
+            total: diffAssetsByExtensions(baseline, current, types_Constants.HtmlExtension)
+        },
+        media: {
+            total: diffAssetsByExtensions(baseline, current, types_Constants.MediaExtensions)
+        },
+        fonts: {
+            total: diffAssetsByExtensions(baseline, current, types_Constants.FontExtensions)
+        },
+        others: {
+            total: diffAssetsByExtensions(baseline, current, (asset)=>!isAssetMatchExtensions(asset, [
+                    types_Constants.JSExtension,
+                    types_Constants.CSSExtension,
+                    types_Constants.HtmlExtension
+                ].concat(types_Constants.ImgExtensions, types_Constants.MediaExtensions, types_Constants.FontExtensions, types_Constants.MapExtensions)))
+        }
+    };
+}
+function diffSize(bSize, cSize) {
+    let isEqual = bSize === cSize;
+    return {
+        percent: isEqual ? 0 : 0 === bSize ? 100 : Math.abs(cSize - bSize) / bSize * 100,
+        state: isEqual ? Client.RsdoctorClientDiffState.Equal : bSize > cSize ? Client.RsdoctorClientDiffState.Down : Client.RsdoctorClientDiffState.Up
+    };
+}
+function diffAssetsByExtensions(baseline, current, filterOrExtensions, isInitial = !1) {
+    let cSize, cCount, { size: bSize, count: bCount } = isInitial ? getInitialAssetsSizeInfo(baseline.assets, baseline.chunks, {
+        filterOrExtensions
+    }) : getAssetsSizeInfo(baseline.assets, baseline.chunks, {
+        filterOrExtensions
+    });
+    if (baseline === current) cSize = bSize, cCount = bCount;
+    else {
+        let { size, count } = isInitial ? getInitialAssetsSizeInfo(current.assets, current.chunks, {
+            filterOrExtensions
+        }) : getAssetsSizeInfo(current.assets, current.chunks, {
+            filterOrExtensions
+        });
+        cSize = size, cCount = count;
+    }
+    let { percent, state } = diffSize(bSize, cSize);
+    return {
+        size: {
+            baseline: bSize,
+            current: cSize
+        },
+        count: {
+            baseline: bCount,
+            current: cCount
+        },
+        percent,
+        state
+    };
+}
+function getAssetsSummary(assets, chunks, options = {}) {
+    let jsOpt = {
+        ...options,
+        filterOrExtensions: types_Constants.JSExtension
+    }, cssOpt = {
+        ...options,
+        filterOrExtensions: types_Constants.CSSExtension
+    }, imgOpt = {
+        ...options,
+        filterOrExtensions: types_Constants.ImgExtensions
+    }, htmlOpt = {
+        ...options,
+        filterOrExtensions: types_Constants.HtmlExtension
+    }, mediaOpt = {
+        ...options,
+        filterOrExtensions: types_Constants.MediaExtensions
+    }, fontOpt = {
+        ...options,
+        filterOrExtensions: types_Constants.FontExtensions
+    }, otherOpt = {
+        ...options,
+        filterOrExtensions: (asset)=>!isAssetMatchExtensions(asset, [
+                types_Constants.JSExtension,
+                types_Constants.CSSExtension,
+                types_Constants.HtmlExtension
+            ].concat(types_Constants.ImgExtensions, types_Constants.MediaExtensions, types_Constants.FontExtensions, types_Constants.MapExtensions))
+    };
+    return {
+        all: {
+            total: getAssetsSizeInfo(assets, chunks, options)
+        },
+        js: {
+            total: getAssetsSizeInfo(assets, chunks, jsOpt),
+            initial: getInitialAssetsSizeInfo(assets, chunks, jsOpt)
+        },
+        css: {
+            total: getAssetsSizeInfo(assets, chunks, cssOpt),
+            initial: getInitialAssetsSizeInfo(assets, chunks, cssOpt)
+        },
+        imgs: {
+            total: getAssetsSizeInfo(assets, chunks, imgOpt)
+        },
+        html: {
+            total: getAssetsSizeInfo(assets, chunks, htmlOpt)
+        },
+        media: {
+            total: getAssetsSizeInfo(assets, chunks, mediaOpt)
+        },
+        fonts: {
+            total: getAssetsSizeInfo(assets, chunks, fontOpt)
+        },
+        others: {
+            total: getAssetsSizeInfo(assets, chunks, otherOpt)
+        }
+    };
+}
+function getAssetDetails(assetPath, assets, chunks, modules, checkModules) {
+    let asset = assets.find((e)=>e.path === assetPath);
+    return {
+        asset,
+        chunks: getChunksByAsset(asset, chunks),
+        modules: getModulesByAsset(asset, chunks, modules, void 0, checkModules)
+    };
+}
+function getAllBundleData(assets, chunks, modules, filtersModules) {
+    let result = [];
+    try {
+        for(let i = 0; i < assets.length; i++){
+            let asset = assets[i];
+            result.push({
+                asset,
+                modules: getModulesByAsset(asset, chunks, modules, filtersModules)
+            });
+        }
+        return result;
+    } catch (error) {
+        return console.error(error), [];
+    }
+}
+function extname(filename) {
+    let matches = filename.split('?')[0].match(/\.([0-9a-z]+)(?:[\?#]|$)/i);
+    return matches ? `.${matches[1]}` : '';
+}
+function getEntryPoints(entrypoints) {
+    return entrypoints;
+}
+function getBundleDiffPageQueryString(files) {
+    let qs = encodeURIComponent(files.join(','));
+    return qs && (qs = `?${Client.RsdoctorClientUrlQuery.BundleDiffFiles}=${qs}`), qs;
+}
+function getBundleDiffPageUrl(files) {
+    let qs = getBundleDiffPageQueryString(files);
+    if ('development' === process.env.NODE_ENV && "u" > typeof location) {
+        let { search = '', origin } = location;
+        return search && (qs += `&${search.slice(1)}`), `${origin}${qs}#${Client.RsdoctorClientRoutes.BundleDiff}`;
+    }
+    return `${qs}#${Client.RsdoctorClientRoutes.BundleDiff}`;
+}
+function parseFilesFromBundlePageUrlQuery(queryValue) {
+    return decodeURIComponent(queryValue).split(',');
+}
+function getPluginHooks(plugin) {
+    return Object.keys(plugin);
+}
+function getPluginTapNames(plugin) {
+    let hooks = getPluginHooks(plugin), tapNames = new Set();
+    return hooks.forEach((hook)=>{
+        plugin[hook].forEach((data)=>{
+            tapNames.add(data.tapName);
+        });
+    }), [
+        ...tapNames
+    ];
+}
+function getPluginSummary(plugin) {
+    return {
+        hooks: getPluginHooks(plugin),
+        tapNames: getPluginTapNames(plugin)
+    };
+}
+function getPluginData(plugin, selectedHooks = [], selectedTapNames = []) {
+    let hooks = getPluginHooks(plugin).filter((hook)=>!selectedHooks.length || -1 !== selectedHooks.indexOf(hook));
+    return hooks.length ? getPluginTapNames(plugin).reduce((total, tapName)=>(selectedTapNames.length && -1 === selectedTapNames.indexOf(tapName) || hooks.forEach((hook)=>{
+            let hookData = plugin[hook].filter((e)=>e.tapName === tapName);
+            0 !== hookData.length && total.push({
+                tapName,
+                hook,
+                data: hookData.map((e)=>({
+                        startAt: e.startAt,
+                        endAt: e.endAt,
+                        costs: e.costs,
+                        type: e.type
+                    }))
+            });
+        }), total), []) : [];
+}
+function getPackageRelationAlertDetails(modules, dependencies, root, packageDependencies, moduleCodeMap) {
+    return packageDependencies.slice().reverse().map((dep)=>{
+        let dependency = dependencies.find((item)=>item.id === dep.dependencyId);
+        if (!dependency) return null;
+        let module = modules.find((item)=>item.id === dependency.module);
+        return module ? {
+            group: dep.group,
+            module,
+            dependency,
+            relativePath: relative(root, module.path),
+            moduleCode: moduleCodeMap?.[module.id]
+        } : null;
+    }).filter(Boolean);
+}
+let RspackLoaderInternalPropertyName = '__l__';
+var rspack_RspackSummaryCostsDataName = ((RspackSummaryCostsDataName = {}).Bootstrap = "bootstrap->rspack:beforeCompile", RspackSummaryCostsDataName.Compile = "rspack:beforeCompile->afterCompile", RspackSummaryCostsDataName.Done = "rspack:afterCompile->done", RspackSummaryCostsDataName.Minify = "rspack:minify(rspack:optimizeChunkAssets)", RspackSummaryCostsDataName);
+function checkSourceMapSupport(configs) {
+    if (!Array.isArray(configs) || !configs[0]) return {
+        isRspack: !1,
+        hasSourceMap: !1
+    };
+    let isRspack = 'rspack' === configs[0].name && configs[0]?.config?.name !== 'lynx', devtool = configs[0].config?.devtool, plugins = configs[0].config?.plugins, hasLynxSourcemapPlugin = plugins?.filter((plugin)=>plugin && plugin.includes('SourceMapDevToolPlugin'));
+    return {
+        isRspack,
+        hasSourceMap: 'string' == typeof devtool && devtool.includes('source-map') && !devtool.includes('eval') || !!hasLynxSourcemapPlugin?.length
+    };
+}
+class APIDataLoader {
+    loader;
+    constructor(loader){
+        this.loader = loader, this.loadAPI = this.loadAPI.bind(this);
+    }
+    log(...args) {
+        console.log(`[${this.constructor.name}]`, ...args);
+    }
+    loadAPI(...args) {
+        let [api, body] = args;
+        switch(api){
+            case SDK.ServerAPI.API.LoadDataByKey:
+                return this.loader.loadData(body.key);
+            case SDK.ServerAPI.API.GetProjectInfo:
+                return Promise.all([
+                    this.loader.loadData('root'),
+                    this.loader.loadData('pid'),
+                    this.loader.loadData('hash'),
+                    this.loader.loadData('summary'),
+                    this.loader.loadData('configs'),
+                    this.loader.loadData('envinfo'),
+                    this.loader.loadData('errors')
+                ]).then(([root, pid, hash, summary, configs, envinfo, errors])=>({
+                        root,
+                        pid,
+                        hash,
+                        summary,
+                        configs,
+                        envinfo,
+                        errors
+                    }));
+            case SDK.ServerAPI.API.GetClientRoutes:
+                if ("u" > typeof window && window?.[types_Constants.WINDOW_RSDOCTOR_TAG]) return window[types_Constants.WINDOW_RSDOCTOR_TAG].enableRoutes;
+                return this.loader.loadManifest().then((res)=>{
+                    let { enableRoutes = [] } = res.client || {};
+                    return enableRoutes;
+                });
+            case SDK.ServerAPI.API.GetLoaderNames:
+                return this.loader.loadData('loader').then((res)=>getLoaderNames(res || []));
+            case SDK.ServerAPI.API.GetLayers:
+                return this.loader.loadData('moduleGraph').then((res)=>{
+                    let { layers } = res || {};
+                    return layers;
+                });
+            case SDK.ServerAPI.API.GetLoaderChartData:
+                return this.loader.loadData('loader').then((res)=>getLoaderChartData(res || []));
+            case SDK.ServerAPI.API.GetLoaderFileTree:
+                return this.loader.loadData('loader').then((res)=>getLoaderFileTree(res || []));
+            case SDK.ServerAPI.API.GetLoaderFileDetails:
+                return this.loader.loadData('loader').then((res)=>getLoaderFileDetails(body.path, res || []));
+            case SDK.ServerAPI.API.GetLoaderFolderStatistics:
+                return this.loader.loadData('loader').then((res)=>getLoaderFolderStatistics(body.folder, res || []));
+            case SDK.ServerAPI.API.GetLoaderFileFirstInput:
+                return this.loader.loadData('loader').then((res)=>getLoaderFileFirstInput(body.file, res || []));
+            case SDK.ServerAPI.API.GetLoaderFileInputAndOutput:
+                return this.loader.loadData('loader').then((res)=>getLoaderFileFirstInput(body.file, res || []));
+            case SDK.ServerAPI.API.GetResolverFileTree:
+                return this.loader.loadData('resolver').then((res)=>getResolverFileTree(res || []));
+            case SDK.ServerAPI.API.GetResolverFileDetails:
+                return Promise.all([
+                    this.loader.loadData('resolver'),
+                    this.loader.loadData('moduleGraph.modules'),
+                    this.loader.loadData('moduleCodeMap')
+                ]).then((res)=>{
+                    let resolverData = res[0], modules = res[1], moduleCodeMap = res[2];
+                    return getResolverFileDetails(body.filepath, resolverData || [], modules || [], moduleCodeMap || {});
+                });
+            case SDK.ServerAPI.API.GetPluginSummary:
+                return this.loader.loadData('plugin').then((res)=>getPluginSummary(res || {}));
+            case SDK.ServerAPI.API.GetPluginData:
+                return this.loader.loadData('plugin').then((res)=>{
+                    let { hooks, tapNames } = body;
+                    return getPluginData(res || {}, hooks, tapNames);
+                });
+            case SDK.ServerAPI.API.GetAssetsSummary:
+                return this.loader.loadData('chunkGraph').then((res)=>{
+                    let { withFileContent = !0 } = body, { assets = [], chunks = [] } = res || {};
+                    return getAssetsSummary(assets, chunks, {
+                        withFileContent
+                    });
+                });
+            case SDK.ServerAPI.API.GetAssetDetails:
+                return Promise.all([
+                    this.loader.loadData('chunkGraph'),
+                    this.loader.loadData('moduleGraph'),
+                    this.loader.loadData('configs')
+                ]).then((res)=>{
+                    let { assetPath } = body, { isRspack, hasSourceMap } = checkSourceMapSupport(res[2] || []), { assets = [], chunks = [] } = res[0] || {}, { modules = [] } = res[1] || {};
+                    return getAssetDetails(assetPath, assets, chunks, modules, isRspack || hasSourceMap ? (module)=>0 !== module.size.parsedSize : ()=>!0);
+                });
+            case SDK.ServerAPI.API.GetSummaryBundles:
+                return Promise.all([
+                    this.loader.loadData('chunkGraph'),
+                    this.loader.loadData('moduleGraph'),
+                    this.loader.loadData('configs')
+                ]).then((res)=>{
+                    let { assets = [], chunks = [] } = res[0] || {}, { modules = [] } = res[1] || {}, configs = res[2] || [], filteredAssets = assets;
+                    return Array.isArray(configs) && configs[0]?.config?.name === 'lynx' && (filteredAssets = assets.filter((asset)=>!asset.path.endsWith('/template.js'))), getAllBundleData(filteredAssets, chunks, modules, [
+                        'id',
+                        'path',
+                        'size',
+                        'kind'
+                    ]);
+                });
+            case SDK.ServerAPI.API.GetChunksByModuleId:
+                return Promise.all([
+                    this.loader.loadData('chunkGraph'),
+                    this.loader.loadData('moduleGraph')
+                ]).then((res)=>{
+                    let { moduleId } = body, { chunks = [] } = res[0] || {}, { modules = [] } = res[1] || {};
+                    return getChunksByModuleId(moduleId, modules, chunks);
+                });
+            case SDK.ServerAPI.API.GetModuleDetails:
+                return Promise.all([
+                    this.loader.loadData('chunkGraph'),
+                    this.loader.loadData('moduleGraph')
+                ]).then((res)=>{
+                    let { moduleId } = body, { modules = [], dependencies = [] } = res[1] || {};
+                    return getModuleDetails(moduleId, modules, dependencies);
+                });
+            case SDK.ServerAPI.API.GetModulesByModuleIds:
+                return this.loader.loadData('moduleGraph').then((res)=>{
+                    let { moduleIds } = body, { modules = [] } = res || {};
+                    return getModuleIdsByModulesIds(moduleIds, modules);
+                });
+            case SDK.ServerAPI.API.GetEntryPoints:
+                return Promise.all([
+                    this.loader.loadData('chunkGraph')
+                ]).then((res)=>{
+                    let [chunkGraph] = res, { entrypoints = [] } = chunkGraph || {};
+                    return entrypoints;
+                });
+            case SDK.ServerAPI.API.GetModuleCodeByModuleId:
+                return this.loader.loadData('moduleCodeMap').then((moduleCodeMap)=>{
+                    let { moduleId } = body;
+                    return moduleCodeMap ? moduleCodeMap[moduleId] : {
+                        source: '',
+                        transformed: '',
+                        parsedSource: ''
+                    };
+                });
+            case SDK.ServerAPI.API.GetModuleCodeByModuleIds:
+                return this.loader.loadData('moduleCodeMap').then((moduleCodeMap)=>{
+                    let { moduleIds } = body, _moduleCodeData = {};
+                    return moduleCodeMap ? (moduleIds.forEach((id)=>{
+                        _moduleCodeData[id] = moduleCodeMap[id];
+                    }), _moduleCodeData) : [];
+                });
+            case SDK.ServerAPI.API.GetAllModuleGraph:
+                return this.loader.loadData('moduleGraph').then((moduleGraph)=>moduleGraph?.modules);
+            case SDK.ServerAPI.API.GetSearchModules:
+                return Promise.all([
+                    this.loader.loadData('moduleGraph'),
+                    this.loader.loadData('chunkGraph')
+                ]).then((res)=>{
+                    let [moduleGraph, chunkGraph] = res, { moduleName } = body;
+                    if (!moduleName) return [];
+                    let assetMap = chunkGraph.chunks.reduce((acc, chunk)=>(chunk.assets.forEach((asset)=>{
+                            acc[chunk.id] || (acc[chunk.id] = []), acc[chunk.id].push(asset);
+                        }), acc), {}), searchedChunksMap = new Map();
+                    return moduleGraph?.modules.filter((module)=>{
+                        module.webpackId.includes(moduleName) && module.chunks.forEach((chunk)=>{
+                            searchedChunksMap.has(chunk) || (assetMap[chunk] || []).forEach((asset)=>{
+                                asset.endsWith('.js') && searchedChunksMap.set(chunk, asset);
+                            });
+                        });
+                    }), Object.fromEntries(searchedChunksMap);
+                });
+            case SDK.ServerAPI.API.GetSearchModuleInChunk:
+                return Promise.all([
+                    this.loader.loadData('moduleGraph'),
+                    this.loader.loadData('root')
+                ]).then((res)=>{
+                    let [moduleGraph, root] = res, { moduleName, chunk } = body;
+                    return moduleName ? moduleGraph?.modules.filter((module)=>module.webpackId.includes(moduleName) && module.chunks.includes(chunk)).map((filteredModule)=>({
+                            id: filteredModule.id,
+                            path: filteredModule.path,
+                            relativePath: relative(root, filteredModule.path)
+                        })) : [];
+                });
+            case SDK.ServerAPI.API.GetAllChunkGraph:
+                return this.loader.loadData('chunkGraph').then((chunkGraph)=>chunkGraph?.chunks);
+            case SDK.ServerAPI.API.GetPackageRelationAlertDetails:
+                return Promise.all([
+                    this.loader.loadData('moduleGraph'),
+                    this.loader.loadData('errors'),
+                    this.loader.loadData('root'),
+                    this.loader.loadData('moduleCodeMap')
+                ]).then((res)=>{
+                    let { id, target } = body, [moduleGraph, errors = [], root = '', moduleCodeMap] = res, { modules = [], dependencies = [] } = moduleGraph || {}, { packages = [] } = errors.find((e)=>e.id === id) || {}, { dependencies: pkgDependencies = [] } = packages.find((e)=>e.target.name === target.name && e.target.root === target.root && e.target.version === target.version) || {};
+                    return getPackageRelationAlertDetails(modules, dependencies, root, pkgDependencies, moduleCodeMap || {});
+                });
+            case SDK.ServerAPI.API.GetOverlayAlerts:
+                return this.loader.loadData('errors').then((res)=>(res || []).filter((e)=>e.code === Rule.RuleMessageCodeEnumerated.Overlay));
+            case SDK.ServerAPI.API.GetBundleAlerts:
+                return this.loader.loadData('errors').then((res)=>(res || []).filter((e)=>e.category === Rule.RuleMessageCategory.Bundle));
+            case SDK.ServerAPI.API.BundleDiffManifest:
+                return this.loader.loadManifest();
+            case SDK.ServerAPI.API.GetBundleDiffSummary:
+                return Promise.all([
+                    this.loader.loadManifest(),
+                    this.loader.loadData('root'),
+                    this.loader.loadData('hash'),
+                    this.loader.loadData('errors'),
+                    this.loader.loadData('chunkGraph'),
+                    this.loader.loadData('moduleGraph'),
+                    this.loader.loadData('moduleCodeMap'),
+                    this.loader.loadData('packageGraph'),
+                    this.loader.loadData('configs')
+                ]).then(([_manifest, root = '', hash = '', errors = {}, chunkGraph = {}, moduleGraph = {}, moduleCodeMap = {}, packageGraph = {}, configs = []])=>{
+                    let outputFilename = '';
+                    return 'string' == typeof configs[0]?.config?.output?.chunkFilename && (outputFilename = configs[0]?.config.output.chunkFilename), {
+                        root,
+                        hash,
+                        errors,
+                        chunkGraph,
+                        moduleGraph,
+                        packageGraph,
+                        outputFilename,
+                        moduleCodeMap
+                    };
+                });
+            case SDK.ServerAPI.API.GetChunkGraph:
+                return this.loader.loadData('chunkGraph').then((res)=>{
+                    let { chunks = [] } = res || {};
+                    return chunks;
+                });
+            case SDK.ServerAPI.API.GetAllModuleGraphFilter:
+                return this.loader.loadData('moduleGraph').then((moduleGraph)=>moduleGraph?.modules.map((m)=>({
+                            id: m.id,
+                            webpackId: m.webpackId,
+                            path: m.path,
+                            size: m.size,
+                            chunks: m.chunks,
+                            kind: m.kind
+                        })));
+            case SDK.ServerAPI.API.GetModuleByName:
+                return this.loader.loadData('moduleGraph').then((moduleGraph)=>{
+                    let { moduleName } = body, { modules = [] } = moduleGraph || {};
+                    return modules.filter((m)=>m.path.includes(moduleName)).map((m)=>({
+                            id: m.id,
+                            path: m.path
+                        })) || [];
+                });
+            case SDK.ServerAPI.API.GetModuleIssuerPath:
+                return this.loader.loadData('moduleGraph').then((moduleGraph)=>{
+                    let { moduleId } = body, modules = moduleGraph?.modules || [], issuerPath = modules.find((m)=>String(m.id) === moduleId)?.issuerPath || [];
+                    return Array.isArray(issuerPath) && issuerPath.length > 0 && 'number' == typeof issuerPath[0] ? issuerPath.map((id)=>modules.find((m)=>m.id === id)?.path).filter(Boolean) : issuerPath;
+                });
+            case SDK.ServerAPI.API.GetPackageInfo:
+                return this.loader.loadData('packageGraph').then((packageGraph)=>packageGraph?.packages);
+            case SDK.ServerAPI.API.GetPackageDependency:
+                return this.loader.loadData('packageGraph').then((packageGraph)=>packageGraph?.dependencies || []);
+            case SDK.ServerAPI.API.GetChunkGraphAI:
+                return this.loader.loadData('chunkGraph').then((res)=>{
+                    let { assets = [] } = res || {};
+                    return assets.map(({ content, ...rest })=>rest);
+                });
+            case SDK.ServerAPI.API.GetChunkByIdAI:
+                return Promise.all([
+                    this.loader.loadData('chunkGraph'),
+                    this.loader.loadData('moduleGraph')
+                ]).then(([chunkGraph, moduleGraph])=>{
+                    let { chunks = [] } = chunkGraph || {}, { modules = [] } = moduleGraph || {}, { chunkId } = body, chunkInfo = chunks.find((c)=>c.id === chunkId);
+                    if (!chunkInfo) return null;
+                    let chunkModules = modules.filter((m)=>chunkInfo.modules.includes(m.id)).map((module)=>({
+                            id: module.id,
+                            path: module.path,
+                            size: module.size,
+                            chunks: module.chunks,
+                            kind: module.kind,
+                            issuerPath: module.issuerPath
+                        }));
+                    return chunkInfo.modulesInfo = chunkModules, chunkInfo;
+                });
+            case SDK.ServerAPI.API.GetDirectoriesLoaders:
+                return Promise.all([
+                    this.loader.loadData('root'),
+                    this.loader.loadData('loader')
+                ]).then(([root, loaders])=>getDirectoriesLoaders(loaders || [], root || ''));
+            default:
+                throw Error(`API not implement: "${api}"`);
+        }
+    }
+}
+function isUndefined(value) {
+    return void 0 === value;
+}
+function isNumber(value) {
+    return 'number' == typeof value && !Number.isNaN(value);
+}
+function isObject(value) {
+    return 'object' == typeof value && null !== value;
+}
+function isEmpty(value) {
+    return null == value || Array.isArray(value) && 0 === value.length || 'object' == typeof value && 0 === Object.keys(value).length;
+}
+function last(array) {
+    return array[array.length - 1];
+}
+function compact(array) {
+    return array.filter((item)=>null != item || !item);
+}
+function isNil(value) {
+    return null == value;
+}
+let isPlainObject = (obj)=>null !== obj && 'object' == typeof obj && Object.getPrototypeOf(obj) === Object.prototype, isString = (v)=>'string' == typeof v || !!v && 'object' == typeof v && !Array.isArray(v) && '[object String]' === ({}).toString.call(v);
+function pick(obj, keys) {
+    let result = {};
+    for(let i = 0; i < keys.length; i++){
+        let key = keys[i];
+        Object.hasOwn(obj, key) && (result[key] = obj[key]);
+    }
+    return result;
+}
+let PACKAGE_SLUG = /[a-zA-Z0-9]+(?:[-|_|.]+[a-zA-Z0-9]+)*/, MODULE_PATH_PACKAGES = RegExp(`(?:${/(?:node_modules|~)(?:\/\.pnpm)?/.source}/)(?:(?:@${PACKAGE_SLUG.source}[/|+])?(?:${PACKAGE_SLUG.source}\\+)*(?:${PACKAGE_SLUG.source})(?:${/@[\w|\-|_|.]+/.source})?)(?:_(?:@${PACKAGE_SLUG.source}[/|+])?(?:${PACKAGE_SLUG.source})(?:@${PACKAGE_SLUG.source})?)*/`, 'g'), PACKAGE_PATH_NAME = /(?:(?:node_modules|~)(?:\/\.pnpm)?\/)(?:((?:@[a-zA-Z0-9]+(?:[-|_|.]+[a-zA-Z0-9]+)*[/|+])?(?:(?:[a-zA-Z0-9]+(?:[-|_|.]+[a-zA-Z0-9]+)*\+)*)(?:[a-zA-Z0-9]+(?:[-|_|.]+[a-zA-Z0-9]+)*))(?:@[\w|\-|_|.]+)?)(?:_((?:@[a-zA-Z0-9]+(?:[-|_|.]+[a-zA-Z0-9]+)*[/|+])?(?:[a-zA-Z0-9]+(?:[-|_|.]+[a-zA-Z0-9]+)*))(?:@[a-zA-Z0-9]+(?:[-|_|.]+[a-zA-Z0-9]+)*))*\//gm, getPackageMetaFromModulePath = (modulePath)=>{
+    var data;
+    let res, paths = modulePath.match(MODULE_PATH_PACKAGES);
+    if (!paths) return {
+        name: '',
+        version: ''
+    };
+    let names = (data = paths.flatMap((packagePath)=>{
+        let found = packagePath.matchAll(PACKAGE_PATH_NAME);
+        return found ? compact([
+            ...found
+        ].flat()).slice(1).filter(Boolean).map((name)=>name.replace(/\+/g, '/')) : [];
+    }), res = [], data.forEach((item, index)=>{
+        data.slice(index + 1).includes(item) || res.push(item);
+    }), res);
+    if (isEmpty(names)) return {
+        name: '',
+        version: ''
+    };
+    let name = last(names), pattern = RegExp(`(.*)(${last(paths)}).*`), path = modulePath.replace(pattern, '$1$2').replace(/\/$/, '');
+    return {
+        name,
+        version: path && name && path.match(RegExp(`${name}@([\\d.]+)`))?.flat().slice(1)?.[0] || ''
+    };
+};
+function writeMcpPort(port, builderName) {
+    let homeDir = os.homedir(), rsdoctorDir = path_0.join(homeDir, '.cache/rsdoctor'), mcpPortFilePath = path_0.join(rsdoctorDir, 'mcp.json');
+    fs.existsSync(rsdoctorDir) || fs.mkdirSync(rsdoctorDir, {
+        recursive: !0
+    });
+    let mcpJson = {
+        portList: {},
+        port: 0
+    };
+    if (fs.existsSync(mcpPortFilePath)) try {
+        mcpJson = JSON.parse(fs.readFileSync(mcpPortFilePath, 'utf8'));
+    } catch (error) {
+        rsdoctorLogger.debug('Failed to parse mcp.json', error);
+    }
+    mcpJson.portList || (mcpJson.portList = {}), mcpJson.portList[builderName || 'builder'] = port, mcpJson.port = port, fs.writeFileSync(mcpPortFilePath, JSON.stringify(mcpJson, null, 2), 'utf8');
+}
+function getMcpConfigPath() {
+    let homeDir = os.homedir(), rsdoctorDir = path_0.join(homeDir, '.cache/rsdoctor');
+    return path_0.join(rsdoctorDir, 'mcp.json');
+}
+function isStyleExt(path) {
+    return /\.(c|le|sa|sc)ss(\?.*)?$/.test(path);
+}
+function isJsExt(path) {
+    return /\.(js|ts|jsx|tsx)(\?.*)?$/.test(path);
+}
+function decycle(object) {
+    let objects = [], paths = [];
+    return function derez(value, path) {
+        let _value = value;
+        try {
+            _value = value.toJSON();
+        } catch  {}
+        if ('object' == typeof _value && _value) {
+            let nu;
+            for(let i = 0; i < objects.length; i += 1)if (objects[i] === _value) return {
+                $ref: paths[i]
+            };
+            if (objects.push(_value), paths.push(path), '[object Array]' === Object.prototype.toString.apply(_value)) {
+                nu = [];
+                for(let i = 0; i < _value.length; i += 1)nu[i] = derez(_value[i], path + '[' + i + ']');
+            } else for(let name in nu = {}, _value)Object.hasOwn(_value, name) && (nu[name] = derez(_value[name], path + '[' + JSON.stringify(name) + ']'));
+            return nu;
+        }
+        return _value;
+    }(object, '$');
+}
+export { alerts_namespaceObject as Alerts, algorithm_namespaceObject as Algorithm, bundle_namespaceObject as Bundle, crypto_namespaceObject as Crypto, data_namespaceObject as Data, file_namespaceObject as File, global_config_namespaceObject as GlobalConfig, graph_namespaceObject as Graph, loader_namespaceObject as Loader, lodash_namespaceObject as Lodash, manifest_namespaceObject as Manifest, package_namespaceObject as Package, plugin_namespaceObject as Plugin, resolver_namespaceObject as Resolver, rspack_namespaceObject as Rspack, summary_namespaceObject as Summary, time_namespaceObject as Time, url_namespaceObject as Url, decycle };

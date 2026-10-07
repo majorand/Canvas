@@ -1,0 +1,87 @@
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.APIExtends = exports.API = void 0;
+__exportStar(require("./pagination"), exports);
+var API;
+(function (API) {
+    API["ApplyErrorFix"] = "/api/apply/error/fix";
+    API["Env"] = "/api/env";
+    API["EntryHtml"] = "/index.html";
+    API["Manifest"] = "/api/manifest.json";
+    API["LoadDataByKey"] = "/api/data/key";
+    API["SendAPIDataToClient"] = "/api/socket/send";
+    /** Project API */
+    API["GetProjectInfo"] = "/api/project/info";
+    API["GetClientRoutes"] = "/api/routes";
+    /** Loader API */
+    API["ReportLoader"] = "/api/loader/report";
+    API["GetLoaderNames"] = "/api/loader/names";
+    API["GetLoaderChartData"] = "/api/loader/chart/data";
+    API["GetLoaderFileTree"] = "/api/loader/filetree";
+    API["GetLoaderFileDetails"] = "/api/loader/file";
+    API["GetLoaderFolderStatistics"] = "/api/loader/folder/statics";
+    API["GetLoaderFileFirstInput"] = "/api/loader/input";
+    API["GetLoaderFileInputAndOutput"] = "/api/loader/inputandoutput";
+    API["GetDirectoriesLoaders"] = "/api/loader/directories";
+    /** SourceMap API */
+    API["ReportSourceMap"] = "/api/sourcemap/report";
+    /** Resolver API */
+    API["GetResolverFileTree"] = "/api/resolver/filetree";
+    API["GetResolverFileDetails"] = "/api/resolver/file";
+    /** Plugin API */
+    API["GetPluginSummary"] = "/api/plugins/summary";
+    API["GetPluginData"] = "/api/plugins/data";
+    /** Graph API */
+    API["GetSummaryBundles"] = "/api/graph/bundles/summary";
+    API["GetChunkGraph"] = "/api/graph/chunks/graph";
+    API["GetAssetsSummary"] = "/api/graph/assets/summary";
+    API["GetAssetDetails"] = "/api/graph/asset/details";
+    API["GetChunksByModuleId"] = "/api/graph/chunk/module";
+    API["GetModuleDetails"] = "/api/graph/module/details";
+    API["GetModulesByModuleIds"] = "/api/graph/modules/ids";
+    API["GetEntryPoints"] = "/api/graph/entrypoints";
+    API["GetModuleCodeByModuleId"] = "/api/graph/module/code";
+    API["GetModuleCodeByModuleIds"] = "/api/graph/module/codes";
+    API["GetAllModuleGraph"] = "/api/graph/module/all";
+    API["GetAllChunkGraph"] = "/api/graph/chunk/all";
+    API["GetLayers"] = "/api/graph/layers";
+    API["GetSearchModules"] = "/api/search/modules";
+    API["GetSearchModuleInChunk"] = "/api/search/chunk/modules";
+    API["GetAllModuleGraphFilter"] = "/api/graph/module/filter";
+    API["GetModuleByName"] = "/api/graph/module/name";
+    API["GetModuleIssuerPath"] = "/api/graph/module/issuer_path";
+    /** Package API */
+    API["GetPackageInfo"] = "/api/package/info";
+    API["GetPackageDependency"] = "/api/package/dependency";
+    /** Alerts API */
+    API["GetPackageRelationAlertDetails"] = "/api/alerts/details/package/relation";
+    API["GetOverlayAlerts"] = "/api/alerts/overlay";
+    API["GetBundleAlerts"] = "/api/alerts/bundle";
+    /** BundleDiff API */
+    API["BundleDiffManifest"] = "/api/bundle_diff/manifest.json";
+    API["GetBundleDiffSummary"] = "/api/bundle_diff/summary";
+    /** AI API */
+    API["GetChunkGraphAI"] = "/api/graph/chunks/graph/ai";
+    API["GetChunkByIdAI"] = "/api/graph/chunk/id/ai";
+})(API || (exports.API = API = {}));
+/**
+ * api which used outside the sdk.
+ */
+var APIExtends;
+(function (APIExtends) {
+    APIExtends["GetCompileProgress"] = "/api/progress";
+})(APIExtends || (exports.APIExtends = APIExtends = {}));

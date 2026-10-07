@@ -1,0 +1,11 @@
+import { Element } from 'domhandler';
+
+interface RenderedComponent {
+    head: Element[];
+    data: Element;
+    component: Element;
+}
+declare function render(component: () => any): RenderedComponent;
+
+export { render };
+export type { RenderedComponent };

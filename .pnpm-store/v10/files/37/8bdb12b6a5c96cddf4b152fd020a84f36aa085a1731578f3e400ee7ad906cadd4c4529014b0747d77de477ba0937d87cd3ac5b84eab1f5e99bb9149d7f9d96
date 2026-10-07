@@ -1,0 +1,70 @@
+"use strict";
+var __webpack_require__ = {};
+(()=>{
+    __webpack_require__.d = (exports1, definition)=>{
+        for(var key in definition)if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key)) Object.defineProperty(exports1, key, {
+            enumerable: true,
+            get: definition[key]
+        });
+    };
+})();
+(()=>{
+    __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop);
+})();
+(()=>{
+    __webpack_require__.r = (exports1)=>{
+        if ("u" > typeof Symbol && Symbol.toStringTag) Object.defineProperty(exports1, Symbol.toStringTag, {
+            value: 'Module'
+        });
+        Object.defineProperty(exports1, '__esModule', {
+            value: true
+        });
+    };
+})();
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+    InternalProgressPlugin: ()=>InternalProgressPlugin
+});
+const types_namespaceObject = require("@rsdoctor/types");
+const external_base_cjs_namespaceObject = require("./base.cjs");
+const logger_namespaceObject = require("@rsdoctor/utils/logger");
+class InternalProgressPlugin extends external_base_cjs_namespaceObject.InternalBasePlugin {
+    apply(compiler) {
+        const { sdk, currentProgress } = this;
+        if (compiler.webpack && compiler.webpack.ProgressPlugin) {
+            const progress = new compiler.webpack.ProgressPlugin({
+                handler (percentage, msg) {
+                    currentProgress.percentage = percentage;
+                    currentProgress.message = msg || '';
+                    const api = types_namespaceObject.SDK.ServerAPI.APIExtends.GetCompileProgress;
+                    try {
+                        sdk.server.sendAPIDataToClient(api, {
+                            req: {
+                                api,
+                                body: void 0
+                            },
+                            res: currentProgress
+                        });
+                    } catch (e) {
+                        logger_namespaceObject.logger.debug(e);
+                    }
+                }
+            });
+            progress.apply(compiler);
+        }
+    }
+    constructor(...args){
+        super(...args), this.name = 'progress', this.currentProgress = {
+            percentage: 100,
+            message: ''
+        };
+    }
+}
+exports.InternalProgressPlugin = __webpack_exports__.InternalProgressPlugin;
+for(var __rspack_i in __webpack_exports__)if (-1 === [
+    "InternalProgressPlugin"
+].indexOf(__rspack_i)) exports[__rspack_i] = __webpack_exports__[__rspack_i];
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});

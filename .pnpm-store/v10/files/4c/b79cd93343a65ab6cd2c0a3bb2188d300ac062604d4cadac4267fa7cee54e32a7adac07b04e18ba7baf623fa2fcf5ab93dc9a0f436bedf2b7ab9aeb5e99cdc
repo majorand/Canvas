@@ -1,0 +1,90 @@
+"use strict";
+var __webpack_require__ = {};
+(()=>{
+    __webpack_require__.d = (exports1, definition)=>{
+        for(var key in definition)if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key)) Object.defineProperty(exports1, key, {
+            enumerable: true,
+            get: definition[key]
+        });
+    };
+})();
+(()=>{
+    __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop);
+})();
+(()=>{
+    __webpack_require__.r = (exports1)=>{
+        if ("u" > typeof Symbol && Symbol.toStringTag) Object.defineProperty(exports1, Symbol.toStringTag, {
+            value: 'Module'
+        });
+        Object.defineProperty(exports1, '__esModule', {
+            value: true
+        });
+    };
+})();
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+    InternalResolverPlugin: ()=>InternalResolverPlugin
+});
+const types_namespaceObject = require("@rsdoctor/types");
+const common_namespaceObject = require("@rsdoctor/utils/common");
+const external_base_cjs_namespaceObject = require("./base.cjs");
+class InternalResolverPlugin extends external_base_cjs_namespaceObject.InternalBasePlugin {
+    apply(compiler) {
+        this.scheduler.ensureModulesChunksGraphApplied(compiler);
+        compiler.hooks.normalModuleFactory.tap(this.tapPostOptions, this.handleNormalModuleFactory);
+        this.sdk.addClientRoutes([
+            types_namespaceObject.Manifest.RsdoctorManifestClientRoutes.ModuleResolve
+        ]);
+    }
+    constructor(...args){
+        super(...args), this.name = 'resolver', this.resolveDataMap = new Map(), this.handleNormalModuleFactory = (normalModuleFactory)=>{
+            normalModuleFactory.hooks.beforeResolve.tap(this.tapPostOptions, (resolveData)=>{
+                if (!resolveData) return;
+                const issuer = resolveData.contextInfo?.issuer || resolveData.context || '';
+                const request = resolveData.request;
+                if (issuer && request) {
+                    const key = `${issuer}::${request}`;
+                    this.resolveDataMap.set(key, {
+                        startAt: Date.now(),
+                        startHRTime: process.hrtime(),
+                        request
+                    });
+                }
+            });
+            normalModuleFactory.hooks.afterResolve.tap(this.tapPostOptions, (resolveData)=>{
+                if (!resolveData) return;
+                const issuer = resolveData.contextInfo?.issuer || resolveData.context || '';
+                const request = resolveData.request;
+                const result = resolveData.createData?.resource || resolveData.resourceResolveData?.path;
+                if (issuer && request) {
+                    const key = `${issuer}::${request}`;
+                    const startData = this.resolveDataMap.get(key);
+                    if (startData) {
+                        const data = {
+                            isEntry: Boolean(issuer),
+                            issuerPath: issuer,
+                            request: startData.request,
+                            startAt: startData.startAt,
+                            endAt: common_namespaceObject.Time.getCurrentTimestamp(startData.startAt, startData.startHRTime),
+                            result: result || '',
+                            pid: process.pid,
+                            ppid: process.ppid
+                        };
+                        this.sdk.reportResolver([
+                            data
+                        ]);
+                        this.resolveDataMap.delete(key);
+                    }
+                }
+            });
+        };
+    }
+}
+exports.InternalResolverPlugin = __webpack_exports__.InternalResolverPlugin;
+for(var __rspack_i in __webpack_exports__)if (-1 === [
+    "InternalResolverPlugin"
+].indexOf(__rspack_i)) exports[__rspack_i] = __webpack_exports__[__rspack_i];
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});

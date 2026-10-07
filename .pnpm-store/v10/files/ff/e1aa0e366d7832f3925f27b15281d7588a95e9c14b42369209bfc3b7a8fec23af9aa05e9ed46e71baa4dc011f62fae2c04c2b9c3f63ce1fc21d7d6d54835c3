@@ -1,0 +1,173 @@
+"use strict";
+var __webpack_require__ = {};
+(()=>{
+    __webpack_require__.d = (exports1, definition)=>{
+        for(var key in definition)if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key)) Object.defineProperty(exports1, key, {
+            enumerable: true,
+            get: definition[key]
+        });
+    };
+})();
+(()=>{
+    __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop);
+})();
+(()=>{
+    __webpack_require__.r = (exports1)=>{
+        if ("u" > typeof Symbol && Symbol.toStringTag) Object.defineProperty(exports1, Symbol.toStringTag, {
+            value: 'Module'
+        });
+        Object.defineProperty(exports1, '__esModule', {
+            value: true
+        });
+    };
+})();
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+    ensureModulesChunksGraphFn: ()=>ensureModulesChunksGraphFn,
+    calculateNamespaceAndRegex: ()=>calculateNamespaceAndRegex,
+    ensureDevtools: ()=>ensureDevtools
+});
+const types_namespaceObject = require("@rsdoctor/types");
+const build_namespaceObject = require("@rsdoctor/utils/build");
+const logger_namespaceObject = require("@rsdoctor/utils/logger");
+const index_cjs_namespaceObject = require("../../build-utils/build/index.cjs");
+const external_constants_cjs_namespaceObject = require("../constants.cjs");
+const external_rspack_cjs_namespaceObject = require("./rspack.cjs");
+const external_sourcemapTool_cjs_namespaceObject = require("./sourcemapTool.cjs");
+let hasConsole = false;
+const ensureModulesChunksGraphFn = (compiler, _this)=>{
+    if (_this._modulesGraphApplied) return;
+    _this._modulesGraphApplied = true;
+    const context = {
+        astCache: new Map(),
+        packagePathMap: new Map(),
+        getSourceMap: (file)=>_this.sdk.getSourceMap(file)
+    };
+    const RsdoctorRspackPlugin = compiler.webpack.experiments?.RsdoctorPlugin;
+    if (RsdoctorRspackPlugin) (0, external_rspack_cjs_namespaceObject.applyRspackNativePlugin)(compiler, _this, RsdoctorRspackPlugin);
+    if (!_this._realSourcePathCache) _this._realSourcePathCache = new Map();
+    compiler.hooks.done.tapPromise((0, external_constants_cjs_namespaceObject.internalPluginTapPreOptions)('moduleGraph'), async (_stats)=>{
+        await doneHandler(_stats, _this, context, compiler);
+    });
+    compiler.hooks.compilation.tap({
+        ...external_constants_cjs_namespaceObject.pluginTapPostOptions,
+        name: 'RsdoctorSourceMapCollector'
+    }, (compilation)=>{
+        if (compilation.hooks.processAssets) compilation.hooks.processAssets.tapPromise({
+            name: 'RsdoctorSourceMapCollector',
+            stage: 2400
+        }, async ()=>{
+            if (!ensureDevtools(compiler)) return;
+            const { namespace, sourceMapFilenameRegex } = calculateNamespaceAndRegex(compiler);
+            await (0, external_sourcemapTool_cjs_namespaceObject.handleAfterEmitAssets)(compilation, _this, sourceMapFilenameRegex, namespace);
+        });
+    });
+    compiler.hooks.emit.tapAsync({
+        ...external_constants_cjs_namespaceObject.pluginTapPostOptions,
+        stage: external_constants_cjs_namespaceObject.pluginTapPostOptions.stage + 100
+    }, emitHandler.bind(null, _this, compiler));
+};
+async function doneHandler(_stats, _this, context, compiler) {
+    const stats = _stats;
+    const getStatsJson = (()=>{
+        let cached = null;
+        return ()=>{
+            if (cached) return cached;
+            cached = stats.toJson({
+                all: false,
+                chunks: true,
+                modules: true,
+                chunkModules: true,
+                assets: true,
+                ids: true,
+                hash: true,
+                errors: true,
+                warnings: true,
+                nestedModules: true,
+                cachedModules: true,
+                orphanModules: true,
+                runtimeModules: true,
+                optimizationBailout: true
+            });
+            return cached;
+        };
+    })();
+    logger_namespaceObject.logger.debug(`${(build_namespaceObject.Process.getMemoryUsageMessage(), '[Before Generate ModuleGraph]')}`);
+    if (!_this.chunkGraph?.getChunks().length) _this.chunkGraph = index_cjs_namespaceObject.Chunks.chunkTransform(new Map(), getStatsJson());
+    if (!_this.modulesGraph.getModules().length) _this.modulesGraph = await index_cjs_namespaceObject.ModuleGraph.getModuleGraphByStats(stats.compilation, getStatsJson(), process.cwd(), _this.chunkGraph, _this.options.features, context);
+    logger_namespaceObject.logger.debug(`${(build_namespaceObject.Process.getMemoryUsageMessage(), '[After Generate ModuleGraph]')}`);
+    if (_this.options.features.treeShaking) {
+        if ('rspackVersion' in compiler.webpack) logger_namespaceObject.logger.info(logger_namespaceObject.chalk.yellow('Rspack currently does not support treeShaking capabilities.'));
+        else {
+            _this.modulesGraph = index_cjs_namespaceObject.ModuleGraph.appendTreeShaking(_this.modulesGraph, stats.compilation) || _this.modulesGraph;
+            _this.sdk.addClientRoutes([
+                types_namespaceObject.Manifest.RsdoctorManifestClientRoutes.TreeShaking
+            ]);
+        }
+        logger_namespaceObject.logger.debug(`${(build_namespaceObject.Process.getMemoryUsageMessage(), '[After AppendTreeShaking to ModuleGraph]')}`);
+    }
+    const shouldParseBundle = false !== _this.options.supports.parseBundle;
+    await getModulesInfos(compiler, _this.modulesGraph, _this.chunkGraph, shouldParseBundle, _this.sourceMapSets, _this.assetsWithoutSourceMap);
+    logger_namespaceObject.logger.debug(`${build_namespaceObject.Process.getMemoryUsageMessage()}, '[After Transform ModuleGraph]'`);
+    _this.modulesGraph && await _this.sdk.reportModuleGraph(_this.modulesGraph);
+    await _this.sdk.reportChunkGraph(_this.chunkGraph);
+    if (_this.options.supports.generateTileGraph) logger_namespaceObject.logger.warn(logger_namespaceObject.chalk.yellow('The option generateTileGraph is deprecated. Treemap (i.e. Tile Graph) is now supported by default.'));
+}
+const ensureDevtools = (compiler)=>{
+    const devtool = compiler.options.devtool;
+    if ('string' == typeof devtool && /eval/i.test(devtool)) {
+        hasConsole || logger_namespaceObject.logger.warn('SourceMap with eval is not supported. Please use other sourcemap options.');
+        hasConsole = true;
+        return false;
+    }
+    if ('rspack' in compiler) return true;
+    const sourceMapEnabled = 'string' == typeof devtool && /source-?map/i.test(devtool);
+    if (!sourceMapEnabled) {
+        logger_namespaceObject.logger.debug('SourceMap is not enabled. Skipping sourcemap processing.');
+        return false;
+    }
+    return true;
+};
+async function getModulesInfos(compiler, moduleGraph, chunkGraph, parseBundle, sourceMapSets, assetsWithoutSourceMap) {
+    if (!moduleGraph) return;
+    try {
+        await index_cjs_namespaceObject.Chunks.getAssetsModulesData(moduleGraph, chunkGraph, compiler.outputPath, sourceMapSets, parseBundle, assetsWithoutSourceMap);
+    } catch (e) {}
+}
+function escapeRegExp(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+function calculateNamespaceAndRegex(compiler) {
+    let namespace = compiler.options.output.devtoolNamespace || compiler.options.output.library?.name || '[^/]+/';
+    if (Array.isArray(namespace)) namespace = namespace[0];
+    else if ('object' == typeof namespace && 'name' in namespace) namespace = namespace.name;
+    const safeNamespace = escapeRegExp(namespace);
+    const sourceMapFilenameRegex = new RegExp(`(?:webpack://)?(?:${safeNamespace})?([^?]*)`);
+    return {
+        namespace: namespace,
+        sourceMapFilenameRegex
+    };
+}
+async function emitHandler(_this, compiler, compilation, callback) {
+    if (!ensureDevtools(compiler)) return void callback();
+    const { namespace, sourceMapFilenameRegex } = calculateNamespaceAndRegex(compiler);
+    await (0, external_sourcemapTool_cjs_namespaceObject.handleEmitAssets)({
+        compilation,
+        pluginInstance: _this,
+        sourceMapFilenameRegex,
+        namespace
+    });
+    callback();
+}
+exports.calculateNamespaceAndRegex = __webpack_exports__.calculateNamespaceAndRegex;
+exports.ensureDevtools = __webpack_exports__.ensureDevtools;
+exports.ensureModulesChunksGraphFn = __webpack_exports__.ensureModulesChunksGraphFn;
+for(var __rspack_i in __webpack_exports__)if (-1 === [
+    "calculateNamespaceAndRegex",
+    "ensureDevtools",
+    "ensureModulesChunksGraphFn"
+].indexOf(__rspack_i)) exports[__rspack_i] = __webpack_exports__[__rspack_i];
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});

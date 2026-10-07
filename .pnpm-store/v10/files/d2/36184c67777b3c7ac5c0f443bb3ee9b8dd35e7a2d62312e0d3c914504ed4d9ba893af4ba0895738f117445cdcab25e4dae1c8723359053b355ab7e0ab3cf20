@@ -1,0 +1,142 @@
+declare const DREAMLAND: unique symbol;
+declare const NO_CHANGE: unique symbol;
+
+declare const COMMA_TOKEN: unique symbol;
+
+declare const TOPRIMITIVE: typeof Symbol.toPrimitive;
+
+type Stateful<T extends object> = T & {
+    readonly [COMMA_TOKEN]: unique symbol;
+};
+declare let createState: <T extends object>(target: T) => Stateful<T>;
+declare let stateListen: <T extends object>(state: Stateful<T>, func: (newValue: any, prop: string | symbol) => void) => void;
+declare let stateProxy: <T extends object, Key extends keyof T>(state: Stateful<T>, key: Key, ptr: Pointer<T[Key]>) => void;
+
+declare class Pointer<T> {
+    get value(): T;
+    set value(val: T);
+    [DREAMLAND](): ReadonlyArray<Pointer<any>> | null;
+    [TOPRIMITIVE](): symbol;
+    listen(func: (val: T) => void): void;
+    zip<Ptrs extends ReadonlyArray<Pointer<any>>>(...pointers: Ptrs): Pointer<[
+        T,
+        ...{
+            [Idx in keyof Ptrs]: Ptrs[Idx] extends Pointer<infer Val> ? Val : never;
+        }
+    ]>;
+    andThen<True, False>(then: True, otherwise?: False): Pointer<(True extends (val: T) => infer TR ? TR : True) | (False extends (val: T) => infer FR ? FR : False)>;
+    map<U>(func: (val: T) => U): Pointer<U>;
+    map<U>(func: (val: T) => U, reverse: (val: U) => T): Pointer<U>;
+    mapEach<U, R>(this: Pointer<ArrayLike<U>>, func: (val: U, i: number) => R): Pointer<R[]>;
+}
+
+declare global {
+    function use<T>(stateful: T): Pointer<T>;
+    function use<T extends any[]>(...statefuls: T): Pointer<T>;
+    function use(template: TemplateStringsArray, ...params: any[]): Pointer<string>;
+}
+
+type StoreSyncBacking = {
+    read: (ident: string) => string | null;
+    write: (ident: string, data: string) => void;
+};
+type StoreAsyncBacking = {
+    read: (ident: string) => Promise<string | null>;
+    write: (ident: string, data: string) => Promise<void>;
+};
+declare function _createStore<T extends object>(target: T, options: {
+    ident: string;
+    backing: StoreAsyncBacking;
+    autosave: "auto" | "manual" | "beforeunload";
+}): Promise<Stateful<T>>;
+declare function _createStore<T extends object>(target: T, options: {
+    ident: string;
+    backing: "localstorage" | StoreSyncBacking;
+    autosave: "auto" | "manual" | "beforeunload";
+}): Stateful<T>;
+declare let createStore: typeof _createStore;
+declare let saveAllStores: () => void;
+
+type Delegate<T> = {
+    listen: (callback: (value: T) => void) => void;
+    (value: T): void;
+};
+declare let createDelegate: <T>() => Delegate<T>;
+
+type ComponentChild = Node | string | number | boolean | null | undefined | ComponentChild[] | Pointer<ComponentChild>;
+type ComponentContext<T extends object> = {
+    state: Stateful<T>;
+    root: HTMLElement;
+    children: ComponentChild[];
+    id?: string;
+    mount?: () => void;
+    init?: () => void;
+};
+type MappedProps<Props> = {
+    [Key in keyof Props]: Props[Key] | Pointer<Props[Key]>;
+};
+type Empty = Record<string, never>;
+type Component<Props extends object = Empty, Private extends object = Empty, Public extends object = Empty> = {
+    (this: Stateful<StateObj<Props, Private, Public>>, cx: ComponentContext<Props & Private & Public>): HTMLElement;
+    style?: CssInit;
+};
+type StateObj<Props, Private, Public> = {
+    [P in keyof (Props & Private & Public) as Exclude<P, "children">]: (Props & Private & Public)[P];
+};
+type ComponentStateObj<T extends Component<any, any, any>> = T extends Component<infer Props, infer Private, infer Public> ? StateObj<Props, Private, Public> : never;
+type ComponentState<T extends Component<any, any, any>> = Stateful<ComponentStateObj<T>>;
+type ComponentInstance<T extends Component<any, any, any>> = DLElement<ComponentStateObj<T>>;
+type DLElement<T extends object> = HTMLElement & {
+    $: ComponentContext<T>;
+};
+type IntrinsicProps<ElementType extends Element> = {
+    this?: Pointer<ElementType | Element | null | undefined>;
+    children?: any;
+    [key: `class:${string}`]: Pointer<boolean> | boolean;
+    [key: `on:${string}`]: (e: any) => void;
+    [key: string]: any;
+};
+type DLElementTagNames = HTMLElementTagNameMap & HTMLElementDeprecatedTagNameMap & Pick<SVGElementTagNameMap, Exclude<keyof SVGElementTagNameMap, keyof HTMLElementTagNameMap>>;
+type DLElementNameToElement<T extends string> = T extends keyof DLElementTagNames ? DLElementTagNames[T] : HTMLElement;
+type GlobalElement = Element;
+declare namespace JSX {
+    type IntrinsicElements = {
+        [El in keyof DLElementTagNames]: IntrinsicProps<DLElementTagNames[El]>;
+    } & {
+        [element: string]: IntrinsicProps<GlobalElement>;
+    };
+    type ElementType = keyof IntrinsicElements | Component<any, any, any>;
+    type Element = HTMLElement;
+    type LibraryManagedAttributes<C, _> = C extends Component<infer Props, any, any> ? MappedProps<Props> : never;
+}
+
+type CssInit = {
+    _strings: TemplateStringsArray;
+    _funcs: (((state: any) => any) | string)[];
+    _rewrite: typeof _rewrite;
+};
+declare let css: <T extends Component<any, any, any>>(_strings: TemplateStringsArray, ..._funcs: (((state: ThisParameterType<T>) => any) | string)[]) => CssInit;
+declare let _rewrite: (style: HTMLStyleElement, css: string, tag: string) => void;
+
+declare function _jsx<T extends Component<any, any, any>>(init: T, props: Record<string, any> | null, key?: string): ComponentInstance<T>;
+declare function _jsx<T extends string>(init: T, props: Record<string, any> | null, key?: string): DLElementNameToElement<T>;
+declare function _h<T extends Component<any, any, any>>(init: T, props: Record<string, any> | null, ...children: ComponentChild[]): ComponentInstance<T>;
+declare function _h<T extends string>(init: T, props: Record<string, any> | null, ...children: ComponentChild[]): DLElementNameToElement<T>;
+declare let h: typeof _h;
+declare let jsx: typeof _jsx;
+declare let Fragment: (cx: any) => any;
+
+type DomImpl = [
+    any,
+    any,
+    (text?: string) => any,
+    (text?: string) => any,
+    () => string,
+    ((el: HTMLElement) => boolean) | undefined,
+    (((init: Component<any, any, any>, cx?: ComponentContext<any>) => void) | undefined)
+];
+declare let setDomImpl: ([Doc, Node, New_Text, New_Comment, GenCssUid, Hydrating, SsrTransform,]: DomImpl) => void;
+declare let getDomImpl: () => DomImpl;
+
+export { DREAMLAND, Fragment, JSX, NO_CHANGE, Pointer, createDelegate, createState, createStore, css, getDomImpl, h, jsx, saveAllStores, setDomImpl, stateListen, stateProxy };
+export type { Component, ComponentChild, ComponentContext, ComponentInstance, ComponentState, DLElement, DLElementNameToElement, Delegate, DomImpl, Stateful };

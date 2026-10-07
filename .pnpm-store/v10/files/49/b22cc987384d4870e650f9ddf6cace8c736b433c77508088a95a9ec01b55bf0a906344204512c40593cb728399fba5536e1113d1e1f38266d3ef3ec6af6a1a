@@ -1,0 +1,14 @@
+import connect from 'connect';
+import http from 'http';
+import { Thirdparty } from '@rsdoctor/types';
+export declare const defaultPort: number;
+export declare function getPort(expectPort: number): Promise<number>;
+export declare const createGetPortSyncFunctionString: (expectPort: number) => string;
+export declare function getPortSync(expectPort: number): number | never;
+export declare function createApp(): connect.Server;
+export declare function createServer(port: number): Promise<{
+    app: Thirdparty.connect.Server;
+    server: http.Server;
+    port: number;
+    close(): Promise<void> | never;
+}>;

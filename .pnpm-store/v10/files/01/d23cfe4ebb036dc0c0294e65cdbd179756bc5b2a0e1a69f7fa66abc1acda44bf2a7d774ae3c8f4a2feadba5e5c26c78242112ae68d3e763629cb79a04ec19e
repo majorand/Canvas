@@ -1,0 +1,71 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { DevToolError } from "@rsdoctor/utils/error";
+function reportPluginData(sdk, hook, tapName, start, type, _res, err) {
+    const end = Date.now();
+    sdk.reportPlugin({
+        [hook]: [
+            {
+                tapName,
+                costs: end - start,
+                startAt: start,
+                endAt: end,
+                type,
+                result: null,
+                error: err ? [
+                    new DevToolError(`${tapName} ${hook} Error`, err.message, {
+                        controller: {
+                            noStack: false,
+                            noColor: true
+                        },
+                        stack: err.stack
+                    })
+                ] : []
+            }
+        ]
+    });
+}
+function interceptPluginHook(sdk, name, hook) {
+    if (!hook?.intercept) return;
+    hook.intercept({
+        register (tap) {
+            const o = tap.fn;
+            if ('sync' === tap.type) tap.fn = function() {
+                const start = Date.now();
+                try {
+                    const res = o.apply(this, arguments);
+                    reportPluginData(sdk, name, tap.name, start, tap.type, res);
+                    return res;
+                } catch (error) {
+                    reportPluginData(sdk, name, tap.name, start, tap.type, null, error);
+                    throw error;
+                }
+            };
+            else if ('async' === tap.type) tap.fn = async function() {
+                const start = Date.now();
+                try {
+                    const res = await o.apply(this, arguments);
+                    reportPluginData(sdk, name, tap.name, start, tap.type, res);
+                    return res;
+                } catch (error) {
+                    reportPluginData(sdk, name, tap.name, start, tap.type, null, error);
+                    throw error;
+                }
+            };
+            else if ('promise' === tap.type) tap.fn = function() {
+                const start = Date.now();
+                const isChild = arguments?.[0]?.compiler?.isChild();
+                return o.apply(this, arguments).then((res)=>{
+                    if (isChild) return res;
+                    reportPluginData(sdk, name, tap.name, start, tap.type, res);
+                    return res;
+                }).catch((error)=>{
+                    reportPluginData(sdk, name, tap.name, start, tap.type, null, error);
+                    throw error;
+                });
+            };
+            return tap;
+        }
+    });
+}
+export { interceptPluginHook, reportPluginData };

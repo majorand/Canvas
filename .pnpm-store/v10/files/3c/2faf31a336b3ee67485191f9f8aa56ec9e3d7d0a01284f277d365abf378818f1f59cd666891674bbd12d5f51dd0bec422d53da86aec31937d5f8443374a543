@@ -1,0 +1,106 @@
+"use strict";
+var __webpack_require__ = {};
+(()=>{
+    __webpack_require__.d = (exports1, definition)=>{
+        for(var key in definition)if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key)) Object.defineProperty(exports1, key, {
+            enumerable: true,
+            get: definition[key]
+        });
+    };
+})();
+(()=>{
+    __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop);
+})();
+(()=>{
+    __webpack_require__.r = (exports1)=>{
+        if ("u" > typeof Symbol && Symbol.toStringTag) Object.defineProperty(exports1, Symbol.toStringTag, {
+            value: 'Module'
+        });
+        Object.defineProperty(exports1, '__esModule', {
+            value: true
+        });
+    };
+})();
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+    interceptPluginHook: ()=>interceptPluginHook,
+    reportPluginData: ()=>reportPluginData
+});
+const error_namespaceObject = require("@rsdoctor/utils/error");
+function reportPluginData(sdk, hook, tapName, start, type, _res, err) {
+    const end = Date.now();
+    sdk.reportPlugin({
+        [hook]: [
+            {
+                tapName,
+                costs: end - start,
+                startAt: start,
+                endAt: end,
+                type,
+                result: null,
+                error: err ? [
+                    new error_namespaceObject.DevToolError(`${tapName} ${hook} Error`, err.message, {
+                        controller: {
+                            noStack: false,
+                            noColor: true
+                        },
+                        stack: err.stack
+                    })
+                ] : []
+            }
+        ]
+    });
+}
+function interceptPluginHook(sdk, name, hook) {
+    if (!hook?.intercept) return;
+    hook.intercept({
+        register (tap) {
+            const o = tap.fn;
+            if ('sync' === tap.type) tap.fn = function() {
+                const start = Date.now();
+                try {
+                    const res = o.apply(this, arguments);
+                    reportPluginData(sdk, name, tap.name, start, tap.type, res);
+                    return res;
+                } catch (error) {
+                    reportPluginData(sdk, name, tap.name, start, tap.type, null, error);
+                    throw error;
+                }
+            };
+            else if ('async' === tap.type) tap.fn = async function() {
+                const start = Date.now();
+                try {
+                    const res = await o.apply(this, arguments);
+                    reportPluginData(sdk, name, tap.name, start, tap.type, res);
+                    return res;
+                } catch (error) {
+                    reportPluginData(sdk, name, tap.name, start, tap.type, null, error);
+                    throw error;
+                }
+            };
+            else if ('promise' === tap.type) tap.fn = function() {
+                const start = Date.now();
+                const isChild = arguments?.[0]?.compiler?.isChild();
+                return o.apply(this, arguments).then((res)=>{
+                    if (isChild) return res;
+                    reportPluginData(sdk, name, tap.name, start, tap.type, res);
+                    return res;
+                }).catch((error)=>{
+                    reportPluginData(sdk, name, tap.name, start, tap.type, null, error);
+                    throw error;
+                });
+            };
+            return tap;
+        }
+    });
+}
+exports.interceptPluginHook = __webpack_exports__.interceptPluginHook;
+exports.reportPluginData = __webpack_exports__.reportPluginData;
+for(var __rspack_i in __webpack_exports__)if (-1 === [
+    "interceptPluginHook",
+    "reportPluginData"
+].indexOf(__rspack_i)) exports[__rspack_i] = __webpack_exports__[__rspack_i];
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});

@@ -1,0 +1,73 @@
+"use strict";
+var __webpack_require__ = {};
+(()=>{
+    __webpack_require__.d = (exports1, definition)=>{
+        for(var key in definition)if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key)) Object.defineProperty(exports1, key, {
+            enumerable: true,
+            get: definition[key]
+        });
+    };
+})();
+(()=>{
+    __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop);
+})();
+(()=>{
+    __webpack_require__.r = (exports1)=>{
+        if ("u" > typeof Symbol && Symbol.toStringTag) Object.defineProperty(exports1, Symbol.toStringTag, {
+            value: 'Module'
+        });
+        Object.defineProperty(exports1, '__esModule', {
+            value: true
+        });
+    };
+})();
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+    rule: ()=>rule
+});
+const types_namespaceObject = require("@rsdoctor/types");
+const external_rule_cjs_namespaceObject = require("../../rule.cjs");
+const external_utils_cjs_namespaceObject = require("./utils.cjs");
+const compat_namespaceObject = require("es-toolkit/compat");
+const title = 'cross-chunks-package';
+const rule = (0, external_rule_cjs_namespaceObject.defineRule)(()=>({
+        meta: {
+            code: 'E1002',
+            title,
+            category: 'bundle',
+            severity: types_namespaceObject.Linter.Severity.Warn,
+            defaultConfig: {
+                ignore: []
+            }
+        },
+        check ({ packageGraph, report }) {
+            const packages = packageGraph.getPackages().filter((pkg)=>pkg.duplicates.length > 0);
+            for (const pkg of packages){
+                const detail = {
+                    type: title,
+                    chunks: pkg.duplicates,
+                    package: {
+                        name: pkg.name,
+                        id: pkg.id,
+                        size: pkg.getSize(),
+                        version: pkg.version
+                    }
+                };
+                const chunks = [];
+                pkg.duplicates.forEach((dup)=>chunks.push(...dup.chunks.map((ck)=>ck.name)));
+                const message = (0, external_utils_cjs_namespaceObject.getErrorMsgForDupPckChunks)((0, compat_namespaceObject.uniq)(chunks), pkg.name);
+                report({
+                    message,
+                    detail
+                });
+            }
+        }
+    }));
+exports.rule = __webpack_exports__.rule;
+for(var __rspack_i in __webpack_exports__)if (-1 === [
+    "rule"
+].indexOf(__rspack_i)) exports[__rspack_i] = __webpack_exports__[__rspack_i];
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});

@@ -1,0 +1,40 @@
+"use strict";
+var __webpack_require__ = {};
+(()=>{
+    __webpack_require__.d = (exports1, definition)=>{
+        for(var key in definition)if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key)) Object.defineProperty(exports1, key, {
+            enumerable: true,
+            get: definition[key]
+        });
+    };
+})();
+(()=>{
+    __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop);
+})();
+(()=>{
+    __webpack_require__.r = (exports1)=>{
+        if ("u" > typeof Symbol && Symbol.toStringTag) Object.defineProperty(exports1, Symbol.toStringTag, {
+            value: 'Module'
+        });
+        Object.defineProperty(exports1, '__esModule', {
+            value: true
+        });
+    };
+})();
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+    getModuleGraphByStats: ()=>getModuleGraphByStats
+});
+const graph_namespaceObject = require("@rsdoctor/graph");
+const external_index_cjs_namespaceObject = require("./index.cjs");
+function getModuleGraphByStats(compilation, stats, root, chunkGraph, features, context) {
+    return (0, external_index_cjs_namespaceObject.appendModuleGraphByCompilation)(compilation, graph_namespaceObject.ModuleGraphTrans.getModuleGraphByStats(stats, root, chunkGraph), features, context);
+}
+exports.getModuleGraphByStats = __webpack_exports__.getModuleGraphByStats;
+for(var __rspack_i in __webpack_exports__)if (-1 === [
+    "getModuleGraphByStats"
+].indexOf(__rspack_i)) exports[__rspack_i] = __webpack_exports__[__rspack_i];
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});

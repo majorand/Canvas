@@ -1,0 +1,106 @@
+"use strict";
+var __webpack_require__ = {};
+(()=>{
+    __webpack_require__.d = (exports1, definition)=>{
+        for(var key in definition)if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key)) Object.defineProperty(exports1, key, {
+            enumerable: true,
+            get: definition[key]
+        });
+    };
+})();
+(()=>{
+    __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop);
+})();
+(()=>{
+    __webpack_require__.r = (exports1)=>{
+        if ("u" > typeof Symbol && Symbol.toStringTag) Object.defineProperty(exports1, Symbol.toStringTag, {
+            value: 'Module'
+        });
+        Object.defineProperty(exports1, '__esModule', {
+            value: true
+        });
+    };
+})();
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+    appendTreeShaking: ()=>appendTreeShaking
+});
+const graph_namespaceObject = require("@rsdoctor/graph");
+const external_utils_cjs_namespaceObject = require("./utils.cjs");
+function transformMgm(origin, webpackGraph, graph, cache) {
+    const module = graph.getModuleByWebpackId(origin.identifier());
+    if (!module) return;
+    const mgm = new graph_namespaceObject.ModuleGraphModule(module, graph);
+    const originalMgm = webpackGraph.getExportsInfo(origin);
+    graph.addModuleGraphModule(mgm);
+    for (const info of originalMgm.exports){
+        const { name } = info;
+        const exportIdStatement = (0, external_utils_cjs_namespaceObject.getExportIdentifierStatement)(name, module) ?? graph_namespaceObject.Statement.getDefaultStatement(module);
+        const declareIdStatement = (0, external_utils_cjs_namespaceObject.getDeclarationIdentifier)(name, module);
+        const exportInfo = new graph_namespaceObject.ExportInfo(info.name, exportIdStatement);
+        if (declareIdStatement) {
+            const variable = new graph_namespaceObject.Variable(name, module, info.getUsedInfo(), declareIdStatement);
+            variable.setExportInfo(exportInfo);
+            mgm.addVariable(variable);
+        }
+        cache.set(info, exportInfo);
+        mgm.addExportInfo(exportInfo);
+    }
+    for (const dep of origin.dependencies){
+        if ('harmony import specifier' !== dep.type) continue;
+        const HISDep = dep;
+        const { name, userRequest } = HISDep;
+        const originName = HISDep.getIds(webpackGraph)[0] ?? graph_namespaceObject.SideEffect.NamespaceSymbol;
+        const importIdStatement = module.getStatement(dep.loc);
+        const importInfo = new graph_namespaceObject.SideEffect(name, module, importIdStatement, userRequest, originName);
+        mgm.addSideEffect(importInfo);
+    }
+}
+function appendExportConnection(origin, webpackGraph, graph, cache) {
+    const module = graph.getModuleByWebpackId(origin.identifier());
+    const mgm = graph.getModuleGraphModule(module);
+    const originalMgm = webpackGraph.getExportsInfo(origin);
+    if (!mgm || !module) return;
+    for (const info of originalMgm.exports){
+        if (!info.isReexport()) continue;
+        const lastExport = graph_namespaceObject.Webpack.getLastExportInfo(info, webpackGraph);
+        const lastSdkExport = cache.get(lastExport);
+        const sdkExport = cache.get(info);
+        if (!lastSdkExport || !sdkExport) return;
+        sdkExport.setFromExport(lastSdkExport);
+    }
+}
+function appendImportConnection(origin, graph) {
+    const module = graph.getModuleByWebpackId(origin.identifier());
+    const mgm = graph.getModuleGraphModule(module);
+    if (!mgm || !module) return;
+    for (const info of mgm.getSideEffects()){
+        const exportName = info.originName ?? info.name;
+        const resolveModule = info.fromDependency?.dependency;
+        if (!resolveModule) continue;
+        const resolveExport = graph.getModuleGraphModule(resolveModule).getExport(exportName);
+        if (resolveExport) info.setExportInfo(resolveExport);
+    }
+}
+function appendTreeShaking(moduleGraph, compilation) {
+    if (!graph_namespaceObject.ModuleGraphTrans.isWebpack5orRspack(compilation)) return moduleGraph;
+    if ('moduleGraph' in compilation) {
+        const exportData = new Map();
+        const webpackCompilation = compilation;
+        const { moduleGraph: webpackGraph } = webpackCompilation;
+        const allModules = graph_namespaceObject.Webpack.getAllModules(webpackCompilation);
+        allModules.forEach((origin)=>transformMgm(origin, webpackGraph, moduleGraph, exportData));
+        allModules.forEach((origin)=>appendExportConnection(origin, webpackGraph, moduleGraph, exportData));
+        allModules.forEach((origin)=>appendImportConnection(origin, moduleGraph));
+        exportData.clear();
+    }
+    return moduleGraph;
+}
+exports.appendTreeShaking = __webpack_exports__.appendTreeShaking;
+for(var __rspack_i in __webpack_exports__)if (-1 === [
+    "appendTreeShaking"
+].indexOf(__rspack_i)) exports[__rspack_i] = __webpack_exports__[__rspack_i];
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});

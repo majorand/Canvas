@@ -1,0 +1,31 @@
+import { DLElement, Component, ComponentChild, ComponentState } from 'dreamland/core';
+
+type RouteParams = Record<string, string> & {};
+type ShowElement = DLElement<{
+    outlet: HTMLElement | null | undefined;
+    "on:routeshown"?: (path: string) => void;
+    [index: string]: any;
+}> | HTMLElement;
+type ShowTarget = ShowElement | ((path: string, params: RouteParams) => ShowElement);
+declare let Route: Component<{
+    path?: string;
+    show?: ShowTarget;
+    children?: ComponentChild;
+}>;
+declare let Link: Component<{
+    href: string;
+    class?: string;
+    children?: ComponentChild;
+    "on:click"?: () => void;
+}>;
+declare let router: ComponentState<typeof Router>;
+declare let Router: Component<{
+    children: HTMLElement | HTMLElement[];
+}, {}, {
+    route: (path?: string, origin?: string) => string | undefined;
+    navigate: (path: string) => string | undefined;
+    ssgables: () => [string, string][];
+}>;
+
+export { Link, Route, Router, router };
+export type { RouteParams, ShowElement, ShowTarget };

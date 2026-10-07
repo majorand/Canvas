@@ -1,0 +1,6 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { rules } from "./rules/index.js";
+export * from "./linter.js";
+export * from "./rule.js";
+export { rules };

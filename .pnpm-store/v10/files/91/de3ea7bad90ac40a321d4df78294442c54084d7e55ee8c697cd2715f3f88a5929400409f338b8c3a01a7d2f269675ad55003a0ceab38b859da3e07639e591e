@@ -1,0 +1,33 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { Loader } from "@rsdoctor/utils/common";
+import { Build } from "../../index.js";
+import { Utils } from "../index.js";
+const BuiltinLoaderName = 'builtin:swc-loader';
+const BuiltinLightingCssName = 'builtin:lightningcss-loader';
+const ESMLoaderFile = '.mjs';
+class ProbeLoaderPlugin {
+    apply(compiler) {
+        compiler.hooks.beforeRun.tap({
+            name: 'ProbeLoaderPlugin'
+        }, ()=>{
+            this.addProbeLoader(compiler);
+        });
+        compiler.hooks.watchRun.tap({
+            name: 'ProbeLoaderPlugin'
+        }, ()=>{
+            this.addProbeLoader(compiler);
+        });
+    }
+    addProbeLoader(compiler) {
+        let rules = compiler.options.module.rules;
+        if (Loader.isVue(compiler)) {
+            compiler.options.module.rules = Utils.addProbeLoader2Rules(rules, compiler, (r)=>!!r.loader || 'string' == typeof r);
+            return;
+        }
+        rules = Utils.addProbeLoader2Rules(rules, compiler, (r)=>Build.Utils.getLoaderNameMatch(r, BuiltinLoaderName, true));
+        rules = Utils.addProbeLoader2Rules(rules, compiler, (r)=>Build.Utils.getLoaderNameMatch(r, BuiltinLightingCssName, true));
+        compiler.options.module.rules = Utils.addProbeLoader2Rules(rules, compiler, (r)=>Build.Utils.getLoaderNameMatch(r, ESMLoaderFile, false) || Build.Utils.isESMLoader(r));
+    }
+}
+export { ProbeLoaderPlugin };

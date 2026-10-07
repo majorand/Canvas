@@ -1,0 +1,93 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { Summary } from "@rsdoctor/utils/common";
+import { minBy, sumBy } from "es-toolkit/compat";
+import { InternalBasePlugin } from "./base.js";
+import { time, timeEnd } from "@rsdoctor/utils/logger";
+class InternalSummaryPlugin extends InternalBasePlugin {
+    apply(compiler) {
+        time('InternalSummaryPlugin.apply');
+        try {
+            compiler.hooks.beforeCompile.tapPromise(this.tapPostOptions, this.beforeCompile);
+            compiler.hooks.afterCompile.tapPromise(this.tapPreOptions, this.afterCompile);
+            compiler.hooks.done.tapPromise(this.tapPostOptions, this.done.bind(this, compiler));
+        } finally{
+            timeEnd('InternalSummaryPlugin.apply');
+        }
+    }
+    mark(key, type) {
+        const now = Date.now();
+        switch(type){
+            case 'pre':
+                this.preTimes.set(key, now);
+                break;
+            case 'post':
+                this.postTimes.set(key, now);
+                break;
+            default:
+                break;
+        }
+    }
+    report(name, start) {
+        this.times.set(name, start);
+        this.sdk.reportSummaryData({
+            costs: [
+                {
+                    name,
+                    startAt: start,
+                    costs: Date.now() - start
+                }
+            ]
+        });
+    }
+    constructor(...args){
+        super(...args), this.name = 'summary', this.times = new Map(), this.preTimes = new Map(), this.postTimes = new Map(), this.beforeCompile = async ()=>{
+            time('InternalSummaryPlugin.beforeCompile');
+            try {
+                if (!this.times.has(Summary.SummaryCostsDataName.Bootstrap)) {
+                    const costs = Math.floor(1000 * process.uptime());
+                    const startAt = Date.now() - costs;
+                    this.report(Summary.SummaryCostsDataName.Bootstrap, startAt);
+                    this.mark(Summary.SummaryCostsDataName.Bootstrap, 'post');
+                }
+            } finally{
+                timeEnd('InternalSummaryPlugin.beforeCompile');
+            }
+        }, this.afterCompile = async (compilation)=>{
+            time('InternalSummaryPlugin.afterCompile');
+            try {
+                if (!this.times.has(Summary.SummaryCostsDataName.Compile) && !compilation.compiler.isChild()) {
+                    const start = this.postTimes.get(Summary.SummaryCostsDataName.Bootstrap);
+                    this.report(Summary.SummaryCostsDataName.Compile, start);
+                    this.mark(Summary.SummaryCostsDataName.Compile, 'post');
+                }
+            } finally{
+                timeEnd('InternalSummaryPlugin.afterCompile');
+            }
+        }, this.done = async (compiler)=>{
+            time('InternalSummaryPlugin.done');
+            try {
+                const start = this.postTimes.get(Summary.SummaryCostsDataName.Compile);
+                this.report(Summary.SummaryCostsDataName.Done, start);
+                if (false !== compiler.options.optimization.minimize) {
+                    const pluginData = this.sdk.getStoreData().plugin;
+                    const minifyHookData = [
+                        ...pluginData.processAssets || []
+                    ];
+                    minifyHookData.length && this.sdk.reportSummaryData({
+                        costs: [
+                            {
+                                name: Summary.SummaryCostsDataName.Minify,
+                                startAt: minBy(minifyHookData, (e)=>e.startAt).startAt,
+                                costs: sumBy(minifyHookData, (e)=>e.costs)
+                            }
+                        ]
+                    });
+                }
+            } finally{
+                timeEnd('InternalSummaryPlugin.done');
+            }
+        };
+    }
+}
+export { InternalSummaryPlugin };

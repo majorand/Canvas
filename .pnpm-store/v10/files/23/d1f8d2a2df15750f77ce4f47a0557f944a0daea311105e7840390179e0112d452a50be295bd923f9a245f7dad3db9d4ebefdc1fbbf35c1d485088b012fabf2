@@ -1,0 +1,21 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { internalPluginTapPostOptions, internalPluginTapPreOptions } from "../constants.js";
+class InternalBasePlugin {
+    get options() {
+        return this.scheduler.options;
+    }
+    get sdk() {
+        return this.scheduler.sdk;
+    }
+    get tapPostOptions() {
+        return internalPluginTapPostOptions(this.name);
+    }
+    get tapPreOptions() {
+        return internalPluginTapPreOptions(this.name);
+    }
+    constructor(scheduler){
+        this.scheduler = scheduler;
+    }
+}
+export { InternalBasePlugin };

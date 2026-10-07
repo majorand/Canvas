@@ -1,0 +1,52 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { extname } from "path";
+import { InternalBasePlugin } from "./base.js";
+import { chalk, logger, time, timeEnd } from "@rsdoctor/utils/logger";
+class InternalBundleTagPlugin extends InternalBasePlugin {
+    apply(compiler) {
+        time('InternalBundleTagPlugin.apply');
+        try {
+            const supportBannerPlugin = this.options.supports?.banner;
+            compiler.hooks.compilation.tap('RsdoctorTagBannerPlugin', (compilation)=>{
+                compilation.hooks.processAssets.tapPromise({
+                    name: 'RsdoctorTagBannerPlugin',
+                    stage: -2000
+                }, async ()=>{
+                    if (!compilation.options.plugins.map((p)=>p && p.constructor.name).includes('BannerPlugin') && true !== supportBannerPlugin || false === supportBannerPlugin || 'rspack' in compiler) return;
+                    logger.info(chalk.magenta("Rsdoctor's `supports.banner` option is enabled, this is for debugging only. Do not use it for production."));
+                    const minimizers = compiler.options.optimization?.minimizer || [];
+                    const terserPlugin = minimizers.find((plugin)=>plugin?.constructor?.name === 'TerserPlugin');
+                    const swcPlugin = minimizers.find((plugin)=>plugin?.constructor?.name === 'SwcJsMinimizerRspackPlugin');
+                    const hasTerserPlugin = !!terserPlugin;
+                    const hasSwcJsMinimizer = !!swcPlugin;
+                    if (hasTerserPlugin || hasSwcJsMinimizer) {
+                        const terserDropConsole = terserPlugin?.options?.minimizer?.options?.compress?.drop_console;
+                        const swcDropConsole = swcPlugin?._args?.[0]?.minimizerOptions?.compress?.drop_console;
+                        if (true === terserDropConsole || true === swcDropConsole) logger.warn(chalk.yellow('Warning: BannerPlugin detected in project. Please disable drop_console option in TerserPlugin or SwcJsMinimizerRspackPlugin to enable Rsdoctor analysis for BannerPlugin.'));
+                    }
+                    const chunks = compilation.chunks;
+                    for (let chunk of chunks)for (const file of chunk.files){
+                        if (!file || '.js' !== extname(file)) continue;
+                        const { ConcatSource } = compiler.webpack.sources;
+                        compilation.updateAsset(file, (old)=>{
+                            const concatSource = new ConcatSource();
+                            let header = "\n console.log('RSDOCTOR_START::');\n";
+                            let footer = "\n console.log('RSDOCTOR_END::');\n";
+                            concatSource.add(header);
+                            concatSource.add(old);
+                            concatSource.add(footer);
+                            return concatSource;
+                        }, ()=>{});
+                    }
+                });
+            });
+        } finally{
+            timeEnd('InternalBundleTagPlugin.apply');
+        }
+    }
+    constructor(...args){
+        super(...args), this.name = 'bundleTag';
+    }
+}
+export { InternalBundleTagPlugin };

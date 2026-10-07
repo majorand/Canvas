@@ -1,0 +1,1550 @@
+"use strict";
+const __rslib_import_meta_url__ = "u" < typeof document ? new (require('url'.replace('', ''))).URL('file:' + __filename).href : document.currentScript && document.currentScript.src || new URL('main.js', document.baseURI).href;
+var __webpack_require__ = {};
+__webpack_require__.n = (module)=>{
+    var getter = module && module.__esModule ? ()=>module.default : ()=>module;
+    return __webpack_require__.d(getter, {
+        a: getter
+    }), getter;
+}, __webpack_require__.d = (exports1, definition)=>{
+    for(var key in definition)__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key) && Object.defineProperty(exports1, key, {
+        enumerable: !0,
+        get: definition[key]
+    });
+}, __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop), __webpack_require__.r = (exports1)=>{
+    "u" > typeof Symbol && Symbol.toStringTag && Object.defineProperty(exports1, Symbol.toStringTag, {
+        value: 'Module'
+    }), Object.defineProperty(exports1, '__esModule', {
+        value: !0
+    });
+};
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__), __webpack_require__.d(__webpack_exports__, {
+    Dependency: ()=>Dependency,
+    ModuleGraphTrans: ()=>transform_module_graph_namespaceObject,
+    Asset: ()=>Asset,
+    ExportInfo: ()=>ExportInfo,
+    ModuleGraphModule: ()=>ModuleGraphModule,
+    readPackageJson: ()=>readPackageJson,
+    PackageDependency: ()=>PackageDependency,
+    Statement: ()=>Statement,
+    EntryPoint: ()=>EntryPoint,
+    ChunkGraph: ()=>ChunkGraph,
+    SideEffect: ()=>SideEffect,
+    Module: ()=>Module,
+    Package: ()=>Package,
+    TransUtils: ()=>trans_utils_namespaceObject,
+    Webpack: ()=>webpack_compatible_namespaceObject,
+    Chunks: ()=>chunks_namespaceObject,
+    Variable: ()=>Variable,
+    PackageGraph: ()=>PackageGraph,
+    Chunk: ()=>Chunk,
+    ModuleGraph: ()=>ModuleGraph
+});
+var chunks_namespaceObject = {};
+__webpack_require__.r(chunks_namespaceObject), __webpack_require__.d(chunks_namespaceObject, {
+    assetsContents: ()=>assetsContents,
+    chunkTransform: ()=>chunkTransform,
+    getAssetsModulesData: ()=>getAssetsModulesData,
+    transformAssetsModulesData: ()=>transformAssetsModulesData
+});
+var transform_module_graph_namespaceObject = {};
+__webpack_require__.r(transform_module_graph_namespaceObject), __webpack_require__.d(transform_module_graph_namespaceObject, {
+    getImportKind: ()=>getImportKind,
+    getModuleGraphByStats: ()=>getModuleGraphByStats,
+    getModulesFromArray: ()=>getModulesFromArray,
+    getPositionByStatsLocation: ()=>getPositionByStatsLocation,
+    isImportDependency: ()=>isImportDependency,
+    isWebpack5orRspack: ()=>isWebpack5orRspack,
+    removeNoImportStyle: ()=>removeNoImportStyle
+});
+var trans_utils_namespaceObject = {};
+__webpack_require__.r(trans_utils_namespaceObject), __webpack_require__.d(trans_utils_namespaceObject, {
+    transStats: ()=>transStats
+});
+var webpack_compatible_namespaceObject = {};
+__webpack_require__.r(webpack_compatible_namespaceObject), __webpack_require__.d(webpack_compatible_namespaceObject, {
+    getAllModules: ()=>getAllModules,
+    getDependencyPosition: ()=>getDependencyPosition,
+    getEntryModule: ()=>getEntryModule,
+    getExportDependency: ()=>getExportDependency,
+    getExportStatement: ()=>getExportStatement,
+    getLastExportInfo: ()=>getLastExportInfo,
+    getModuleSource: ()=>getModuleSource,
+    getResolveRequest: ()=>getResolveRequest,
+    getSdkDependencyByWebpackDependency: ()=>getSdkDependencyByWebpackDependency,
+    getWebpackDependencyRequest: ()=>getWebpackDependencyRequest,
+    getWebpackModuleId: ()=>getWebpackModuleId,
+    getWebpackModulePath: ()=>getWebpackModulePath,
+    isExternalModule: ()=>isExternalModule,
+    isNormalModule: ()=>isNormalModule
+});
+class Chunk {
+    constructor(id, name, size, initial, entry){
+        this._assets = [], this._modules = [], this._dependencies = [], this._imported = [], this.id = id, this.name = name, this.size = size, this.initial = initial, this.entry = entry;
+    }
+    isEntry() {
+        return this.entry;
+    }
+    isChunkEntryModule(module) {
+        return module.isEntry || module.getImported().every((item)=>!this.hasModule(item));
+    }
+    hasModule(module) {
+        return this._modules.includes(module);
+    }
+    addModule(module) {
+        this.hasModule(module) || (this._modules.push(module), module.addChunk(this));
+    }
+    addAsset(asset) {
+        this._assets.push(asset);
+    }
+    addModules(modules) {
+        modules.forEach((module)=>{
+            this.hasModule(module) || (this._modules.push(module), module.addChunk(this));
+        });
+    }
+    addDependency(dep) {
+        this._dependencies.includes(dep) || this._dependencies.push(dep);
+    }
+    addImported(imported) {
+        this._imported.includes(imported) || this._imported.push(imported);
+    }
+    getAssets() {
+        return this._assets.slice();
+    }
+    getModules() {
+        return this._modules.slice();
+    }
+    getDependencies() {
+        return this._dependencies.slice();
+    }
+    getImported() {
+        return this._imported.slice();
+    }
+    setParsedSize(parsedSize) {
+        this._parsedSize = parsedSize;
+    }
+    toData() {
+        return {
+            id: this.id,
+            name: this.name,
+            initial: this.initial,
+            size: this.size,
+            parsedSize: this._parsedSize || 0,
+            entry: this.isEntry(),
+            assets: this._assets.map(({ path })=>path),
+            modules: this._modules.map(({ id })=>id),
+            dependencies: this._dependencies.map(({ id })=>id),
+            imported: this._imported.map(({ id })=>id)
+        };
+    }
+    setDependencies(dependencies) {
+        this._dependencies = dependencies;
+    }
+    setImported(imported) {
+        this._imported = imported;
+    }
+    setModules(modules) {
+        this._modules = modules;
+    }
+    setAssets(assets) {
+        this._assets = assets;
+    }
+}
+class ChunkGraph {
+    getAssets() {
+        return Array.from(this._assetMap.values());
+    }
+    getChunks() {
+        return Array.from(this._chunkMap.values());
+    }
+    addAsset(...assets) {
+        assets.forEach((asset)=>{
+            this._assetMap.set(asset.id, asset), this._assetPathMap.set(asset.path, asset);
+        });
+    }
+    addChunk(...chunks) {
+        chunks.forEach((chunk)=>{
+            this._chunkMap.set(chunk.id, chunk);
+        });
+    }
+    getChunkById(id) {
+        return this._chunkMap.get(id);
+    }
+    getAssetByPath(path) {
+        return this._assetPathMap.get(path);
+    }
+    getAssetById(id) {
+        return this._assetMap.get(id);
+    }
+    getEntryPoints() {
+        return Array.from(this._entrypointMap.values());
+    }
+    getEntryPointById(id) {
+        return this._entrypointMap.get(id);
+    }
+    addEntryPoint(...entrypoints) {
+        entrypoints.forEach((entrypoint)=>{
+            this._entrypointMap.set(entrypoint.id, entrypoint);
+        });
+    }
+    toData(type) {
+        return {
+            assets: Array.from(this._assetMap.values()).map((item)=>item.toData(type)),
+            chunks: Array.from(this._chunkMap.values()).map((item)=>item.toData()),
+            entrypoints: Array.from(this._entrypointMap.values()).map((item)=>item.toData())
+        };
+    }
+    setChunks(chunks) {
+        this._chunkMap = new Map(chunks.map((item)=>[
+                item.id,
+                item
+            ]));
+    }
+    setEntrypoints(entrypoints) {
+        this._entrypointMap = new Map(entrypoints.map((item)=>[
+                item.id,
+                item
+            ]));
+    }
+    setAssets(assets) {
+        this._assetMap = new Map(assets.map((item)=>[
+                item.id,
+                item
+            ])), this._assetPathMap = new Map(assets.map((item)=>[
+                item.path,
+                item
+            ]));
+    }
+    constructor(){
+        this._assetMap = new Map(), this._assetPathMap = new Map(), this._chunkMap = new Map(), this._entrypointMap = new Map();
+    }
+}
+const types_namespaceObject = require("@rsdoctor/types"), external_node_zlib_namespaceObject = require("node:zlib");
+let asset_id = 1;
+class Asset {
+    static init() {
+        asset_id = 1;
+    }
+    constructor(path, size, chunks, content){
+        this.id = asset_id++, this.path = path, this.size = size, this.chunks = chunks, this.content = content;
+    }
+    toData(types) {
+        return {
+            id: this.id,
+            path: this.path,
+            size: this.size,
+            gzipSize: this.gzipSize,
+            chunks: this.chunks?.map((ck)=>ck.id),
+            content: types === types_namespaceObject.SDK.ToDataType.NoSourceAndAssets || types === types_namespaceObject.SDK.ToDataType.NoCode ? '' : this.content
+        };
+    }
+    setChunks(chunks) {
+        this.chunks = chunks;
+    }
+    setId(id) {
+        this.id = id;
+    }
+    setGzipSize(content) {
+        this.gzipSize = (0, external_node_zlib_namespaceObject.gzipSync)(content, {
+            level: 9
+        }).length;
+    }
+}
+let entrypoint_id = 1;
+class EntryPoint {
+    static init() {
+        entrypoint_id = 1;
+    }
+    constructor(name){
+        this.name = name, this._chunks = [], this._assets = [], this.id = entrypoint_id++;
+    }
+    addChunk(chunk) {
+        this._chunks.includes(chunk) || this._chunks.push(chunk);
+    }
+    addAsset(asset) {
+        this._assets.includes(asset) || this._assets.push(asset);
+    }
+    toData() {
+        return {
+            id: this.id,
+            name: this.name,
+            chunks: this._chunks.map((e)=>e.id),
+            assets: this._assets.map((e)=>e.path),
+            size: this._assets.length ? this._assets.reduce((t, e)=>t + e.size, 0) : 0
+        };
+    }
+    setChunks(chunks) {
+        this._chunks = chunks;
+    }
+    setAssets(assets) {
+        this._assets = assets;
+    }
+    setId(id) {
+        this.id = id;
+    }
+}
+let dependency_id = 1;
+class Dependency {
+    static{
+        this.kind = types_namespaceObject.SDK.DependencyKind;
+    }
+    static init() {
+        dependency_id = 1;
+    }
+    constructor(request, module, dependency, kind, statements){
+        this.statements = [], this.meta = {
+            exportsType: 'default-with-named'
+        }, this.id = dependency_id++, this.request = request, this.module = module, this._originDependency = dependency, this.kind = kind, this.statements = statements ?? [];
+    }
+    get resolvedRequest() {
+        return this.dependency.path;
+    }
+    get dependency() {
+        return this.originDependency.rootModule ?? this.originDependency;
+    }
+    get originDependency() {
+        return this._originDependency;
+    }
+    get kindString() {
+        return types_namespaceObject.SDK.DependencyKind[this.kind];
+    }
+    get resolveConcatenationModule() {
+        return this.dependency.kind === types_namespaceObject.SDK.ModuleKind.Concatenation;
+    }
+    isSameWithoutStatements(dep) {
+        return this.request === dep.request && this.kind === dep.kind && this.module.id === dep.module.id && this.dependency.id === dep.dependency.id;
+    }
+    addStatement(statement) {
+        this.hasStatement(statement) || this.statements.push(statement);
+    }
+    hasStatement(statement) {
+        return this.statements.some((item)=>item.isSame(statement));
+    }
+    setBuildMeta(data) {
+        this.meta = {
+            ...this.meta,
+            ...data
+        };
+    }
+    toData() {
+        return {
+            id: this.id,
+            request: this.request,
+            resolvedRequest: this.resolvedRequest,
+            kind: this.kind,
+            module: this.module.id,
+            dependency: this.dependency.id,
+            originDependency: this.originDependency.id,
+            statements: this.statements.map((item)=>item.toData())
+        };
+    }
+    setId(id) {
+        this.id = id;
+    }
+}
+const external_path_namespaceObject = require("path");
+var external_path_default = __webpack_require__.n(external_path_namespaceObject);
+const common_namespaceObject = require("@rsdoctor/utils/common");
+function isSamePosition(po1, po2) {
+    return po1.line === po2.line && po1.column === po2.column;
+}
+function isSameRange(po1, po2) {
+    return !!isSamePosition(po1.start, po2.start) && (common_namespaceObject.Lodash.isNil(po1.end) || common_namespaceObject.Lodash.isNil(po2.end) ? common_namespaceObject.Lodash.isUndefined(po1.end) && common_namespaceObject.Lodash.isUndefined(po2.end) : isSamePosition(po1.end, po2.end));
+}
+const NAME_WITH_LOADERS = /!/, NAME_WITH_MODULES = /\s\+\s\d*\smodules$/, INVALID_CSS_PREFIX = /^css\s.*node_modules(?!\/)/;
+function getModuleName(name) {
+    if (!name) return '';
+    if (NAME_WITH_LOADERS.test(name)) {
+        let normalizedName = common_namespaceObject.Lodash.last(name.split(NAME_WITH_LOADERS));
+        if (normalizedName?.trim()) return normalizedName;
+    }
+    return NAME_WITH_MODULES.test(name) ? name.replace(NAME_WITH_MODULES, '') : INVALID_CSS_PREFIX.test(name) ? name.replace(INVALID_CSS_PREFIX, '') : name;
+}
+class Statement {
+    static getDefaultStatement(module) {
+        let defaultPosition = {
+            line: 1,
+            column: 0
+        }, defaultRange = {
+            start: {
+                ...defaultPosition
+            },
+            end: {
+                ...defaultPosition
+            }
+        };
+        return new Statement(module, {
+            source: {
+                ...defaultRange
+            },
+            transformed: {
+                ...defaultRange
+            }
+        });
+    }
+    constructor(module, position){
+        this.module = module, this.position = position;
+    }
+    isSame(statement) {
+        return this.module.id === statement.module.id && isSameRange(this.position.transformed, statement.position.transformed);
+    }
+    getSourcePosition() {
+        let { module, position } = this;
+        return position.source ? position.source : module.getSourceMap() ? (position.source = module.getSourceRange(position.transformed), position.source) : void 0;
+    }
+    getLineCode() {
+        let useSource = this.module.isPreferSource && this.position.source, sourceCode = this.module.getSource(), source = useSource ? sourceCode.source : sourceCode.transformed, line = useSource ? this.position.source.start.line : this.position.transformed.start.line;
+        if ('number' == typeof line) return source.split('\n')[line - 1];
+    }
+    toData() {
+        let position = {
+            transformed: this.position.transformed
+        };
+        return this.position.source && (position.source = this.position.source), {
+            position,
+            module: this.module.id
+        };
+    }
+}
+let module_id = 1;
+class Module {
+    static{
+        this.kind = types_namespaceObject.SDK.ModuleKind;
+    }
+    static init() {
+        module_id = 1;
+    }
+    constructor(webpackId, path, isEntry = !1, kind = types_namespaceObject.SDK.ModuleKind.Normal, renderId, layer = ''){
+        this.issuerPath = [], this.bailoutReason = [], this.source = {
+            source: '',
+            transformed: '',
+            parsedSource: ''
+        }, this.size = {
+            sourceSize: 0,
+            transformedSize: 0,
+            parsedSize: 0,
+            gzipSize: 0
+        }, this.chunks = [], this.dependencies = [], this.imported = [], this.modules = [], this.concatenationModules = [], this.meta = {
+            hasSetEsModuleStatement: !1,
+            strictHarmonyModule: !1
+        }, this.id = module_id++, this.webpackId = webpackId, this.path = path, this.isEntry = isEntry, this.kind = kind, this.renderId = renderId, this.layer = layer;
+    }
+    get rootModule() {
+        return this.modules.find((item)=>item.path === this.path);
+    }
+    get isPreferSource() {
+        if ('boolean' == typeof this._isPreferSource) return this._isPreferSource;
+        let result = this.source.source.length > 0 && 'test code' !== this.source.source && !!this.sourceMap;
+        return this._isPreferSource = result, result;
+    }
+    addBailoutReason(reason) {
+        this.bailoutReason.push(reason);
+    }
+    getBailoutReason() {
+        return this.bailoutReason;
+    }
+    getChunks() {
+        return this.chunks.slice();
+    }
+    addChunk(chunk) {
+        this.chunks.includes(chunk) || (this.chunks.push(chunk), chunk.addModule(this));
+    }
+    removeChunk(chunk) {
+        this.chunks = this.chunks.filter((item)=>item !== chunk);
+    }
+    getDependencies() {
+        return this.dependencies.slice();
+    }
+    getDependencyByRequest(request) {
+        return this.dependencies.find((item)=>item.request === request);
+    }
+    getDependencyByModule(module) {
+        return this.dependencies.find((item)=>item.originDependency === module || item.dependency === module);
+    }
+    addDependency(request, module, kind, statements) {
+        let dep = new Dependency(request, this, module, kind, statements);
+        if (this.dependencies.every((item)=>!item.isSameWithoutStatements(dep))) return this.dependencies.push(dep), module.addImported(this), module.rootModule && module.rootModule.addImported(this), dep;
+    }
+    removeDependency(dep) {
+        this.dependencies = this.dependencies.filter((item)=>item === dep);
+    }
+    removeDependencyByModule(module) {
+        let dep = this.getDependencyByModule(module);
+        dep && this.removeDependency(dep);
+    }
+    getImported() {
+        return this.imported.slice();
+    }
+    addImported(module) {
+        this.imported.includes(module) || this.imported.push(module);
+    }
+    removeImported(module) {
+        this.imported = this.imported.filter((item)=>item === module);
+    }
+    setProgram(program) {
+        this.program = program;
+    }
+    getProgram() {
+        return this.program;
+    }
+    setSource(input) {
+        let { source } = this;
+        source.source = input.source ?? source.source, source.transformed = input.transformed ?? source.transformed, source.parsedSource = input.parsedSource ?? source.parsedSource;
+    }
+    getSource(type = types_namespaceObject.SDK.ToDataType.Normal) {
+        return type === types_namespaceObject.SDK.ToDataType.NoCode ? {
+            source: '',
+            transformed: '',
+            parsedSource: ''
+        } : type === types_namespaceObject.SDK.ToDataType.NoSourceAndAssets || type === types_namespaceObject.SDK.ToDataType.NoSource ? {
+            source: '',
+            transformed: '',
+            parsedSource: this.isPreferSource ? '' : this.source.parsedSource
+        } : type === types_namespaceObject.SDK.ToDataType.All ? {
+            source: this.source.source,
+            transformed: this.source.transformed,
+            parsedSource: this.isPreferSource ? '' : this.source.parsedSource
+        } : {
+            source: this.source.source,
+            transformed: '',
+            parsedSource: this.isPreferSource ? '' : this.source.parsedSource
+        };
+    }
+    setSourceMap(sourceMap) {
+        this.sourceMap = sourceMap;
+    }
+    getSourceMap() {
+        return this.sourceMap;
+    }
+    setSize(input) {
+        let { size } = this;
+        if (size.sourceSize = input.sourceSize ?? size.sourceSize, size.transformedSize = input.transformedSize ?? size.transformedSize, size.parsedSize = input.parsedSize ?? size.parsedSize, 'number' == typeof input.gzipSize) size.gzipSize = input.gzipSize;
+        else {
+            let code = this.source.parsedSource || this.source.source;
+            if (code && 'string' == typeof code && code.length > 0) try {
+                size.gzipSize = (0, external_node_zlib_namespaceObject.gzipSync)(code, {
+                    level: 9
+                }).length;
+            } catch (e) {
+                size.gzipSize = 0;
+            }
+        }
+    }
+    getSize() {
+        return {
+            ...this.size
+        };
+    }
+    getStatement(transformed) {
+        return new Statement(this, {
+            source: this.getSourceRange(transformed),
+            transformed: {
+                start: {
+                    ...transformed.start
+                },
+                end: transformed.end ? {
+                    ...transformed.end
+                } : void 0
+            }
+        });
+    }
+    getSourceRange(transformed) {
+        let { sourceMap } = this;
+        if (!sourceMap) return;
+        let source = {
+            start: {}
+        }, startInSource = sourceMap.originalPositionFor({
+            line: transformed.start.line ?? 0,
+            column: transformed.start.column ?? 0,
+            bias: 1
+        });
+        if (common_namespaceObject.Lodash.isNumber(startInSource.line) && (source.start = {
+            line: startInSource.line,
+            column: startInSource.column ?? void 0
+        }), transformed.end) {
+            let endInSource = sourceMap.originalPositionFor({
+                line: transformed.end.line ?? 0,
+                column: transformed.end.column ?? 0
+            });
+            common_namespaceObject.Lodash.isNumber(endInSource.line) && (source.end = {
+                line: endInSource.line,
+                column: endInSource.column ?? void 0
+            });
+        }
+        return source;
+    }
+    addNormalModule(module) {
+        this.modules.includes(module) || (this.modules.push(module), module.addConcatenationModule(this));
+    }
+    getNormalModules() {
+        return this.modules.slice();
+    }
+    addConcatenationModule(module) {
+        this.concatenationModules.includes(module) || this.concatenationModules.push(module);
+    }
+    addIssuerPath(issuerPath) {
+        this.issuerPath?.length || (this.issuerPath = issuerPath);
+    }
+    getIssuerPath() {
+        return this.issuerPath;
+    }
+    getConcatenationModules() {
+        return this.concatenationModules.slice();
+    }
+    toData(contextPath, isBrief) {
+        let { isPreferSource } = this, moduleName = getModuleName(this.webpackId), data = {
+            id: this.id,
+            renderId: this.renderId,
+            webpackId: contextPath && moduleName.indexOf('.') > 0 ? external_path_default().relative(contextPath, moduleName) : this.webpackId,
+            path: this.path,
+            isPreferSource,
+            dependencies: this.dependencies.map((item)=>item.id),
+            imported: this.imported.map((item)=>item.id),
+            chunks: this.chunks.map((item)=>item.id),
+            size: this.getSize(),
+            kind: this.kind,
+            ...this.layer ? {
+                layer: this.layer
+            } : {},
+            issuerPath: isBrief ? void 0 : this.issuerPath?.filter((issuer)=>issuer.moduleId).map((issuer)=>issuer.moduleId) || [],
+            bailoutReason: isBrief ? void 0 : this.bailoutReason
+        };
+        return (this.meta.hasSetEsModuleStatement || this.meta.strictHarmonyModule) && (data.meta = {}, this.meta.hasSetEsModuleStatement && (data.meta.hasSetEsModuleStatement = !0), this.meta.strictHarmonyModule && (data.meta.strictHarmonyModule = !0)), this.isEntry && (data.isEntry = this.isEntry), this.modules.length > 0 && (data.modules = this.modules.map((item)=>item.id)), this.rootModule && (data.rootModule = this.rootModule.id), this.concatenationModules.length > 0 && (data.concatenationModules = this.concatenationModules.map((data)=>data.id)), data;
+    }
+    setId(id) {
+        this.id = id;
+    }
+    setRenderId(renderId) {
+        this.renderId = renderId;
+    }
+    setChunks(chunks) {
+        this.chunks = chunks;
+    }
+    setDependencies(dependencies) {
+        this.dependencies = dependencies;
+    }
+    setImported(imported) {
+        this.imported = imported;
+    }
+    setModules(modules) {
+        this.modules = modules;
+    }
+    setConcatenationModules(modules) {
+        this.concatenationModules = modules;
+    }
+}
+let export_id = 1;
+class ExportInfo {
+    static init() {
+        export_id = 1;
+    }
+    constructor(name, identifier, variable){
+        this.id = export_id++, this._sideEffects = [], this.name = name, this.identifier = identifier, this._variable = variable;
+    }
+    get isReExport() {
+        return !!this.from;
+    }
+    set variable(data) {
+        this._variable = data;
+    }
+    get variable() {
+        if (this._variable) return this._variable;
+        if (!this.from || !1 === this._variable) {
+            this._variable = !1;
+            return;
+        }
+        let result = this.getRecursiveExport()?.variable;
+        return result || (this._variable = !1), result;
+    }
+    addSideEffect(info) {
+        this._sideEffects.every((item)=>item.id !== info.id) && (this._sideEffects.push(info), this.from && this.from.addSideEffect(info));
+    }
+    getSideEffects() {
+        return this._sideEffects.slice();
+    }
+    setFromExport(from) {
+        this.from = from;
+    }
+    getRecursiveExport(depth = 1 / 0) {
+        if (0 === depth) throw Error('`getRecursiveExport` method parameter depth must be greater than 1.');
+        if (!this.from) return this;
+        let currentDepth = 0, current = this;
+        for(; current.from && currentDepth < depth;)currentDepth++, current = current.from;
+        return current;
+    }
+    toData() {
+        let data = {
+            id: this.id,
+            name: this.name,
+            isReExport: this.isReExport,
+            used: this._sideEffects.map((item)=>item.id)
+        };
+        return this.from && (data.from = this.from.id, data.root = this.getRecursiveExport().id), this.variable && (data.variable = this.variable.id), data;
+    }
+}
+let sideEffect_id = 1;
+class SideEffect {
+    static init() {
+        sideEffect_id = 1;
+    }
+    static{
+        this.NamespaceSymbol = Symbol('namespace');
+    }
+    constructor(name, module, identifier, fromRequest, originName){
+        this.id = sideEffect_id++, this._exports = [], this.name = name, this.module = module, this.identifier = identifier, fromRequest && (this.fromDependency = this.module.getDependencyByRequest(fromRequest)), originName === SideEffect.NamespaceSymbol ? this.isNameSpace = !0 : (this.isNameSpace = !1, this.originName = originName);
+    }
+    get variable() {
+        if (void 0 !== this._variable) return this._variable ? this._variable : void 0;
+        let result = this.exports[0]?.getRecursiveExport()?.variable;
+        return this._variable = result ?? !1, result;
+    }
+    get exports() {
+        return this._exports?.slice() ?? [];
+    }
+    setModuleExport(mgm) {
+        mgm.getExports().forEach((info)=>this.setExportInfo(info));
+    }
+    setExportInfo(info) {
+        this._exports.push(info), info.addSideEffect(this);
+    }
+    toData() {
+        let data = {
+            id: this.id,
+            name: this.name,
+            identifier: this.identifier.toData(),
+            module: this.module.id
+        };
+        return this.fromDependency && (data.fromDependency = this.fromDependency.id), this.isNameSpace && (data.isNameSpace = this.isNameSpace), this.exports.length > 0 && (data.exports = this.exports.map((item)=>item.id)), this.variable && (data.variable = this.variable.id), data;
+    }
+}
+let variable_id = 1;
+class Variable {
+    static init() {
+        variable_id = 1;
+    }
+    constructor(name, module, usedInfo, identifier){
+        this.id = variable_id++, this.name = name, this.module = module, this.usedInfo = usedInfo, this.identifier = identifier;
+    }
+    get isUsed() {
+        return !!this._exported && this._exported.getSideEffects().length > 0;
+    }
+    setExportInfo(info) {
+        this._exported = info, info.variable = this;
+    }
+    getExportInfo() {
+        return this._exported;
+    }
+    toData() {
+        let data = {
+            id: this.id,
+            name: this.name,
+            module: this.module.id,
+            identifier: this.identifier.toData(),
+            usedInfo: this.usedInfo
+        };
+        return this._exported && (data.exported = this._exported.id), data;
+    }
+}
+class ModuleGraphModule {
+    static init() {
+        ExportInfo.init(), SideEffect.init(), Variable.init();
+    }
+    constructor(module, graph, dynamic){
+        this.exports = [], this.sideEffects = [], this.variables = [], this.module = module, this._graph = graph, 'boolean' == typeof this._dynamic && (this._dynamic = dynamic);
+    }
+    get dynamic() {
+        return 'boolean' == typeof this._dynamic ? this._dynamic : this.module.getImported().map((item)=>item.getDependencyByModule(this.module)).some((item)=>item && 'dynamic' === item.meta.exportsType);
+    }
+    addExportInfo(data) {
+        this.exports.push(data), this._graph.addExportInfo(data);
+    }
+    addSideEffect(data) {
+        this.sideEffects.push(data), this._graph.addSideEffect(data);
+    }
+    addVariable(data) {
+        this.variables.push(data), this._graph.addVariable(data);
+    }
+    getExports() {
+        return this.exports.slice();
+    }
+    getSideEffects(name) {
+        return name ? this.sideEffects.filter((item)=>item.name === name) : this.sideEffects.slice();
+    }
+    getOwnExports() {
+        return this.exports.filter((item)=>!item.isReExport);
+    }
+    getExport(name) {
+        return this.exports.find((item)=>item.name === name);
+    }
+    getReExports() {
+        return this.exports.filter((item)=>item.isReExport);
+    }
+    getOwnExport(name) {
+        return this.getOwnExports().find((item)=>item.name === name);
+    }
+    getReExport(name) {
+        return this.getReExports().find((item)=>item.name === name);
+    }
+    toData() {
+        return {
+            module: this.module.id,
+            dynamic: this.dynamic,
+            exports: this.exports.map((item)=>item.id),
+            sideEffects: this.sideEffects.map((item)=>item.id),
+            variables: this.variables.map((item)=>item.id)
+        };
+    }
+}
+class ModuleGraph {
+    static init() {
+        Module.init(), Dependency.init(), ModuleGraphModule.init();
+    }
+    static fromData(data) {
+        let moduleGraph = new ModuleGraph(), getStatement = (data)=>new Statement(moduleGraph.getModuleById(data.module), data.position);
+        for (let item of data.modules ?? []){
+            let module = new Module(String(item.id), item.path, item.isEntry, item.kind, item.renderId, item.layer);
+            module.id = item.id, module.setSize(item.size), module.meta = {
+                strictHarmonyModule: item.meta?.strictHarmonyModule ?? !1,
+                hasSetEsModuleStatement: item.meta?.hasSetEsModuleStatement ?? !1
+            }, module._isPreferSource = item.isPreferSource, module.chunks = item.chunks, moduleGraph.addModule(module);
+        }
+        for (let moduleData of data.modules ?? []){
+            let module = moduleGraph.getModuleById(moduleData.id);
+            for (let depId of moduleData.dependencies){
+                let depData = (data.dependencies ?? []).find((item)=>item.id === depId), depModule = depData && moduleGraph.getModuleById(depData.originDependency);
+                if (!depData || !depModule) {
+                    console.warn(`The connection data ID is empty: ${depId}`);
+                    continue;
+                }
+                let dep = module.addDependency(depData.request, depModule, depData.kind, depData.statements.map(getStatement));
+                dep && (dep.id = depData.id, moduleGraph.addDependency(dep));
+            }
+            for (let normalModuleId of moduleData.modules ?? []){
+                let normalModule = moduleGraph.getModuleById(normalModuleId);
+                if (!normalModule) {
+                    console.warn(`Add the ordinary module ID as empty: ${normalModuleId}`);
+                    continue;
+                }
+                module.addNormalModule(normalModule);
+            }
+            for (let concatenationModuleId of moduleData.concatenationModules ?? []){
+                let concatenationModule = moduleGraph.getModuleById(concatenationModuleId);
+                if (!concatenationModule) {
+                    console.warn(`The aggregation module ID is empty: ${concatenationModule}`);
+                    continue;
+                }
+                module.addConcatenationModule(concatenationModule);
+            }
+        }
+        for (let exportData of data.exports ?? []){
+            let info = new ExportInfo(exportData.name, exportData.identifier ? getStatement(exportData.identifier) : void 0);
+            info.id = exportData.id, moduleGraph.addExportInfo(info);
+        }
+        for (let exportData of data.exports ?? [])if (exportData.from) {
+            let current = moduleGraph._exportIdMap.get(exportData.id), from = moduleGraph._exportIdMap.get(exportData.from);
+            current && from && current.setFromExport(from);
+        }
+        for (let varData of data.variables ?? []){
+            let module = moduleGraph.getModuleById(varData.module);
+            if (!module) {
+                console.warn(`The module ID in the variable is empty：${varData.module}`);
+                continue;
+            }
+            let info = new Variable(varData.name, module, varData.usedInfo, getStatement(varData.identifier)), exportInfo = moduleGraph._exportIdMap.get(varData.exported ?? -1);
+            exportInfo && info.setExportInfo(exportInfo), info.id = varData.id, moduleGraph.addVariable(info);
+        }
+        for (let sideData of data.sideEffects ?? []){
+            let module = moduleGraph.getModuleById(sideData.module);
+            if (!module) {
+                console.warn(`The module ID in the side effects is empty：${sideData.module}`);
+                continue;
+            }
+            let info = new SideEffect(sideData.name, module, getStatement(sideData.identifier), sideData.originName);
+            for (let exportId of (info.isNameSpace = sideData.isNameSpace, info.id = sideData.id, sideData.exports ?? [])){
+                let exportInfo = moduleGraph._exportIdMap.get(exportId);
+                exportInfo && exportInfo.addSideEffect(info);
+            }
+            if (sideData.variable) {
+                let varInfo = moduleGraph._varIdMap.get(sideData.variable);
+                varInfo && (info._variable = varInfo);
+            }
+            moduleGraph.addSideEffect(info);
+        }
+        for (let mgmData of data.moduleGraphModules ?? []){
+            let module = moduleGraph.getModuleById(mgmData.module);
+            if (!module) {
+                console.warn(`The module ID in ModuleGraphModule is empty: ${mgmData.module}`);
+                continue;
+            }
+            let mgm = new ModuleGraphModule(module, moduleGraph, mgmData.dynamic);
+            moduleGraph.addModuleGraphModule(mgm), mgmData.exports.forEach((id)=>{
+                let info = moduleGraph._exportIdMap.get(id);
+                info && mgm.addExportInfo(info);
+            }), mgmData.sideEffects.forEach((id)=>{
+                let info = moduleGraph._sideEffectIdMap.get(id);
+                info && mgm.addSideEffect(info);
+            }), mgmData.variables.forEach((id)=>{
+                let info = moduleGraph._varIdMap.get(id);
+                info && mgm.addVariable(info);
+            });
+        }
+        return ModuleGraph.init(), moduleGraph;
+    }
+    clear() {
+        this._dependenciesIdMap = new Map(), this._moduleWebpackIdMap = new Map(), this._moduleIdMap = new Map(), this._moduleGraphModules = new Map(), this._exportIdMap = new Map(), this._sideEffectIdMap = new Map(), this._varIdMap = new Map(), this._layers = new Map();
+    }
+    size() {
+        return this._moduleIdMap.size;
+    }
+    fromInstance(data) {
+        this._dependenciesIdMap = new Map(data._dependenciesIdMap), this._moduleWebpackIdMap = new Map(data._moduleWebpackIdMap), this._moduleIdMap = new Map(data._moduleIdMap), this._moduleGraphModules = new Map(data._moduleGraphModules), this._exportIdMap = new Map(data._exportIdMap), this._sideEffectIdMap = new Map(data._sideEffectIdMap), this._varIdMap = new Map(data._varIdMap), this._layers = new Map(data._layers);
+    }
+    getSubGraphByModule(module) {
+        let map = new Set(), result = [
+            module
+        ];
+        map.add(module);
+        for(let i = 0; i < result.length; i++)for (let { dependency: depModule } of result[i].getDependencies())map.has(depModule) || (map.add(depModule), result.push(depModule));
+        return result;
+    }
+    getModules() {
+        return Array.from(this._moduleWebpackIdMap.values());
+    }
+    getDependencies() {
+        return Array.from(this._dependenciesIdMap.values());
+    }
+    getEntryModules() {
+        return this.getModules().filter((item)=>item.isEntry && item.kind !== types_namespaceObject.SDK.ModuleKind.Concatenation);
+    }
+    getModuleById(id) {
+        return this._moduleIdMap.get(id);
+    }
+    getDependencyById(id) {
+        return this._dependenciesIdMap.get(id);
+    }
+    getModuleByWebpackId(id) {
+        return this._moduleWebpackIdMap.get(id);
+    }
+    getModuleByFile(file, layer) {
+        return this.getModules().filter((item)=>item.path === file && (void 0 === layer || item.layer === layer));
+    }
+    addModule(...modules) {
+        for (let module of modules)!this._moduleIdMap.has(module.id) && (this._moduleWebpackIdMap.set(module.webpackId, module), this._moduleIdMap.set(module.id, module), module.layer && this.addLayer(module.layer));
+    }
+    addDependency(...deps) {
+        for (let dep of deps)this._dependenciesIdMap.has(dep.id) || (this._dependenciesIdMap.set(dep.id, dep), this.addModule(dep.module), this.addModule(dep.dependency));
+    }
+    removeModule(module) {
+        for (let dep of (this._moduleIdMap.delete(module.id), this._moduleWebpackIdMap.delete(module.webpackId), module.getDependencies()))this.removeDependency(dep), this._dependenciesIdMap.delete(dep.id);
+        for (let imported of module.getImported())imported.removeDependencyByModule(imported);
+    }
+    removeDependency(dep) {
+        dep.module.removeDependency(dep), dep.dependency.removeImported(dep.module), this._dependenciesIdMap.delete(dep.id);
+    }
+    addModuleGraphModule(mgm) {
+        this._moduleGraphModules.has(mgm.module) || this._moduleGraphModules.set(mgm.module, mgm);
+    }
+    getModuleGraphModule(module) {
+        return this._moduleGraphModules.get(module);
+    }
+    getModuleGraphModules() {
+        return Array.from(this._moduleGraphModules.values());
+    }
+    addExportInfo(data) {
+        this._exportIdMap.set(data.id, data);
+    }
+    addSideEffect(data) {
+        this._sideEffectIdMap.set(data.id, data);
+    }
+    addVariable(data) {
+        this._varIdMap.set(data.id, data);
+    }
+    addLayer(layer) {
+        this._layers.get(layer) || this._layers.set(layer, 1);
+    }
+    getLayers() {
+        return this._layers;
+    }
+    toData(configs) {
+        let isBrief = !!(configs?.briefOptions?.type && configs.briefOptions.type.length);
+        return {
+            dependencies: this.getDependencies().map((item)=>item.toData()),
+            modules: this.getModules().map((item)=>item.toData(configs?.contextPath, isBrief)),
+            moduleGraphModules: isBrief ? [] : Array.from(this._moduleGraphModules.values()).map((item)=>item.toData()),
+            exports: isBrief ? [] : Array.from(this._exportIdMap.values()).map((item)=>item.toData()),
+            sideEffects: isBrief ? [] : Array.from(this._sideEffectIdMap.values()).map((item)=>item.toData()),
+            variables: isBrief ? [] : Array.from(this._varIdMap.values()).map((item)=>item.toData()),
+            layers: Array.from(this._layers.keys())
+        };
+    }
+    toCodeData(type = types_namespaceObject.SDK.ToDataType.Normal) {
+        let codeMap = {};
+        return this.getModules().forEach((item)=>{
+            codeMap[item.id] = item.getSource(type);
+        }), codeMap;
+    }
+    setModules(modules) {
+        this._moduleIdMap = new Map(modules.map((m)=>[
+                m.id,
+                m
+            ])), this._moduleWebpackIdMap = new Map(modules.map((m)=>[
+                m.webpackId,
+                m
+            ])), this._layers = new Map(modules.filter((m)=>m.layer).map((m)=>[
+                m.layer,
+                1
+            ]));
+    }
+    setDependencies(dependencies) {
+        this._dependenciesIdMap = new Map(dependencies.map((d)=>[
+                d.id,
+                d
+            ]));
+    }
+    constructor(){
+        this._dependenciesIdMap = new Map(), this._moduleWebpackIdMap = new Map(), this._moduleIdMap = new Map(), this._moduleGraphModules = new Map(), this._exportIdMap = new Map(), this._sideEffectIdMap = new Map(), this._varIdMap = new Map(), this._layers = new Map();
+    }
+}
+let package_graph_dependency_id = 1;
+class PackageDependency {
+    constructor(pack, dep, refDependency){
+        this.id = package_graph_dependency_id++, this.package = pack, this.dependency = dep, this.refDependency = refDependency;
+    }
+    get name() {
+        return this.dependency.name;
+    }
+    get version() {
+        return this.dependency.version;
+    }
+    get root() {
+        return this.dependency.root;
+    }
+    isSame(dep) {
+        return this.refDependency === dep.refDependency && this.dependency.isSame(dep.dependency);
+    }
+    toData() {
+        return {
+            id: this.id,
+            dependency: this.dependency.id,
+            package: this.package.id,
+            refDependency: this.refDependency.id
+        };
+    }
+}
+const compat_namespaceObject = require("es-toolkit/compat");
+function isPackagePath(path) {
+    return /(^|[/\\])node_modules[/\\]/.test(path);
+}
+const readPackageJson = (file, readFile)=>{
+    let result, current = file;
+    for(; '/' !== current && !result && (0, external_path_namespaceObject.dirname)(current) !== current;)current = (0, external_path_namespaceObject.dirname)(current), readFile && (result = readFile((0, external_path_namespaceObject.join)(current, 'package.json'))), readFile ? result?.name || (result = void 0) : result = common_namespaceObject.Package.getPackageMetaFromModulePath(file);
+    if (result) return !readFile || result.name && result.version ? {
+        ...result,
+        root: current
+    } : readPackageJson((0, external_path_namespaceObject.dirname)(current), readFile);
+};
+let package_id = 1;
+class Package {
+    constructor(name, root, version){
+        this.id = package_id++, this._modules = [], this._dependencies = [], this._imported = [], this.name = name, this.root = root, this.version = version, this.duplicates = [];
+    }
+    setDuplicates(data) {
+        this.duplicates.push({
+            module: data.module,
+            chunks: data.chunks
+        });
+    }
+    getModules() {
+        return this._modules.slice();
+    }
+    getDependencies() {
+        return this._dependencies.slice();
+    }
+    getImported() {
+        return this._imported.slice();
+    }
+    addModule(module) {
+        this._modules.includes(module) || this._modules.push(module);
+    }
+    addDependency(dep) {
+        this._dependencies.every((item)=>!item.isSame(dep)) && (this._dependencies.push(dep), dep.dependency.addImported(this));
+    }
+    getDependenciesChain(graph) {
+        return function getImported(pkg, ans) {
+            for (let dep of graph.getDependenciesFromPackage(pkg))if (dep.refDependency && !ans.some((dep)=>dep.dependency === pkg)) {
+                if (!dep.package) return ans.concat(dep);
+                return getImported(dep.package, ans.concat(dep));
+            }
+            return ans;
+        }(this, []);
+    }
+    addImported(pkg) {
+        this._imported.includes(pkg) || this._imported.push(pkg);
+    }
+    contain(file) {
+        return !!file.includes(this.root) && !isPackagePath((0, external_path_namespaceObject.relative)(this.root, file));
+    }
+    isSame(pkg) {
+        return this.root === pkg.root && this.version === pkg.version && this.name === pkg.name;
+    }
+    getSize() {
+        return this._modules.reduce((ans, item)=>{
+            let size = item.getSize();
+            return ans.sourceSize += size.sourceSize, ans.transformedSize += size.transformedSize, ans.parsedSize += size.parsedSize, ans.gzipSize += size.gzipSize, ans;
+        }, {
+            sourceSize: 0,
+            transformedSize: 0,
+            parsedSize: 0,
+            gzipSize: 0
+        });
+    }
+    toData() {
+        return {
+            id: this.id,
+            name: this.name,
+            root: this.root,
+            version: this.version,
+            modules: this.getModules().map((e)=>e.id),
+            size: this.getSize(),
+            duplicates: this.duplicates
+        };
+    }
+}
+class PackageGraph {
+    static fromModuleGraph(graph, root, getPackageFile) {
+        let pkgGraph = new PackageGraph(root);
+        for (let item of graph.getModules().filter((item)=>item.kind === types_namespaceObject.SDK.ModuleKind.Normal)){
+            if (!item.getChunks()) continue;
+            let pkg = pkgGraph.getPackageByModule(item, getPackageFile);
+            pkg && (pkgGraph.addPackage(pkg), pkg.addModule(item));
+        }
+        for (let dep of graph.getDependencies()){
+            let modulePkg = pkgGraph.getPackageByFile(dep.module.path), dependencyPkg = pkgGraph.getPackageByFile(dep.dependency.path);
+            if (modulePkg && dependencyPkg && !modulePkg.isSame(dependencyPkg)) {
+                let pkgDep = new PackageDependency(modulePkg, dependencyPkg, dep);
+                pkgGraph.addDependency(pkgDep), modulePkg.addDependency(pkgDep);
+            }
+        }
+        return pkgGraph;
+    }
+    constructor(root){
+        this._dependencies = [], this._packages = [], this._pkgNameMap = new Map(), this._pkgFileMap = new Map(), this._root = root;
+    }
+    getPackages() {
+        return this._packages.slice();
+    }
+    getPackageByModule(module, readFile) {
+        let { path: file, meta } = module, { _pkgFileMap: pkgsMap } = this, getPackageByData = (data)=>this.getPackageByData(data) ?? new Package(data.name, data.root, data.version);
+        if (pkgsMap.has(file)) return pkgsMap.get(file);
+        if (meta.packageData) {
+            let pkg = getPackageByData(meta.packageData);
+            return this.setDuplicates(module, pkg), pkgsMap.set(file, pkg), pkg;
+        }
+        let cache = this.getPackageContainFile(file);
+        if (cache) return pkgsMap.set(file, cache), cache;
+        let data = readPackageJson(file, readFile);
+        if (!data) return;
+        data.root.startsWith('.') && (data.root = (0, external_path_namespaceObject.resolve)(this._root, data.root));
+        let pkg = getPackageByData(data);
+        return this.setDuplicates(module, pkg), this.addPackage(pkg), pkgsMap.set(file, pkg), pkg;
+    }
+    getPackageByFile(file) {
+        return this._pkgFileMap.get(file);
+    }
+    getPackageContainFile(file) {
+        return this._packages.find((pkg)=>pkg.contain(file));
+    }
+    getPackagesByName(name) {
+        return this._pkgNameMap.get(name) ?? [];
+    }
+    getPackageByData(data) {
+        return this._pkgNameMap.get(data.name)?.find((item)=>item.version === data.version && item.root === data.root);
+    }
+    addPackage(pkg) {
+        if (this._packages.every((item)=>!item.isSame(pkg))) {
+            this._packages.push(pkg);
+            let { _pkgNameMap: map } = this, arr = map.get(pkg.name) ?? [];
+            arr.every((item)=>!item.isSame(pkg)) && (arr.push(pkg), map.set(pkg.name, arr));
+        }
+    }
+    setDuplicates(module, pkg) {
+        let assetsList = [], chunksList = module.getChunks();
+        chunksList.forEach((chunk)=>assetsList.push(...chunk.getAssets().filter((asset)=>asset.path.endsWith('.js')))), chunksList.length > 1 && pkg.setDuplicates({
+            module: {
+                id: module.id,
+                path: module.path
+            },
+            chunks: assetsList.map((asset)=>({
+                    name: asset.path
+                }))
+        });
+    }
+    getDependenciesFromPackage(pkg) {
+        return this._dependencies.filter((dep)=>dep.dependency === pkg);
+    }
+    addDependency(dep) {
+        this._dependencies.every((item)=>!item.isSame(dep)) && this._dependencies.push(dep);
+    }
+    getDependenciesFromOrigin() {
+        return this._dependencies.filter((item)=>!item.package);
+    }
+    getDuplicatePackages() {
+        return (0, compat_namespaceObject.unionBy)(Array.from(this._pkgNameMap.values()).map((pkgs)=>(0, compat_namespaceObject.unionBy)(pkgs, 'version')).filter((pkgs)=>pkgs.length > 1), (pkgs)=>pkgs[0].name);
+    }
+    toData() {
+        return {
+            packages: this._packages.map((e)=>e.toData()),
+            dependencies: this._dependencies.map((d)=>d.toData())
+        };
+    }
+}
+const logger_namespaceObject = require("@rsdoctor/utils/logger");
+async function getAssetsModulesData(moduleGraph, chunkGraph, bundleDir, opts, sourceMapSets = new Map(), assetsWithoutSourceMap) {
+    if (sourceMapSets.size > 0) {
+        for (let [modulePath, codes] of ((0, logger_namespaceObject.time)("Start Parse bundle by sourcemap."), sourceMapSets.entries())){
+            let gzipSize, modules = moduleGraph.getModuleByFile(modulePath);
+            try {
+                codes && 'string' == typeof codes && codes.length > 0 && (gzipSize = (0, external_node_zlib_namespaceObject.gzipSync)(codes, {
+                    level: 9
+                }).length);
+            } catch  {}
+            for (let module of modules)module?.setSize({
+                parsedSize: codes.length,
+                gzipSize
+            }), module?.setSource({
+                parsedSource: codes
+            });
+        }
+        (0, logger_namespaceObject.timeEnd)("Start Parse bundle by sourcemap.");
+    }
+    if (opts.parseBundle && (assetsWithoutSourceMap && assetsWithoutSourceMap.size > 0 || sourceMapSets.size < 1)) {
+        (0, logger_namespaceObject.time)("Start Parse bundle by AST.");
+        let { parseBundle = ()=>({}) } = opts || {}, assets = chunkGraph.getAssets(), modules = moduleGraph.getModules(), bundlesSources = null, parsedModules = null;
+        if (bundleDir && assets.length) {
+            for (let asset of (bundlesSources = {}, parsedModules = {}, assets)){
+                let bundleInfo;
+                if (assetsWithoutSourceMap && assetsWithoutSourceMap.size > 0 && !assetsWithoutSourceMap.has(asset.path)) continue;
+                let assetFile = external_path_default().join(bundleDir, asset.path);
+                try {
+                    bundleInfo = parseBundle(assetFile, modules);
+                } catch (err) {
+                    let { code = '', message } = err, msg = 'ENOENT' === code ? 'no such file' : message;
+                    '1' === process.env.DEVTOOLS_NODE_DEV && logger_namespaceObject.logger.warn(`Error parsing bundle asset "${assetFile}": ${msg}`);
+                    continue;
+                }
+                bundlesSources[asset.path] = common_namespaceObject.Lodash.pick(bundleInfo, [
+                    'src',
+                    'runtimeSrc'
+                ]), Object.assign(parsedModules, bundleInfo?.modules || {});
+            }
+            common_namespaceObject.Lodash.isEmpty(bundlesSources) && (bundlesSources = null, parsedModules = null, process.env.DEVTOOLS_DEV && logger_namespaceObject.logger.warn('\nNo bundles were parsed. Analyzer will show only original module sizes from stats file.\n')), parsedModules && transformAssetsModulesData(parsedModules, moduleGraph);
+        }
+        (0, logger_namespaceObject.timeEnd)("Start Parse bundle by AST.");
+    }
+}
+function transformAssetsModulesData(parsedModulesData, moduleGraph) {
+    moduleGraph && Object.entries(parsedModulesData).forEach(([moduleId, parsedData])=>{
+        let gzipSize, module = moduleGraph.getModuleByWebpackId(moduleId ?? '');
+        try {
+            parsedData?.content && 'string' == typeof parsedData.content && parsedData.content.length > 0 && (gzipSize = (0, external_node_zlib_namespaceObject.gzipSync)(parsedData.content, {
+                level: 9
+            }).length);
+        } catch  {}
+        module?.setSize({
+            parsedSize: parsedData?.size,
+            gzipSize
+        }), module?.setSource({
+            parsedSource: parsedData?.content || ''
+        });
+    });
+}
+const FILTER_ASSETS_TYPE = 'assets by status';
+function chunkTransform(assetMap, bundleStats) {
+    let chunkGraph = new ChunkGraph();
+    if (bundleStats.chunks?.forEach((_chunk)=>{
+        let chunk = new Chunk(String(_chunk.id), _chunk.names?.join('') || _chunk.files?.join('| ') || '', _chunk.size, _chunk.initial, _chunk.entry);
+        chunk.setParsedSize(0), chunkGraph.addChunk(chunk);
+    }), bundleStats.assets?.every((asset)=>asset.type === FILTER_ASSETS_TYPE) ? bundleStats.chunks?.forEach((_chunk)=>{
+        let chunk = chunkGraph.getChunkById(String(_chunk.id));
+        chunk && _chunk.files && _chunk.files.forEach((fileName)=>{
+            if (!chunkGraph.getAssetByPath(fileName)) {
+                let { content = '' } = assetMap.get(fileName) || {}, asset = new Asset(fileName, 0, [
+                    chunk
+                ], content);
+                chunk.addAsset(asset), chunkGraph.addAsset(asset);
+            }
+        });
+    }) : bundleStats.assets?.forEach((_asset)=>{
+        if (_asset.type === FILTER_ASSETS_TYPE) return;
+        let chunks = _asset.chunks?.map((ck)=>chunkGraph.getChunkById(String(ck))).filter((chunk)=>!!chunk) || [], { content = '' } = assetMap.get(_asset.name) || {}, asset = new Asset(_asset.name, _asset.size, chunks, content);
+        chunks.forEach((chunk)=>chunk?.addAsset(asset)), chunkGraph.addAsset(asset);
+    }), bundleStats.entrypoints) for (let [key, _entrypoint] of Object.entries(bundleStats.entrypoints)){
+        let entrypoint = new EntryPoint(_entrypoint.name || key);
+        _entrypoint.chunks?.forEach((chunkId)=>{
+            let ck = chunkGraph.getChunkById(`${chunkId}`);
+            ck && entrypoint.addChunk(ck);
+        }), _entrypoint.assets?.forEach((_asset)=>{
+            let asset = chunkGraph.getAssetByPath(_asset.name);
+            asset && entrypoint.addAsset(asset);
+        }), chunkGraph.addEntryPoint(entrypoint);
+    }
+    return chunkGraph;
+}
+const COMPRESSIBLE_REGEX = /\.(?:js|css|html|json|svg|txt|xml|xhtml|wasm|manifest)$/i;
+function assetsContents(assetMap, chunkGraph, supports) {
+    chunkGraph.getAssets().forEach((asset)=>{
+        let { content = '' } = assetMap.get(asset.path) || {};
+        asset.content = content, COMPRESSIBLE_REGEX.test(asset.path) && supports?.gzip && asset.setGzipSize(content);
+    });
+}
+const external_path_browserify_namespaceObject = require("path-browserify");
+var external_path_browserify_default = __webpack_require__.n(external_path_browserify_namespaceObject);
+function isImportDependency({ type }) {
+    return 'harmony side effect evaluation' === type || 'cjs require' === type || 'cjs full require' === type || 'cjs export require' === type || 'provided' === type || 'esm import' === type;
+}
+function getImportKind(dep) {
+    let { type } = dep;
+    return type ? type.includes('harmony') ? types_namespaceObject.SDK.DependencyKind.ImportStatement : type.includes('cjs') ? types_namespaceObject.SDK.DependencyKind.RequireCall : type.includes('import()') ? types_namespaceObject.SDK.DependencyKind.DynamicImport : type.includes('amd') ? types_namespaceObject.SDK.DependencyKind.AMDRequire : types_namespaceObject.SDK.DependencyKind.Unknown : types_namespaceObject.SDK.DependencyKind.Unknown;
+}
+function removeNoImportStyle(graph) {
+    graph.getModules().filter((module)=>common_namespaceObject.File.isStyleExt(module.path)).filter((item)=>0 === item.getImported().length).forEach((item)=>graph.removeModule(item));
+}
+function getPositionByStatsLocation(loc) {
+    function formatPosition(loc) {
+        let [line, column] = loc.split(':');
+        return {
+            line: Number(line),
+            column: Number(column)
+        };
+    }
+    if (loc.includes('-')) {
+        let positionString = loc.split('-'), start = formatPosition(positionString[0]), end = formatPosition(positionString[1]);
+        return {
+            start,
+            end: Number.isNaN(end.column) ? {
+                line: start.line,
+                column: end.line
+            } : end
+        };
+    }
+    return loc.includes(':') ? {
+        start: formatPosition(loc)
+    } : loc.includes('[') ? {
+        start: {
+            index: Number(loc.match(/\[(\d+)\]/)[1])
+        }
+    } : void 0;
+}
+function isWebpack5orRspack(compilation) {
+    return 'moduleGraph' in compilation && !!compilation.moduleGraph;
+}
+function getCanSkip(data) {
+    if (!data.identifier || !(data?.nameForCondition || data.name) || data.identifier.startsWith('webpack/runtime') || data?.name?.startsWith('(webpack)')) return !0;
+}
+function getGetModuleName(root, data) {
+    if (data.nameForCondition) return data.nameForCondition.replace('\x00', '');
+    let name = data.name.replace(/ ?\+ ?\d+ ?modules$/, '');
+    return external_path_browserify_default().isAbsolute(name) ? name : external_path_browserify_default().join(root, name);
+}
+function isJsonFile(filePath) {
+    return '.json' === external_path_browserify_default().extname(filePath).toLowerCase();
+}
+function getModuleFromChildren(module, collectedModules) {
+    'module' === module.type || void 0 === module.type ? collectedModules.push(module) : 'children' in module && module.children && getModulesFromArray(module.children, collectedModules);
+}
+function getModulesFromArray(modules, collectedModules) {
+    modules.forEach((module)=>{
+        getModuleFromChildren(module, collectedModules);
+    });
+}
+function getModulesFromChunks(chunks, collectedModules) {
+    chunks?.forEach((chunk)=>{
+        chunk.modules?.length && collectedModules.push(...chunk.modules.map((module)=>({
+                ...module,
+                identifier: module.identifier ?? module.moduleIdentifier,
+                name: module.name ?? module.moduleName
+            })));
+    });
+}
+function getModuleGraphByStats({ modules, chunks }, root, chunkGraph) {
+    ModuleGraph.init();
+    let moduleGraph = new ModuleGraph(), allModules = [], collectedModules = [];
+    for (let data of (getModulesFromArray(modules ?? [], collectedModules), getModulesFromChunks(chunks ?? [], collectedModules), collectedModules ?? [])){
+        if (getCanSkip(data) || moduleGraph.getModuleByWebpackId(data.identifier)) continue;
+        allModules.push(data);
+        let isConcatenated = !!(data.modules && data.modules.length > 0), concatenatedModule = new Module(data.identifier ?? data.moduleIdentifier, getGetModuleName(root, data), 0 === data.depth, isConcatenated ? types_namespaceObject.SDK.ModuleKind.Concatenation : types_namespaceObject.SDK.ModuleKind.Normal, data.id ? String(data.id) : void 0, data.layer);
+        if (data.optimizationBailout && data.optimizationBailout.forEach((reason)=>concatenatedModule.addBailoutReason(reason)), data.issuerPath && concatenatedModule.addIssuerPath(data.issuerPath), data.chunks?.forEach((_chunkId)=>{
+            let chunk = chunkGraph.getChunkById(String(_chunkId));
+            chunk && concatenatedModule.addChunk(chunk);
+        }), moduleGraph.addModule(concatenatedModule), data.source && concatenatedModule.setSource({
+            transformed: Buffer.isBuffer(data.source) ? data.source.toString() : data.source
+        }), 'number' == typeof data.size) {
+            concatenatedModule.setSize({
+                sourceSize: data.size,
+                transformedSize: data.size
+            });
+            let sizeData = {
+                sourceSize: data.size,
+                transformedSize: data.size
+            };
+            isJsonFile(concatenatedModule.path) && (sizeData.parsedSize = data.size), concatenatedModule.setSize(sizeData);
+        }
+        for (let normal of data.modules ?? []){
+            let normalModule;
+            if (getCanSkip(normal)) continue;
+            allModules.push(normal);
+            let webpackId = normal.identifier, registeredModule = moduleGraph.getModuleByWebpackId(webpackId);
+            if (normalModule = registeredModule || (moduleGraph.getModuleByWebpackId(webpackId) ?? new Module(webpackId, getGetModuleName(root, normal), 0 === normal.depth, types_namespaceObject.SDK.ModuleKind.Normal, normal.id ? String(normal.id) : void 0, normal.layer)), normal.optimizationBailout && normal.optimizationBailout.forEach((reason)=>normalModule.addBailoutReason(reason)), normal.issuerPath && normalModule.addIssuerPath(normal.issuerPath), normal.chunks?.length ? normal.chunks?.forEach((_chunkId)=>{
+                let chunk = chunkGraph.getChunkById(String(_chunkId));
+                chunk && normalModule.addChunk(chunk);
+            }) : data.chunks?.forEach((_chunkId)=>{
+                let chunk = chunkGraph.getChunkById(String(_chunkId));
+                chunk && normalModule.addChunk(chunk);
+            }), normal.source && normalModule.setSource({
+                transformed: Buffer.isBuffer(normal.source) ? normal.source.toString() : normal.source
+            }), 'number' == typeof normal.size) {
+                normalModule.setSize({
+                    sourceSize: normal.size,
+                    transformedSize: normal.size
+                });
+                let sizeData = {
+                    sourceSize: normal.size,
+                    transformedSize: normal.size
+                };
+                isJsonFile(normalModule.path) && (sizeData.parsedSize = normal.size), normalModule.setSize(sizeData);
+            }
+            moduleGraph.addModule(normalModule), concatenatedModule.addNormalModule(normalModule);
+        }
+    }
+    for (let module of allModules){
+        let currentModule = moduleGraph.getModuleByWebpackId(module.identifier ?? '');
+        if (!currentModule) continue;
+        let dependencies = (module.reasons ?? []).filter(isImportDependency).filter((item)=>!!(item.moduleIdentifier && item.userRequest));
+        for (let dep of ((module.reasons ?? []).filter((item)=>'from origin' === item.type).forEach((dep)=>dep?.children?.forEach((_d)=>dependencies.push({
+                    ...dep,
+                    ..._d,
+                    children: void 0
+                }))), dependencies)){
+            let rawRequest = dep.userRequest, requestModule = moduleGraph.getModuleByWebpackId(dep.moduleIdentifier);
+            if (!requestModule) continue;
+            if (!requestModule.getDependencyByRequest(rawRequest)) {
+                let data = requestModule.addDependency(rawRequest, currentModule, getImportKind(dep));
+                data && moduleGraph.addDependency(data);
+            }
+            let dependency = requestModule.getDependencyByRequest(rawRequest);
+            if (dependency && dep?.loc) {
+                let position = getPositionByStatsLocation(dep.loc);
+                position && dependency.addStatement(new Statement(requestModule, {
+                    transformed: position
+                }));
+            }
+        }
+    }
+    let moduleCache = new Map();
+    return moduleGraph.getModules().forEach((module)=>{
+        module.issuerPath && module.issuerPath.forEach((issuer)=>{
+            let moduleInstance = moduleCache.get(issuer.identifier);
+            !moduleInstance && (moduleInstance = moduleGraph.getModuleByWebpackId(issuer.identifier)) && moduleCache.set(issuer.identifier, moduleInstance), moduleInstance && (issuer.moduleId = moduleInstance.id);
+        });
+    }), moduleGraph;
+}
+async function transStats(json) {
+    let chunkGraph = chunkTransform(new Map(), json), moduleGraph = getModuleGraphByStats(json, '.', chunkGraph);
+    return await getAssetsModulesData(moduleGraph, chunkGraph, json.outputPath || '', {}), {
+        chunkGraph,
+        moduleGraph
+    };
+}
+function isNormalModule(mod) {
+    return 'request' in mod && 'rawRequest' in mod && 'resource' in mod;
+}
+function getWebpackModuleId(mod) {
+    return mod.identifier();
+}
+function getWebpackModulePath(mod) {
+    return mod.resource ?? mod.nameForCondition?.() ?? getWebpackModuleId(mod);
+}
+function getWebpackDependencyRequest(dep, module) {
+    return dep.request ?? dep.userRequest ?? module?.rawRequest;
+}
+function getResolveRequest(dep, graph) {
+    return getWebpackModulePath(graph.getResolvedModule(dep));
+}
+function isExternalModule(mod) {
+    return !!mod.externalType;
+}
+function getModuleSource(mod) {
+    return isExternalModule(mod) ? '' : mod.originalSource?.()?.source().toString() ?? '';
+}
+function getEntryModule(entryMap) {
+    return Array.from(entryMap.values()).map((entry)=>entry.getRuntimeChunk()).map((chunk)=>chunk ? chunk.entryModule : null).filter(Boolean).map((mod)=>isNormalModule(mod) ? mod : mod.rootModule);
+}
+function getDependencyPosition(dep, module, getSource = !0) {
+    let { loc: depLoc } = dep;
+    if (void 0 === depLoc || !('start' in depLoc)) return;
+    let transformed = {
+        start: {
+            line: depLoc.start.line,
+            column: depLoc.start.column
+        },
+        end: depLoc.end ? {
+            line: depLoc.end.line,
+            column: depLoc.end.column
+        } : void 0
+    };
+    return new Statement(module, {
+        source: getSource ? module.getSourceRange(transformed) : void 0,
+        transformed
+    });
+}
+function getExportDependency(info, module) {
+    let dep = module.dependencies.find((dep)=>dep.name === info.name && ('harmony export imported specifier' === dep.type || 'harmony export specifier' === dep.type));
+    return !dep && info._target && info._target.size > 0 && (dep = info._getMaxTarget().values().next().value.connection.dependency), dep;
+}
+function getSdkDependencyByWebpackDependency(dep, module, graph) {
+    let modulePath = getWebpackModulePath(module), request = getWebpackDependencyRequest(dep);
+    return graph.getDependencies().find((item)=>item.module.path === modulePath && item.request === request);
+}
+function getExportStatement(info, normalModule, graph) {
+    let webpackDependency = getExportDependency(info, normalModule);
+    if (!webpackDependency) return;
+    let modulePath = getWebpackModulePath(normalModule), request = getWebpackDependencyRequest(webpackDependency), sdkDependency = graph.getDependencies().find((item)=>item.module.path === modulePath && item.request === request);
+    if (sdkDependency && 1 === sdkDependency.statements.length) return sdkDependency.statements[0];
+    let sdkModule = graph.getModuleByWebpackId(getWebpackModuleId(normalModule));
+    if (sdkModule) return getDependencyPosition(webpackDependency, sdkModule);
+}
+function getLastExportInfo(info, webpackGraph) {
+    let target = info.findTarget(webpackGraph, ()=>!0);
+    if (target && target.export) return webpackGraph.getExportsInfo(target.module).getExportInfo(target.export[0]);
+}
+function getAllModules(compilation) {
+    let modules = [];
+    for (let mod of compilation.modules)modules.push(...mod.modules ?? []), modules.push(mod);
+    return (0, compat_namespaceObject.unionBy)(modules.filter((mod)=>!getWebpackModuleId(mod).startsWith('webpack/runtime')), (mod)=>getWebpackModuleId(mod));
+}
+for(var __rspack_i in exports.Asset = __webpack_exports__.Asset, exports.Chunk = __webpack_exports__.Chunk, exports.ChunkGraph = __webpack_exports__.ChunkGraph, exports.Chunks = __webpack_exports__.Chunks, exports.Dependency = __webpack_exports__.Dependency, exports.EntryPoint = __webpack_exports__.EntryPoint, exports.ExportInfo = __webpack_exports__.ExportInfo, exports.Module = __webpack_exports__.Module, exports.ModuleGraph = __webpack_exports__.ModuleGraph, exports.ModuleGraphModule = __webpack_exports__.ModuleGraphModule, exports.ModuleGraphTrans = __webpack_exports__.ModuleGraphTrans, exports.Package = __webpack_exports__.Package, exports.PackageDependency = __webpack_exports__.PackageDependency, exports.PackageGraph = __webpack_exports__.PackageGraph, exports.SideEffect = __webpack_exports__.SideEffect, exports.Statement = __webpack_exports__.Statement, exports.TransUtils = __webpack_exports__.TransUtils, exports.Variable = __webpack_exports__.Variable, exports.Webpack = __webpack_exports__.Webpack, exports.readPackageJson = __webpack_exports__.readPackageJson, __webpack_exports__)-1 === [
+    "Asset",
+    "Chunk",
+    "ChunkGraph",
+    "Chunks",
+    "Dependency",
+    "EntryPoint",
+    "ExportInfo",
+    "Module",
+    "ModuleGraph",
+    "ModuleGraphModule",
+    "ModuleGraphTrans",
+    "Package",
+    "PackageDependency",
+    "PackageGraph",
+    "SideEffect",
+    "Statement",
+    "TransUtils",
+    "Variable",
+    "Webpack",
+    "readPackageJson"
+].indexOf(__rspack_i) && (exports[__rspack_i] = __webpack_exports__[__rspack_i]);
+Object.defineProperty(exports, '__esModule', {
+    value: !0
+});

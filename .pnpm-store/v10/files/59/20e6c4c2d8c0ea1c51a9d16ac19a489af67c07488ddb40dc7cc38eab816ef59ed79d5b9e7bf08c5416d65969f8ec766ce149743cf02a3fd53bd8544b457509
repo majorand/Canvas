@@ -1,0 +1,17 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+const checkCirclePath = (obj, record, res, level, maxLevel = 3)=>{
+    const idx = record.slice(0, record.length - 1).findIndex((v)=>v.ref === obj);
+    if (-1 !== idx) {
+        const key = record.map((v)=>v.prop);
+        if (res.indexOf(key) < 0) return void res.push(key);
+    }
+    if ('object' == typeof obj && null !== obj && level < maxLevel) for (const [k, v] of Object.entries(obj))checkCirclePath(v, [
+        ...record,
+        {
+            prop: k,
+            ref: v
+        }
+    ], res, level + 1);
+};
+export { checkCirclePath };

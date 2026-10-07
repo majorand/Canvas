@@ -1,0 +1,548 @@
+import node_path, { resolve } from "node:path";
+import node_fs from "node:fs";
+import { parse } from "acorn";
+import { browserslistToESVersion } from "browserslist-to-es-version";
+import picocolors from "picocolors";
+import { SourceMapConsumer } from "source-map";
+import { Parser } from "htmlparser2";
+import node_process from "node:process";
+import node_os from "node:os";
+import node_tty from "node:tty";
+function _define_property(obj, key, value) {
+    if (key in obj) Object.defineProperty(obj, key, {
+        value: value,
+        enumerable: true,
+        configurable: true,
+        writable: true
+    });
+    else obj[key] = value;
+    return obj;
+}
+class ECMASyntaxError extends Error {
+    constructor(message, options){
+        super(message), _define_property(this, "source", void 0), _define_property(this, "output", void 0);
+        this.source = options.source;
+        this.output = options.output;
+    }
+}
+const isExcluded = (input, exclude)=>{
+    if (!exclude) return false;
+    const excludes = Array.isArray(exclude) ? exclude : [
+        exclude
+    ];
+    const normalizedPath = input.replace(/\\/g, '/');
+    return excludes.some((condition)=>{
+        if ('function' == typeof condition) return condition(input);
+        if ('string' == typeof condition) return input.startsWith(condition);
+        return condition.test(normalizedPath);
+    });
+};
+function displayCodePointer(code, pos) {
+    const SUB_LEN = 80;
+    const start = Math.max(pos - SUB_LEN / 2, 0);
+    const subCode = code.slice(start, start + SUB_LEN);
+    const arrowPos = pos - start;
+    const arrowLine = picocolors.yellow('^'.padStart(arrowPos + 11, ' '));
+    return `${subCode}\n${arrowLine}`;
+}
+async function generateError({ err, code, filepath, rootPath, exclude, excludeErrorMessage }) {
+    const relativeOutputPath = filepath.replace(rootPath, '');
+    let error = await tryGenerateErrorFromSourceMap({
+        err,
+        code,
+        rootPath,
+        outputFilepath: filepath,
+        relativeOutputPath
+    });
+    if (!error) error = new ECMASyntaxError(err.message, {
+        source: {
+            path: relativeOutputPath,
+            absolutePath: filepath,
+            line: err.loc.line,
+            column: err.loc.column,
+            code: displayCodePointer(code, err.pos)
+        }
+    });
+    if (isExcluded(error.source.absolutePath, exclude)) return null;
+    if (isExcluded(error.message, excludeErrorMessage)) return null;
+    return error;
+}
+function makeCodeFrame(lines, highlightIndex) {
+    const startLine = Math.max(highlightIndex - 3, 0);
+    const endLine = Math.min(highlightIndex + 4, lines.length - 1);
+    const ret = [];
+    for(let i = startLine; i < endLine; i++)if (i === highlightIndex) {
+        const lineNumber = `> ${i + 1}`.padStart(6, ' ');
+        ret.push(picocolors.yellow(`${lineNumber} | ${lines[i]}`));
+    } else {
+        const lineNumber = ` ${i + 1}`.padStart(6, ' ');
+        ret.push(picocolors.gray(`${lineNumber} | ${lines[i]}`));
+    }
+    return `\n${ret.join('\n')}`;
+}
+function extractResourcePath(source) {
+    const match = source.match(/^webpack:\/\/(?:(?:[^/]+)\/)?([^?]+)(?:\?.*)?$/);
+    return (null == match ? void 0 : match[1]) || source;
+}
+async function tryGenerateErrorFromSourceMap({ err, code, rootPath, outputFilepath, relativeOutputPath }) {
+    const sourceMapPath = `${outputFilepath}.map`;
+    if (!node_fs.existsSync(sourceMapPath)) return null;
+    try {
+        var _JSON_parse_sourcesContent;
+        const sourcemap = await node_fs.promises.readFile(sourceMapPath, 'utf-8');
+        const consumer = await new SourceMapConsumer(sourcemap);
+        const mappedPosition = consumer.originalPositionFor({
+            line: err.loc.line,
+            column: err.loc.column
+        });
+        if (!mappedPosition.source) return null;
+        const { sources } = consumer;
+        const sourceIndex = sources.indexOf(mappedPosition.source);
+        const sourceContent = null == (_JSON_parse_sourcesContent = JSON.parse(sourcemap).sourcesContent) ? void 0 : _JSON_parse_sourcesContent[sourceIndex];
+        const sourcePath = extractResourcePath(mappedPosition.source);
+        const absoluteSourcePath = node_path.join(rootPath, sourcePath);
+        if (!sourceContent) return new ECMASyntaxError(err.message, {
+            source: {
+                path: sourcePath,
+                absolutePath: absoluteSourcePath,
+                line: mappedPosition.line ?? 0,
+                column: mappedPosition.column ?? 0,
+                code: displayCodePointer(code, err.pos)
+            },
+            output: {
+                path: relativeOutputPath,
+                line: err.loc.line,
+                column: err.loc.column
+            }
+        });
+        const rawLines = sourceContent.split(/\r?\n/g);
+        const highlightLine = (mappedPosition.line ?? 1) - 1;
+        return new ECMASyntaxError(err.message, {
+            source: {
+                path: sourcePath,
+                absolutePath: absoluteSourcePath,
+                line: mappedPosition.line ?? 0,
+                column: mappedPosition.column ?? 0,
+                code: makeCodeFrame(rawLines, highlightLine)
+            },
+            output: {
+                path: relativeOutputPath,
+                line: err.loc.line,
+                column: err.loc.column
+            }
+        });
+    } catch (e) {
+        return null;
+    }
+}
+async function generateHtmlScripts(filepath) {
+    const html = await node_fs.promises.readFile(filepath, 'utf-8');
+    return getHtmlScripts(html);
+}
+function getHtmlScripts(html) {
+    const inlineScripts = [];
+    let currentScript = null;
+    const parser = new Parser({
+        onopentag (name, attrs) {
+            if ("script" === name && !attrs.src && (!attrs.type || "application/javascript" === attrs.type || "text/javascript" === attrs.type)) currentScript = '';
+        },
+        ontext (text) {
+            if (null !== currentScript) currentScript += text;
+        },
+        onclosetag (tagname) {
+            if ("script" === tagname && currentScript) inlineScripts.push(currentScript.trim());
+            currentScript = null;
+        }
+    });
+    parser.write(html);
+    parser.end();
+    return inlineScripts;
+}
+function checkSyntax_define_property(obj, key, value) {
+    if (key in obj) Object.defineProperty(obj, key, {
+        value: value,
+        enumerable: true,
+        configurable: true,
+        writable: true
+    });
+    else obj[key] = value;
+    return obj;
+}
+const HTML_REGEX = /\.html$/;
+const JS_REGEX = /\.(?:js|mjs|cjs|jsx)$/;
+class CheckSyntax {
+    async check(filepath, code) {
+        if (code) return await this.tryParse(filepath, code);
+        if (HTML_REGEX.test(filepath)) {
+            const htmlScripts = await generateHtmlScripts(filepath);
+            await Promise.all(htmlScripts.map(async (script)=>{
+                if (!isExcluded(filepath, this.exclude)) await this.tryParse(filepath, script);
+            }));
+        }
+        if (JS_REGEX.test(filepath)) {
+            const jsScript = await node_fs.promises.readFile(filepath, 'utf-8');
+            await this.tryParse(filepath, jsScript);
+        }
+    }
+    async tryParse(filepath, code) {
+        try {
+            parse(code, {
+                ecmaVersion: this.ecmaVersion
+            });
+        } catch (_) {
+            const err = _;
+            const error = await generateError({
+                err,
+                code,
+                filepath,
+                exclude: this.exclude,
+                excludeErrorMessage: this.excludeErrorMessage,
+                rootPath: this.rootPath
+            });
+            if (error) this.errors.push(error);
+        }
+    }
+    constructor(options){
+        checkSyntax_define_property(this, "errors", []);
+        checkSyntax_define_property(this, "ecmaVersion", void 0);
+        checkSyntax_define_property(this, "targets", void 0);
+        checkSyntax_define_property(this, "rootPath", void 0);
+        checkSyntax_define_property(this, "exclude", void 0);
+        checkSyntax_define_property(this, "excludeOutput", void 0);
+        checkSyntax_define_property(this, "excludeErrorMessage", void 0);
+        checkSyntax_define_property(this, "excludeErrorLogs", void 0);
+        if (!options) throw new Error('[CheckSyntaxRspackPlugin] `options` is required.');
+        const { targets, ecmaVersion } = options;
+        if (!targets && !ecmaVersion) throw new Error('[CheckSyntaxRspackPlugin] `targets` or `ecmaVersion` option is required');
+        this.targets = targets;
+        this.ecmaVersion = ecmaVersion || browserslistToESVersion(targets);
+        this.exclude = options.exclude;
+        this.excludeErrorMessage = options.excludeErrorMessage;
+        this.excludeOutput = options.excludeOutput;
+        this.rootPath = options.rootPath || '';
+        this.excludeErrorLogs = options.excludeErrorLogs || [];
+    }
+}
+function hasFlag(flag, argv = globalThis.Deno ? globalThis.Deno.args : node_process.argv) {
+    const prefix = flag.startsWith('-') ? '' : 1 === flag.length ? '-' : '--';
+    const position = argv.indexOf(prefix + flag);
+    const terminatorPosition = argv.indexOf('--');
+    return -1 !== position && (-1 === terminatorPosition || position < terminatorPosition);
+}
+const { env } = node_process;
+let flagForceColor;
+if (hasFlag('no-color') || hasFlag('no-colors') || hasFlag('color=false') || hasFlag('color=never')) flagForceColor = 0;
+else if (hasFlag('color') || hasFlag('colors') || hasFlag('color=true') || hasFlag('color=always')) flagForceColor = 1;
+function envForceColor() {
+    if (!('FORCE_COLOR' in env)) return;
+    if ('true' === env.FORCE_COLOR) return 1;
+    if ('false' === env.FORCE_COLOR) return 0;
+    if (0 === env.FORCE_COLOR.length) return 1;
+    const level = Math.min(Number.parseInt(env.FORCE_COLOR, 10), 3);
+    if (![
+        0,
+        1,
+        2,
+        3
+    ].includes(level)) return;
+    return level;
+}
+function translateLevel(level) {
+    if (0 === level) return false;
+    return {
+        level,
+        hasBasic: true,
+        has256: level >= 2,
+        has16m: level >= 3
+    };
+}
+function _supportsColor(haveStream, { streamIsTTY, sniffFlags = true } = {}) {
+    const noFlagForceColor = envForceColor();
+    if (void 0 !== noFlagForceColor) flagForceColor = noFlagForceColor;
+    const forceColor = sniffFlags ? flagForceColor : noFlagForceColor;
+    if (0 === forceColor) return 0;
+    if (sniffFlags) {
+        if (hasFlag('color=16m') || hasFlag('color=full') || hasFlag('color=truecolor')) return 3;
+        if (hasFlag('color=256')) return 2;
+    }
+    if ('TF_BUILD' in env && 'AGENT_NAME' in env) return 1;
+    if (haveStream && !streamIsTTY && void 0 === forceColor) return 0;
+    const min = forceColor || 0;
+    if ('dumb' === env.TERM) return min;
+    if ('win32' === node_process.platform) {
+        const osRelease = node_os.release().split('.');
+        if (Number(osRelease[0]) >= 10 && Number(osRelease[2]) >= 10586) return Number(osRelease[2]) >= 14931 ? 3 : 2;
+        return 1;
+    }
+    if ('CI' in env) {
+        if ([
+            'GITHUB_ACTIONS',
+            'GITEA_ACTIONS',
+            'CIRCLECI'
+        ].some((key)=>key in env)) return 3;
+        if ([
+            'TRAVIS',
+            'APPVEYOR',
+            'GITLAB_CI',
+            'BUILDKITE',
+            'DRONE'
+        ].some((sign)=>sign in env) || 'codeship' === env.CI_NAME) return 1;
+        return min;
+    }
+    if ('TEAMCITY_VERSION' in env) return /^(9\.(0*[1-9]\d*)\.|\d{2,}\.)/.test(env.TEAMCITY_VERSION) ? 1 : 0;
+    if ('truecolor' === env.COLORTERM) return 3;
+    if ('xterm-kitty' === env.TERM) return 3;
+    if ('xterm-ghostty' === env.TERM) return 3;
+    if ('TERM_PROGRAM' in env) {
+        const version = Number.parseInt((env.TERM_PROGRAM_VERSION || '').split('.')[0], 10);
+        switch(env.TERM_PROGRAM){
+            case 'iTerm.app':
+                return version >= 3 ? 3 : 2;
+            case 'Apple_Terminal':
+                return 2;
+        }
+    }
+    if (/-256(color)?$/i.test(env.TERM)) return 2;
+    if (/^screen|^xterm|^vt100|^vt220|^rxvt|color|ansi|cygwin|linux/i.test(env.TERM)) return 1;
+    if ('COLORTERM' in env) return 1;
+    return min;
+}
+function createSupportsColor(stream, options = {}) {
+    const level = _supportsColor(stream, {
+        streamIsTTY: stream && stream.isTTY,
+        ...options
+    });
+    return translateLevel(level);
+}
+const supportsColor = {
+    stdout: createSupportsColor({
+        isTTY: node_tty.isatty(1)
+    }),
+    stderr: createSupportsColor({
+        isTTY: node_tty.isatty(2)
+    })
+};
+const supports_color = supportsColor;
+const colorLevel = supports_color.stdout ? supports_color.stdout.level : 0;
+let errorStackRegExp = /at\s.*:\d+:\d+[\s\)]*$/;
+let anonymousErrorStackRegExp = /at\s.*\(<anonymous>\)$/;
+let isErrorStackMessage = (message)=>errorStackRegExp.test(message) || anonymousErrorStackRegExp.test(message);
+let formatter = (open, close, replace = open)=>colorLevel >= 2 ? (input)=>{
+        let string = '' + input;
+        let index = string.indexOf(close, open.length);
+        return ~index ? open + replaceClose(string, close, replace, index) + close : open + string + close;
+    } : String;
+let replaceClose = (string, close, replace, index)=>{
+    let start = string.substring(0, index) + replace;
+    let end = string.substring(index + close.length);
+    let nextIndex = end.indexOf(close);
+    return ~nextIndex ? start + replaceClose(end, close, replace, nextIndex) : start + end;
+};
+const bold = formatter('\x1b[1m', '\x1b[22m', '\x1b[22m\x1b[1m');
+const red = formatter('\x1b[31m', '\x1b[39m');
+const green = formatter('\x1b[32m', '\x1b[39m');
+const yellow = formatter('\x1b[33m', '\x1b[39m');
+const magenta = formatter('\x1b[35m', '\x1b[39m');
+const cyan = formatter('\x1b[36m', '\x1b[39m');
+const gray = formatter('\x1b[90m', '\x1b[39m');
+let startColor = [
+    189,
+    255,
+    243
+];
+let endColor = [
+    74,
+    194,
+    154
+];
+let isWord = (char)=>!/[\s\n]/.test(char);
+let gradient = (message)=>{
+    if (colorLevel < 3) return 2 === colorLevel ? bold(cyan(message)) : message;
+    let chars = [
+        ...message
+    ];
+    let steps = chars.filter(isWord).length;
+    let r = startColor[0];
+    let g = startColor[1];
+    let b = startColor[2];
+    let rStep = (endColor[0] - r) / steps;
+    let gStep = (endColor[1] - g) / steps;
+    let bStep = (endColor[2] - b) / steps;
+    let output = '';
+    for (let char of chars){
+        if (isWord(char)) {
+            r += rStep;
+            g += gStep;
+            b += bStep;
+        }
+        output += `\x1b[38;2;${Math.round(r)};${Math.round(g)};${Math.round(b)}m${char}\x1b[39m`;
+    }
+    return bold(output);
+};
+let LOG_LEVEL = {
+    silent: -1,
+    error: 0,
+    warn: 1,
+    info: 2,
+    log: 2,
+    verbose: 3
+};
+let LOG_TYPES = {
+    error: {
+        label: 'error',
+        level: 'error',
+        color: red
+    },
+    warn: {
+        label: 'warn',
+        level: 'warn',
+        color: yellow
+    },
+    info: {
+        label: 'info',
+        level: 'info',
+        color: cyan
+    },
+    start: {
+        label: 'start',
+        level: 'info',
+        color: cyan
+    },
+    ready: {
+        label: 'ready',
+        level: 'info',
+        color: green
+    },
+    success: {
+        label: 'success',
+        level: 'info',
+        color: green
+    },
+    log: {
+        level: 'info'
+    },
+    debug: {
+        label: 'debug',
+        level: 'verbose',
+        color: magenta
+    }
+};
+let createLogger = (options = {})=>{
+    let maxLevel = options.level || 'info';
+    let log = (type, message, ...args)=>{
+        if (LOG_LEVEL[LOG_TYPES[type].level] > LOG_LEVEL[maxLevel]) return;
+        if (null == message) return console.log();
+        let logType = LOG_TYPES[type];
+        let label = '';
+        let text = '';
+        if ('label' in logType) {
+            label = (logType.label || '').padEnd(7);
+            label = bold(logType.color ? logType.color(label) : label);
+        }
+        if (message instanceof Error) if (message.stack) {
+            let [name, ...rest] = message.stack.split('\n');
+            if (name.startsWith('Error: ')) name = name.slice(7);
+            text = `${name}\n${gray(rest.join('\n'))}`;
+        } else text = message.message;
+        else if ('error' === logType.level && 'string' == typeof message) {
+            let lines = message.split('\n');
+            text = lines.map((line)=>isErrorStackMessage(line) ? gray(line) : line).join('\n');
+        } else text = `${message}`;
+        console.log(label.length ? `${label} ${text}` : text, ...args);
+    };
+    let logger = {
+        greet: (message)=>log('log', gradient(message))
+    };
+    Object.keys(LOG_TYPES).forEach((key)=>{
+        logger[key] = (...args)=>log(key, ...args);
+    });
+    Object.defineProperty(logger, 'level', {
+        get: ()=>maxLevel,
+        set (val) {
+            maxLevel = val;
+        }
+    });
+    logger.override = (customLogger)=>{
+        Object.assign(logger, customLogger);
+    };
+    return logger;
+};
+let src_logger = createLogger();
+function printErrors(errors, ecmaVersion, excludeErrorLogs) {
+    if (0 === errors.length) return void src_logger.success('[@rsbuild/plugin-check-syntax] Syntax check passed.');
+    const errs = errors.map((error)=>({
+            source: `${error.source.path}:${error.source.line}:${error.source.column}`,
+            output: error.output ? `${error.output.path}:${error.output.line}:${error.output.column}` : void 0,
+            reason: error.message,
+            code: error.source.code
+        }));
+    const longest = Math.max(...Object.keys(errs[0]).map((err)=>err.length));
+    const expectedVersion = picocolors.yellow(`ecmaVersion <= ${ecmaVersion}`);
+    src_logger.error(`[@rsbuild/plugin-check-syntax] Find some syntax that does not match "${expectedVersion}":\n`);
+    errs.forEach((err, index)=>{
+        console.log(picocolors.bold(picocolors.red(`  ERROR ${index + 1}`)));
+        printMain(err, longest, excludeErrorLogs);
+    });
+    throw new Error(`[@rsbuild/plugin-check-syntax] The current build fails due to an incompatible syntax, which can be fixed in the following ways:
+
+  - If you want to downgrade the syntax, you can compile the specified module through the \`source.include\` config.
+  - If you don't want to downgrade the syntax, you can adjust the project's browserslist to match the syntax, or set the \`ecmaVersion\` option.
+  - If you don't want to check the syntax of specified files, you can use the \`exclude\` option to exclude the files to be checked.\n`);
+}
+function printMain(error, longest, excludeErrorLogs) {
+    const fillWhiteSpace = (s, longest)=>{
+        if (s.length < longest) {
+            const rightPadding = ' '.repeat(longest - s.length);
+            return s + rightPadding;
+        }
+        return s;
+    };
+    for (const [key, content] of Object.entries(error)){
+        if (!content || excludeErrorLogs.includes(key)) continue;
+        const title = picocolors.magenta(`${fillWhiteSpace(`${key}:`, longest + 1)}`);
+        console.info(`  ${title}  ${content}`);
+    }
+    console.info('');
+}
+const CheckSyntaxPlugin_HTML_REGEX = /\.html$/;
+const CheckSyntaxPlugin_JS_REGEX = /\.(?:js|mjs|cjs|jsx)$/;
+class CheckSyntaxRspackPlugin extends CheckSyntax {
+    apply(compiler) {
+        if (compiler.options.context && !this.rootPath) this.rootPath = compiler.options.context;
+        compiler.hooks.afterEmit.tapPromise(CheckSyntaxRspackPlugin.name, async (compilation)=>{
+            const outputPath = compilation.outputOptions.path || 'dist';
+            const emittedAssets = compilation.getAssets().filter((a)=>a.source).map((a)=>{
+                const resourcePath = a.name.split('?')[0];
+                const file = resolve(outputPath, resourcePath);
+                if (isExcluded(file, this.excludeOutput)) return '';
+                return file;
+            });
+            const files = emittedAssets.filter((assets)=>CheckSyntaxPlugin_HTML_REGEX.test(assets) || CheckSyntaxPlugin_JS_REGEX.test(assets));
+            await Promise.all(files.map(async (file)=>{
+                await this.check(file);
+            }));
+            printErrors(this.errors, this.ecmaVersion, this.excludeErrorLogs);
+        });
+    }
+}
+const PLUGIN_CHECK_SYNTAX_NAME = 'rsbuild:check-syntax';
+function pluginCheckSyntax(options = {}) {
+    return {
+        name: PLUGIN_CHECK_SYNTAX_NAME,
+        setup (api) {
+            api.modifyBundlerChain(async (chain, { isDev, target, environment })=>{
+                if (isDev || 'web' !== target) return;
+                const { rootPath } = api.context;
+                const targets = options.targets ?? environment.browserslist;
+                chain.plugin(CheckSyntaxRspackPlugin.name).use(CheckSyntaxRspackPlugin, [
+                    {
+                        targets,
+                        rootPath,
+                        ...'object' == typeof options ? options : {}
+                    }
+                ]);
+            });
+        }
+    };
+}
+export { CheckSyntax, CheckSyntaxRspackPlugin, PLUGIN_CHECK_SYNTAX_NAME, pluginCheckSyntax };

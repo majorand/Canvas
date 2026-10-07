@@ -1,0 +1,26 @@
+import { Common, SDK } from '@rsdoctor/types';
+import type { Server } from 'http';
+import { Server as SocketServer, ServerOptions as SocketServerOptions, Socket as SocketType } from 'socket.io';
+import { SocketAPILoader } from './api.js';
+interface SocketOptions {
+    sdk: SDK.RsdoctorBuilderSDKInstance;
+    server: Server;
+    port: number;
+    socketOptions?: SocketServerOptions;
+}
+export declare class Socket {
+    protected options: SocketOptions;
+    protected io: SocketServer;
+    protected loader: SocketAPILoader;
+    protected map: Map<SDK.ServerAPI.API, (Common.PlainObject | null)[]>;
+    constructor(options: SocketOptions);
+    bootstrap(): void;
+    protected setupSocket(socket: SocketType): void;
+    protected saveRequestToMap<T extends SDK.ServerAPI.API>(api: T, body?: SDK.ServerAPI.InferRequestBodyType<T, null> | null): void;
+    protected getAPIResponse<T extends SDK.ServerAPI.API>(api: T, body: SDK.ServerAPI.InferRequestBodyType<T>): Promise<SDK.ServerAPI.SocketResponseType<SDK.ServerAPI.API>>;
+    protected timer: NodeJS.Immediate | undefined;
+    broadcast(): Promise<void>;
+    sendAPIData<T extends SDK.ServerAPI.API | SDK.ServerAPI.APIExtends>(api: T, msg: SDK.ServerAPI.SocketResponseType<T>): void;
+    dispose(): void;
+}
+export {};

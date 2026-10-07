@@ -1,0 +1,44 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { Build } from "../../index.js";
+import { getSDK } from "../../../inner-plugins/index.js";
+import { omit } from "es-toolkit/compat";
+import path from "path";
+const loaderModule = function(...args) {
+    const time = Date.now();
+    const code = args[0];
+    const _options = this.getOptions();
+    const sdk = getSDK(_options.builderName);
+    const loaderData = {
+        resource: {
+            path: this._module?.layer ? `${this.resourcePath}[${this._module.layer}]` : this.resourcePath,
+            query: Build.Utils.parseQuery(this.resourceQuery),
+            queryRaw: this.resourceQuery,
+            ext: path.extname(this.resourcePath).slice(1),
+            ...this._module?.layer ? {
+                layer: this._module.layer
+            } : {}
+        },
+        loaders: [
+            {
+                loader: _options.loader,
+                loaderIndex: this.loaderIndex,
+                path: _options.loader,
+                input: 'start' === _options.type ? code : null,
+                result: 'end' === _options.type ? code : null,
+                startAt: 'start' === _options.type ? time : 0,
+                endAt: 'end' === _options.type ? time : 0,
+                options: omit(_options.options, 'type'),
+                isPitch: false,
+                sync: false,
+                errors: [],
+                pid: process.pid,
+                ppid: process.ppid
+            }
+        ]
+    };
+    sdk?.reportLoaderStartOrEnd(loaderData);
+    this.callback(null, ...args);
+};
+const probeLoader = loaderModule;
+export { probeLoader as default, loaderModule };

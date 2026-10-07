@@ -1,0 +1,7 @@
+import { RsdoctorServer } from '../server/index.js';
+import type { RsdoctorPrimarySDK } from './primary.js';
+export declare class RsdoctorSlaveServer extends RsdoctorServer {
+    protected sdk: RsdoctorPrimarySDK;
+    constructor(sdk: RsdoctorPrimarySDK, port?: number);
+    openClientPage(...args: unknown[]): Promise<void>;
+}

@@ -1,0 +1,3 @@
+declare let hydrate: (component: () => HTMLElement, ssr: HTMLElement, head: HTMLElement, dataEl: HTMLElement) => HTMLElement;
+
+export { hydrate };

@@ -1,0 +1,125 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import node_fs from "node:fs";
+import { ModuleGraphTrans, Webpack } from "@rsdoctor/graph";
+import { hasSetEsModuleStatement } from "../parser.js";
+import { isFunction } from "es-toolkit/compat";
+import { logger } from "@rsdoctor/utils/logger";
+async function readFile(target, wbFs) {
+    if (wbFs?.fs?.readFile) {
+        const result = new Promise((resolve, reject)=>{
+            wbFs.fs.readFile(target, (err, content)=>{
+                if (err) return void reject(err);
+                content ? resolve(Buffer.from(content)) : resolve();
+            });
+        }).catch(()=>{});
+        if (result) return result;
+    }
+    try {
+        return await node_fs.promises.readFile(target);
+    } catch  {
+        logger.debug(`readFile error: ${target}`);
+        return;
+    }
+}
+function getModuleExportsType(module, moduleGraph, strict = false) {
+    if (moduleGraph && 'getExportsType' in module) return module.getExportsType(moduleGraph, strict);
+    return strict ? 'default-with-named' : 'dynamic';
+}
+function appendDependency(webpackDep, module, webpackGraph, graph) {
+    const resolvedWebpackModule = webpackGraph?.getResolvedModule ? webpackGraph.getResolvedModule(webpackDep) : void 0;
+    if (!resolvedWebpackModule) return;
+    const rawRequest = Webpack.getWebpackDependencyRequest(webpackDep, resolvedWebpackModule);
+    const resolveRequest = Webpack.getWebpackModulePath(resolvedWebpackModule);
+    const request = rawRequest ?? resolveRequest;
+    if (!module.getDependencyByRequest(request)) {
+        const depLayer = resolvedWebpackModule.layer || void 0;
+        const depModule = graph.getModuleByFile(resolveRequest, depLayer)[0];
+        if (depModule) {
+            const dep = module.addDependency(request, depModule, ModuleGraphTrans.getImportKind(webpackDep));
+            if (dep) graph.addDependency(dep);
+        }
+    }
+    const dependency = module.getDependencyByRequest(request);
+    if (dependency) {
+        dependency.setBuildMeta({
+            exportsType: getModuleExportsType(resolvedWebpackModule, webpackGraph, module.meta.strictHarmonyModule)
+        });
+        const statement = Webpack.getDependencyPosition(webpackDep, module, false);
+        if (statement) dependency.addStatement(statement);
+        dependency.statements.forEach((state)=>{
+            state.position.source = state.module.getSourceRange(state.position.transformed);
+        });
+    }
+}
+function getModuleSource(modulePath, wbFs, sourceMap) {
+    if (sourceMap) try {
+        const contentFromSourceMap = sourceMap.sourceContentFor(modulePath);
+        if (contentFromSourceMap) return Buffer.from(contentFromSourceMap);
+    } catch (e) {
+        logger.debug(`getModuleSource error: ${e}`);
+    }
+    return readFile(modulePath, wbFs);
+}
+async function appendModuleData(origin, webpackGraph, graph, wbFs, features, context) {
+    const module = graph.getModuleByWebpackId(Webpack.getWebpackModuleId(origin));
+    if (!origin || !module) return;
+    const { getSourceMap, astCache, packagePathMap } = context ?? {};
+    try {
+        const sourceMap = await getSourceMap?.(module.path);
+        const source = await getModuleSource(module.path, wbFs, sourceMap) ?? Buffer.from('');
+        if (sourceMap) module.setSourceMap(sourceMap);
+        if (astCache?.has(origin)) {
+            const program = astCache.get(origin);
+            module.setProgram(program);
+            module.meta.hasSetEsModuleStatement = hasSetEsModuleStatement(program);
+        }
+        const transformed = Webpack.isExternalModule(origin) ? '' : module.getSource().transformed.length > 0 ? module.getSource().transformed : isFunction(origin?.originalSource) ? origin.originalSource()?.source()?.toString() ?? '' : '';
+        const transformedSize = Webpack.isExternalModule(origin) ? 0 : module.getSize().transformedSize > 0 ? module.getSize().transformedSize : Buffer.from(transformed).byteLength;
+        module.setSource({
+            transformed,
+            source: source.toString()
+        });
+        module.setSize({
+            transformedSize,
+            sourceSize: source.byteLength
+        });
+        let packageData;
+        if (packagePathMap && origin.resourceResolveData) {
+            let { descriptionFileRoot: root } = origin.resourceResolveData;
+            const { descriptionFileData: data } = origin.resourceResolveData;
+            if (root && data.name && data.version) {
+                if (packagePathMap.has(root)) root = packagePathMap.get(root);
+                else {
+                    const realpath = await node_fs.promises.realpath(root, {
+                        encoding: 'utf-8'
+                    });
+                    root = realpath;
+                    packagePathMap.set(root, realpath);
+                }
+                packageData = {
+                    ...origin.resourceResolveData.descriptionFileData,
+                    root
+                };
+            }
+        }
+        module.meta.strictHarmonyModule = origin.buildMeta?.strictHarmonyModule ?? false;
+        module.meta.packageData = packageData;
+        if (!features?.lite && origin?.dependencies) Array.from(origin.dependencies).filter((item)=>ModuleGraphTrans.isImportDependency(item)).concat(origin.blocks.reduce((ans, item)=>ans.concat(item.dependencies), [])).forEach((dep)=>appendDependency(dep, module, webpackGraph, graph));
+    } catch (e) {
+        console.error(`module ${module.path} transform has error:`, e);
+    }
+}
+async function appendModuleGraphByCompilation(compilation, graph, features, context) {
+    try {
+        const webpackCompilation = compilation;
+        const { moduleGraph: webpackGraph, fileSystemInfo } = webpackCompilation;
+        const allModules = Webpack.getAllModules(webpackCompilation);
+        await Promise.all(allModules.map((module)=>appendModuleData(module, webpackGraph, graph, fileSystemInfo, features, context)));
+        ModuleGraphTrans.removeNoImportStyle(graph);
+        return graph;
+    } catch (e) {
+        return graph;
+    }
+}
+export { appendModuleGraphByCompilation, getModuleExportsType };

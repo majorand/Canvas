@@ -1,0 +1,39 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import path from "path";
+import { filesize } from "filesize";
+function getErrorMsg(packages, root) {
+    const pkgName = packages[0].name;
+    let message = `Multiple packages of ${pkgName} found:\n`;
+    for (const pkg of packages)message += `  ${pkg.version} ${filesize(pkg.getSize().parsedSize)} ${path.relative(root, pkg.root)}\n`;
+    return message.slice(0, -1);
+}
+function getErrorDetail(pkg, pkgGraph) {
+    function getImported(pkg, ans) {
+        const dependencies = pkgGraph.getDependenciesFromPackage(pkg);
+        for (const dep of dependencies)if (dep.refDependency) {
+            if (!ans.some((dep)=>dep.dependency === pkg)) {
+                if (!dep.package) return ans.concat(dep);
+                return getImported(dep.package, ans.concat(dep));
+            }
+        }
+        return ans;
+    }
+    const packageImportLinks = getImported(pkg, []);
+    return {
+        target: {
+            name: pkg.name,
+            version: pkg.version,
+            root: pkg.root
+        },
+        targetSize: {
+            sourceSize: pkg.getSize().sourceSize,
+            parsedSize: pkg.getSize().parsedSize
+        },
+        dependencies: packageImportLinks.map((item)=>({
+                dependencyId: item.refDependency.id,
+                group: item.package ? `${item.package.name}@${item.package.version}` : void 0
+            }))
+    };
+}
+export { getErrorDetail, getErrorMsg };

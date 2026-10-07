@@ -1,0 +1,41 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { Manifest } from "@rsdoctor/types";
+import { Utils } from "../../build-utils/build/index.js";
+import { interceptPluginHook } from "../utils/index.js";
+import { InternalBasePlugin } from "./base.js";
+import { time, timeEnd } from "@rsdoctor/utils/logger";
+class InternalPluginsPlugin extends InternalBasePlugin {
+    apply(compiler) {
+        time('InternalPluginsPlugin.apply');
+        try {
+            compiler.hooks.afterPlugins.tap(this.tapPostOptions, this.afterPlugins.bind(this, compiler));
+            compiler.hooks.compilation.tap(this.tapPostOptions, this.compilation);
+        } finally{
+            timeEnd('InternalPluginsPlugin.apply');
+        }
+    }
+    constructor(...args){
+        super(...args), this.name = 'plugins', this.afterPlugins = (compiler)=>{
+            time('InternalPluginsPlugin.afterPlugins');
+            try {
+                if (compiler.isChild()) return;
+                Utils.interceptCompilerHooks(compiler, (name, hook)=>interceptPluginHook(this.sdk, name, hook));
+                this.sdk.addClientRoutes([
+                    Manifest.RsdoctorManifestClientRoutes.WebpackPlugins
+                ]);
+            } finally{
+                timeEnd('InternalPluginsPlugin.afterPlugins');
+            }
+        }, this.compilation = (compilation)=>{
+            time('InternalPluginsPlugin.compilation');
+            try {
+                if (compilation.compiler.isChild()) return;
+                Utils.interceptCompilationHooks(compilation, (name, hook)=>interceptPluginHook(this.sdk, name, hook));
+            } finally{
+                timeEnd('InternalPluginsPlugin.compilation');
+            }
+        };
+    }
+}
+export { InternalPluginsPlugin };

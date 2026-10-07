@@ -1,0 +1,427 @@
+"use strict";
+const __rslib_import_meta_url__ = "u" < typeof document ? new (require('url'.replace('', ''))).URL('file:' + __filename).href : document.currentScript && document.currentScript.src || new URL('main.js', document.baseURI).href;
+var __webpack_modules__ = {
+    "./src/common/algorithm.ts" (__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+        function random(min, max) {
+            return Math.floor(Math.random() * (max - min + 1) + min);
+        }
+        __webpack_require__.d(__webpack_exports__, {
+            random: ()=>random
+        }), require("zlib"), require("buffer"), __webpack_require__("./src/logger.ts");
+    },
+    "./src/common/index.ts" (__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+        __webpack_require__.d(__webpack_exports__, {
+            Package: ()=>package_namespaceObject
+        });
+        var package_namespaceObject = {};
+        __webpack_require__.r(package_namespaceObject), __webpack_require__.d(package_namespaceObject, {
+            MODULE_PATH_PACKAGES: ()=>MODULE_PATH_PACKAGES,
+            PACKAGE_PATH_NAME: ()=>PACKAGE_PATH_NAME,
+            getPackageMetaFromModulePath: ()=>getPackageMetaFromModulePath
+        }), __webpack_require__("./src/common/algorithm.ts"), __webpack_require__("path"), __webpack_require__("process"), __webpack_require__("@rsdoctor/types"), __webpack_require__("./src/logger.ts"), RegExp(`(.*)${/[-|.]/.source}${/[a-z|A-Z|0-9]{4,32}/.source}(${/(?:\.[a-z｜A-Z|0-9]{2,}){1,}/.source})$`);
+        var lodash = __webpack_require__("./src/common/lodash.ts");
+        let PACKAGE_SLUG = /[a-zA-Z0-9]+(?:[-|_|.]+[a-zA-Z0-9]+)*/, MODULE_PATH_PACKAGES = RegExp(`(?:${/(?:node_modules|~)(?:\/\.pnpm)?/.source}/)(?:(?:@${PACKAGE_SLUG.source}[/|+])?(?:${PACKAGE_SLUG.source}\\+)*(?:${PACKAGE_SLUG.source})(?:${/@[\w|\-|_|.]+/.source})?)(?:_(?:@${PACKAGE_SLUG.source}[/|+])?(?:${PACKAGE_SLUG.source})(?:@${PACKAGE_SLUG.source})?)*/`, 'g'), PACKAGE_PATH_NAME = /(?:(?:node_modules|~)(?:\/\.pnpm)?\/)(?:((?:@[a-zA-Z0-9]+(?:[-|_|.]+[a-zA-Z0-9]+)*[/|+])?(?:(?:[a-zA-Z0-9]+(?:[-|_|.]+[a-zA-Z0-9]+)*\+)*)(?:[a-zA-Z0-9]+(?:[-|_|.]+[a-zA-Z0-9]+)*))(?:@[\w|\-|_|.]+)?)(?:_((?:@[a-zA-Z0-9]+(?:[-|_|.]+[a-zA-Z0-9]+)*[/|+])?(?:[a-zA-Z0-9]+(?:[-|_|.]+[a-zA-Z0-9]+)*))(?:@[a-zA-Z0-9]+(?:[-|_|.]+[a-zA-Z0-9]+)*))*\//gm, getPackageMetaFromModulePath = (modulePath)=>{
+            var data;
+            let res, paths = modulePath.match(MODULE_PATH_PACKAGES);
+            if (!paths) return {
+                name: '',
+                version: ''
+            };
+            let names = (data = paths.flatMap((packagePath)=>{
+                let found = packagePath.matchAll(PACKAGE_PATH_NAME);
+                return found ? (0, lodash.compact)([
+                    ...found
+                ].flat()).slice(1).filter(Boolean).map((name)=>name.replace(/\+/g, '/')) : [];
+            }), res = [], data.forEach((item, index)=>{
+                data.slice(index + 1).includes(item) || res.push(item);
+            }), res);
+            if ((0, lodash.isEmpty)(names)) return {
+                name: '',
+                version: ''
+            };
+            let name = (0, lodash.last)(names), pattern = RegExp(`(.*)(${(0, lodash.last)(paths)}).*`), path = modulePath.replace(pattern, '$1$2').replace(/\/$/, '');
+            return {
+                name,
+                version: path && name && path.match(RegExp(`${name}@([\\d.]+)`))?.flat().slice(1)?.[0] || ''
+            };
+        };
+        __webpack_require__("fs"), __webpack_require__("os");
+    },
+    "./src/common/lodash.ts" (__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+        function isEmpty(value) {
+            return null == value || Array.isArray(value) && 0 === value.length || 'object' == typeof value && 0 === Object.keys(value).length;
+        }
+        function last(array) {
+            return array[array.length - 1];
+        }
+        function compact(array) {
+            return array.filter((item)=>null != item || !item);
+        }
+        __webpack_require__.d(__webpack_exports__, {
+            compact: ()=>compact,
+            isEmpty: ()=>isEmpty,
+            last: ()=>last
+        });
+    },
+    "./src/logger.ts" (__unused_rspack_module, __unused_rspack___webpack_exports__, __webpack_require__) {
+        let external_picocolors_namespaceObject = require("picocolors");
+        var external_picocolors_default = __webpack_require__.n(external_picocolors_namespaceObject);
+        let external_rslog_namespaceObject = require("rslog");
+        __webpack_require__("@rsdoctor/types"), (0, external_rslog_namespaceObject.createLogger)().override({
+            log: (message)=>{
+                console.log(`${external_picocolors_default().green('[RSDOCTOR LOG]')} ${message}`);
+            },
+            info: (message)=>{
+                console.log(`${external_picocolors_default().yellow('[RSDOCTOR INFO]')} ${message}`);
+            },
+            warn: (message)=>{
+                console.warn(`${external_picocolors_default().yellow('[RSDOCTOR WARN]')} ${message}`);
+            },
+            start: (message)=>{
+                console.log(`${external_picocolors_default().green('[RSDOCTOR START]')} ${message}`);
+            },
+            ready: (message)=>{
+                console.log(`${external_picocolors_default().green('[RSDOCTOR READY]')} ${message}`);
+            },
+            error: (message)=>{
+                console.error(`${external_picocolors_default().red('[RSDOCTOR ERROR]')} ${message}`);
+            },
+            success: (message)=>{
+                console.error(`${external_picocolors_default().green('[RSDOCTOR SUCCESS]')} ${message}`);
+            },
+            debug: (message)=>{
+                process.env.DEBUG && console.log(`${external_picocolors_default().blue('[RSDOCTOR DEBUG]')} ${message}`);
+            }
+        });
+    },
+    "@rsdoctor/types" (module) {
+        module.exports = require("@rsdoctor/types");
+    },
+    fs (module) {
+        module.exports = require("fs");
+    },
+    os (module) {
+        module.exports = require("os");
+    },
+    path (module) {
+        module.exports = require("path");
+    },
+    process (module) {
+        module.exports = require("process");
+    }
+}, __webpack_module_cache__ = {};
+function __webpack_require__(moduleId) {
+    var cachedModule = __webpack_module_cache__[moduleId];
+    if (void 0 !== cachedModule) return cachedModule.exports;
+    var module = __webpack_module_cache__[moduleId] = {
+        exports: {}
+    };
+    return __webpack_modules__[moduleId](module, module.exports, __webpack_require__), module.exports;
+}
+__webpack_require__.n = (module)=>{
+    var getter = module && module.__esModule ? ()=>module.default : ()=>module;
+    return __webpack_require__.d(getter, {
+        a: getter
+    }), getter;
+}, __webpack_require__.d = (exports1, definition)=>{
+    for(var key in definition)__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key) && Object.defineProperty(exports1, key, {
+        enumerable: !0,
+        get: definition[key]
+    });
+}, __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop), __webpack_require__.r = (exports1)=>{
+    "u" > typeof Symbol && Symbol.toStringTag && Object.defineProperty(exports1, Symbol.toStringTag, {
+        value: 'Module'
+    }), Object.defineProperty(exports1, '__esModule', {
+        value: !0
+    });
+};
+var __webpack_exports__ = {};
+for(var __rspack_i in (()=>{
+    __webpack_require__.r(__webpack_exports__), __webpack_require__.d(__webpack_exports__, {
+        Server: ()=>server_namespaceObject,
+        File: ()=>file_namespaceObject,
+        Json: ()=>json_namespaceObject,
+        EnvInfo: ()=>envinfo_namespaceObject,
+        Process: ()=>process_namespaceObject
+    });
+    var cache_namespaceObject = {};
+    __webpack_require__.r(cache_namespaceObject), __webpack_require__.d(cache_namespaceObject, {
+        readFile: ()=>cache_readFile,
+        readFileSync: ()=>readFileSync,
+        readJSON: ()=>readJSON,
+        readJSONSync: ()=>readJSONSync
+    });
+    var file_namespaceObject = {};
+    __webpack_require__.r(file_namespaceObject), __webpack_require__.d(file_namespaceObject, {
+        FileSharding: ()=>FileSharding,
+        cache: ()=>cache_namespaceObject,
+        fse: ()=>external_fs_extra_namespaceObject
+    });
+    var json_namespaceObject = {};
+    __webpack_require__.r(json_namespaceObject), __webpack_require__.d(json_namespaceObject, {
+        readPackageJson: ()=>readPackageJson,
+        stringify: ()=>stringify
+    });
+    var server_namespaceObject = {};
+    __webpack_require__.r(server_namespaceObject), __webpack_require__.d(server_namespaceObject, {
+        createApp: ()=>createApp,
+        createGetPortSyncFunctionString: ()=>createGetPortSyncFunctionString,
+        createServer: ()=>createServer,
+        defaultPort: ()=>defaultPort,
+        getPort: ()=>getPort,
+        getPortSync: ()=>getPortSync
+    });
+    var envinfo_namespaceObject = {};
+    __webpack_require__.r(envinfo_namespaceObject), __webpack_require__.d(envinfo_namespaceObject, {
+        getCPUInfo: ()=>getCPUInfo,
+        getGitBranch: ()=>getGitBranch,
+        getGitRepo: ()=>getGitRepo,
+        getGlobalNpmPackageVersion: ()=>getGlobalNpmPackageVersion,
+        getMemoryInfo: ()=>getMemoryInfo,
+        getNodeVersion: ()=>getNodeVersion,
+        getNpmPackageVersion: ()=>getNpmPackageVersion,
+        getNpmVersion: ()=>getNpmVersion,
+        getOSInfo: ()=>getOSInfo,
+        getPnpmVersion: ()=>getPnpmVersion,
+        getYarnVersion: ()=>getYarnVersion
+    });
+    var process_namespaceObject = {};
+    __webpack_require__.r(process_namespaceObject), __webpack_require__.d(process_namespaceObject, {
+        getMemoryUsage: ()=>getMemoryUsage,
+        getMemoryUsageMessage: ()=>getMemoryUsageMessage
+    });
+    let external_fs_extra_namespaceObject = require("fs-extra");
+    var external_fs_extra_default = __webpack_require__.n(external_fs_extra_namespaceObject), external_fs_ = __webpack_require__("fs"), external_fs_default = __webpack_require__.n(external_fs_), external_path_ = __webpack_require__("path"), external_path_default = __webpack_require__.n(external_path_);
+    class FileSharding {
+        content;
+        limitBytes;
+        encoding;
+        constructor(content, limitBytes = 10485760, encoding = 'utf-8'){
+            this.content = content, this.limitBytes = limitBytes, this.encoding = encoding;
+        }
+        createVirtualShardingFiles(ext = '', index = 0) {
+            let bf = Buffer.from(this.content, this.encoding), res = [], threshold = this.limitBytes, tmpBytes = 0;
+            for(; bf.byteLength > tmpBytes;)res.push(bf.subarray(tmpBytes, tmpBytes + threshold)), tmpBytes += threshold;
+            return res.map((e, i)=>({
+                    filename: `${i + index}${ext}`,
+                    content: e
+                }));
+        }
+        async writeStringToFolder(folder, ext = '', index) {
+            let dist = external_path_default().resolve(folder);
+            await external_fs_extra_default().ensureDir(dist);
+            let res = this.createVirtualShardingFiles(ext, index);
+            return await Promise.all(res.map((e)=>new Promise((resolve, reject)=>{
+                    let stream = external_fs_default().createWriteStream(external_path_default().join(dist, e.filename), this.encoding);
+                    stream.end(e.content), stream.once('close', ()=>resolve(void 0)), stream.once('error', (err)=>reject(err));
+                }))), res;
+        }
+    }
+    let external_node_fs_namespaceObject = require("node:fs");
+    var external_node_fs_default = __webpack_require__.n(external_node_fs_namespaceObject);
+    let cache = new Map();
+    async function cache_readFile(path) {
+        if (cache.has(path)) return cache.get(path);
+        let res = await external_node_fs_default().promises.readFile(path, 'utf-8');
+        return cache.set(path, res), res;
+    }
+    function readFileSync(path) {
+        if (cache.has(path)) return cache.get(path);
+        let res = external_node_fs_default().readFileSync(path, 'utf-8');
+        return cache.set(path, res), res;
+    }
+    async function readJSON(path) {
+        return JSON.parse(await cache_readFile(path));
+    }
+    function readJSONSync(path) {
+        return JSON.parse(readFileSync(path));
+    }
+    let external_json_stream_stringify_namespaceObject = require("json-stream-stringify");
+    var common = __webpack_require__("./src/common/index.ts");
+    let external_stream_namespaceObject = require("stream");
+    function stringify(json, replacer, space, cycle) {
+        let jsonList = [];
+        return json && 'object' == typeof json ? new Promise((resolve, reject)=>{
+            let stream = new external_json_stream_stringify_namespaceObject.JsonStreamStringify(json, replacer, space, cycle), currentLength = 0, currentContent = '', batchProcessor = new external_stream_namespaceObject.Transform({
+                readableObjectMode: !0,
+                transform (chunk, _encoding, callback) {
+                    chunk.toString().split('\\n').forEach((line)=>{
+                        currentLength + line.length > 419430400 && (jsonList.push(currentContent), currentContent = '', currentLength = 0), line.length && (currentContent += line, currentLength += line.length);
+                    }), callback();
+                }
+            });
+            stream.pipe(batchProcessor).on('data', (line)=>{
+                currentLength + line.length > 419430400 && (jsonList.push(currentContent), currentContent = '', currentLength = 0), line.length && (currentContent += line, currentLength += line.length);
+            }).on('end', ()=>{
+                jsonList.length < 1 && jsonList.push(currentContent), resolve(jsonList);
+            }).on('error', (err)=>reject(err));
+        }) : Promise.resolve(JSON.stringify(json, replacer, space));
+    }
+    let readPackageJson = (file, readFile)=>{
+        let result, current = file;
+        for(; '/' !== current && !result;){
+            let parent = (0, external_path_.dirname)(current);
+            if (parent === current) break;
+            current = parent, readFile && (result = readFile((0, external_path_.join)(current, 'package.json'))), readFile ? result?.name || (result = void 0) : result = common.Package.getPackageMetaFromModulePath(file);
+        }
+        if (result) return !readFile || result.name && result.version ? {
+            ...result,
+            root: current
+        } : readPackageJson((0, external_path_.dirname)(current), readFile);
+    }, index_js_namespaceObject = require("../compiled/connect/index.js");
+    var index_js_default = __webpack_require__.n(index_js_namespaceObject);
+    let external_http_namespaceObject = require("http");
+    var external_http_default = __webpack_require__.n(external_http_namespaceObject), external_os_ = __webpack_require__("os"), external_os_default = __webpack_require__.n(external_os_);
+    let external_get_port_namespaceObject = require("get-port");
+    var external_get_port_default = __webpack_require__.n(external_get_port_namespaceObject);
+    let external_child_process_namespaceObject = require("child_process");
+    var algorithm = __webpack_require__("./src/common/algorithm.ts");
+    let RESTRICTED_PORTS = [
+        3659,
+        4045,
+        6000,
+        6665,
+        6666,
+        6667,
+        6668,
+        6669
+    ], defaultPort = function(min, max) {
+        let port;
+        do port = (0, algorithm.random)(3000, 8999);
+        while (RESTRICTED_PORTS.includes(port));
+        return port;
+    }(0, 0);
+    async function getPort(expectPort) {
+        return external_get_port_default()({
+            port: expectPort
+        });
+    }
+    let createGetPortSyncFunctionString = (expectPort)=>`
+(() => {
+const net = require('net');
+
+function getPort(expectPort) {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.unref();
+    server.on('error', reject);
+    server.listen(expectPort, () => {
+      const { port } = server.address();
+      server.close(() => {
+        resolve(port);
+      });
+    });
+  });
+}
+
+async function getAvailablePort(expectPort) {
+  let port = expectPort;
+  while (true) {
+    try {
+      const res = await getPort(port);
+      return res;
+    } catch (error) {
+      port += Math.floor(Math.random() * 100 + 1);
+    }
+  }
+}
+
+getAvailablePort(${expectPort}).then(port => process.stdout.write(port.toString()));
+})();
+`.trim();
+    function getPortSync(expectPort) {
+        let statement = '\n' === external_os_default().EOL ? createGetPortSyncFunctionString(expectPort) : createGetPortSyncFunctionString(expectPort).replace(/\n/g, '');
+        return Number((0, external_child_process_namespaceObject.execSync)(`node -e "${statement}"`, {
+            encoding: 'utf-8'
+        }));
+    }
+    function createApp() {
+        return index_js_default()();
+    }
+    async function createServer(port) {
+        let app = createApp(), server = external_http_default().createServer(app), res = {
+            app,
+            server,
+            port,
+            close: ()=>new Promise((resolve, reject)=>{
+                    'closeAllConnections' in server && server.closeAllConnections(), 'closeIdleConnections' in server && server.closeIdleConnections(), server.close((err)=>{
+                        err && reject(err), resolve();
+                    });
+                })
+        };
+        return new Promise((resolve)=>{
+            server.listen(port, ()=>{
+                resolve(res);
+            });
+        });
+    }
+    let external_envinfo_namespaceObject = require("envinfo");
+    var external_envinfo_default = __webpack_require__.n(external_envinfo_namespaceObject);
+    let helpers = external_envinfo_default().helpers, run = external_envinfo_default().run, getCPUInfo = ()=>helpers.getCPUInfo().then((res)=>res[1]), getOSInfo = ()=>helpers.getOSInfo().then((res)=>res[1]), getMemoryInfo = ()=>helpers.getMemoryInfo().then((res)=>res[1]), getNodeVersion = ()=>helpers.getNodeInfo().then((res)=>res[1]), getYarnVersion = ()=>helpers.getYarnInfo().then((res)=>res[1]), getNpmVersion = ()=>helpers.getnpmInfo().then((res)=>res[1]), getPnpmVersion = ()=>helpers.getpnpmInfo().then((res)=>res[1]);
+    function getNpmPackageVersion(pkg) {
+        let isArray = Array.isArray(pkg);
+        return run({
+            npmPackages: isArray ? pkg : [
+                pkg
+            ]
+        }, {
+            json: !0,
+            showNotFound: !0
+        }).then((res)=>{
+            let { npmPackages = {} } = JSON.parse(res) || {};
+            return isArray ? pkg.map((e)=>npmPackages[e] || 'Not Found') : npmPackages[pkg];
+        });
+    }
+    function getGlobalNpmPackageVersion(pkg) {
+        let isArray = Array.isArray(pkg);
+        return run({
+            npmGlobalPackages: isArray ? pkg : [
+                pkg
+            ]
+        }, {
+            json: !0,
+            showNotFound: !0
+        }).then((res)=>{
+            let { npmGlobalPackages = {} } = JSON.parse(res) || {};
+            return isArray ? pkg.map((e)=>npmGlobalPackages[e] || 'Not Found') : npmGlobalPackages[pkg];
+        });
+    }
+    function getGitBranch() {
+        return new Promise((resolve, reject)=>{
+            (0, external_child_process_namespaceObject.exec)('git branch --show-current', (err, stdout)=>{
+                err ? (0, external_child_process_namespaceObject.exec)('git branch', (err, stdout)=>{
+                    err ? reject(err) : resolve(stdout.split('\n').map((e)=>e.replace('* ', '')).join('').trim());
+                }) : resolve(stdout.trim());
+            });
+        });
+    }
+    function getGitRepo() {
+        return new Promise((resolve, reject)=>{
+            (0, external_child_process_namespaceObject.exec)('git config --get remote.origin.url', (err, stdout)=>{
+                err ? reject(err) : resolve(stdout.trim());
+            });
+        });
+    }
+    let filesize_index_js_namespaceObject = require("../compiled/filesize/index.js");
+    var external_process_ = __webpack_require__("process");
+    function getMemoryUsage() {
+        return (0, external_process_.memoryUsage)();
+    }
+    function getMemoryUsageMessage() {
+        let usage = getMemoryUsage(), msgs = [
+            `RSS: ${(0, filesize_index_js_namespaceObject.filesize)(usage.rss)}`,
+            `Heap Total: ${(0, filesize_index_js_namespaceObject.filesize)(usage.heapTotal)}`,
+            `Heap Used: ${(0, filesize_index_js_namespaceObject.filesize)(usage.heapUsed)}`
+        ];
+        return usage.arrayBuffers && msgs.push(`ArrayBuffers: ${(0, filesize_index_js_namespaceObject.filesize)(usage.arrayBuffers)}`), usage.external && msgs.push(`External: ${(0, filesize_index_js_namespaceObject.filesize)(usage.external)}`), `["${external_process_.pid}" Memory Usage] ${msgs.join(', ')}`;
+    }
+})(), exports.EnvInfo = __webpack_exports__.EnvInfo, exports.File = __webpack_exports__.File, exports.Json = __webpack_exports__.Json, exports.Process = __webpack_exports__.Process, exports.Server = __webpack_exports__.Server, __webpack_exports__)-1 === [
+    "EnvInfo",
+    "File",
+    "Json",
+    "Process",
+    "Server"
+].indexOf(__rspack_i) && (exports[__rspack_i] = __webpack_exports__[__rspack_i]);
+Object.defineProperty(exports, '__esModule', {
+    value: !0
+});

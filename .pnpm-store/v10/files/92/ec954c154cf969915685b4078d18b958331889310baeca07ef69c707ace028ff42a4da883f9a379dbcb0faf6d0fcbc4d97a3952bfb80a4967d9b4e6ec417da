@@ -1,0 +1,172 @@
+"use strict";
+const __rslib_import_meta_url__ = "u" < typeof document ? new (require('url'.replace('', ''))).URL('file:' + __filename).href : document.currentScript && document.currentScript.src || new URL('main.js', document.baseURI).href;
+var __webpack_modules__ = {
+    "./package.json" (module) {
+        module.exports = JSON.parse('{"name":"@rsdoctor/rspack-plugin","version":"1.4.0","repository":{"type":"git","url":"https://github.com/web-infra-dev/rsdoctor","directory":"packages/rspack-plugin"},"license":"MIT","main":"dist/index.cjs","types":"dist/index.d.ts","files":["dist"],"exports":{".":{"types":"./dist/index.d.ts","import":"./dist/index.js","default":"./dist/index.cjs"}},"type":"module","scripts":{"dev":"npm run start","start":"rslib build -w","build":"rslib build","test":"rstest run"},"dependencies":{"@rsdoctor/core":"workspace:*","@rsdoctor/graph":"workspace:*","@rsdoctor/sdk":"workspace:*","@rsdoctor/types":"workspace:*","@rsdoctor/utils":"workspace:*"},"devDependencies":{"@rspack/core":"1.6.8","@types/node":"^22.8.1","@types/tapable":"2.2.7","tslib":"2.8.1","typescript":"^5.9.2"},"peerDependencies":{"@rspack/core":"*"},"peerDependenciesMeta":{"@rspack/core":{"optional":true}},"publishConfig":{"access":"public","registry":"https://registry.npmjs.org/"}}');
+    }
+}, __webpack_module_cache__ = {};
+function __webpack_require__(moduleId) {
+    var cachedModule = __webpack_module_cache__[moduleId];
+    if (void 0 !== cachedModule) return cachedModule.exports;
+    var module = __webpack_module_cache__[moduleId] = {
+        exports: {}
+    };
+    return __webpack_modules__[moduleId](module, module.exports, __webpack_require__), module.exports;
+}
+__webpack_require__.n = (module)=>{
+    var getter = module && module.__esModule ? ()=>module.default : ()=>module;
+    return __webpack_require__.d(getter, {
+        a: getter
+    }), getter;
+}, __webpack_require__.d = (exports1, definition)=>{
+    for(var key in definition)__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key) && Object.defineProperty(exports1, key, {
+        enumerable: !0,
+        get: definition[key]
+    });
+}, __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop), __webpack_require__.r = (exports1)=>{
+    "u" > typeof Symbol && Symbol.toStringTag && Object.defineProperty(exports1, Symbol.toStringTag, {
+        value: 'Module'
+    }), Object.defineProperty(exports1, '__esModule', {
+        value: !0
+    });
+};
+var __webpack_exports__ = {};
+for(var __rspack_i in (()=>{
+    let globalController;
+    __webpack_require__.r(__webpack_exports__), __webpack_require__.d(__webpack_exports__, {
+        RsdoctorRspackMultiplePlugin: ()=>RsdoctorRspackMultiplePlugin,
+        RsdoctorRspackPlugin: ()=>RsdoctorRspackPlugin
+    });
+    let build_utils_namespaceObject = require("@rsdoctor/core/build-utils"), plugins_namespaceObject = require("@rsdoctor/core/plugins"), sdk_namespaceObject = require("@rsdoctor/sdk"), types_namespaceObject = require("@rsdoctor/types"), external_path_namespaceObject = require("path");
+    var external_path_default = __webpack_require__.n(external_path_namespaceObject);
+    let pluginTapName = 'RsdoctorRspackPlugin', pluginTapPostOptions = {
+        name: pluginTapName,
+        stage: 999
+    }, pkg = __webpack_require__("./package.json"), graph_namespaceObject = require("@rsdoctor/graph"), common_namespaceObject = require("@rsdoctor/utils/common"), logger_namespaceObject = require("@rsdoctor/utils/logger");
+    class RsdoctorRspackPlugin {
+        name = pluginTapName;
+        sdk;
+        isRsdoctorPlugin;
+        _bootstrapTask;
+        browserIsOpened = !1;
+        modulesGraph;
+        options;
+        outsideInstance;
+        constructor(options){
+            this.options = (0, plugins_namespaceObject.normalizeRspackUserOptions)(Object.assign(options || {}, {
+                supports: {
+                    ...options?.supports
+                }
+            }));
+            const { port, output, innerClientPath, printLog, sdkInstance } = this.options;
+            this.sdk = this.options.sdkInstance ?? new sdk_namespaceObject.RsdoctorSDK({
+                port,
+                name: pluginTapName,
+                root: process.cwd(),
+                type: output.reportCodeType,
+                config: {
+                    innerClientPath,
+                    printLog,
+                    mode: output.mode ? output.mode : void 0,
+                    brief: output.mode === types_namespaceObject.SDK.IMode[types_namespaceObject.SDK.IMode.brief] && output.options || void 0
+                }
+            }), this.outsideInstance = !!sdkInstance, this.modulesGraph = new graph_namespaceObject.ModuleGraph(), this.isRsdoctorPlugin = !0;
+        }
+        apply(compiler) {
+            (0, logger_namespaceObject.time)('RsdoctorRspackPlugin.apply');
+            try {
+                logger_namespaceObject.logger.greet(`
+        \nRsdoctor v${pkg.version}\n`), this._bootstrapTask || (this._bootstrapTask = this.sdk.bootstrap()), compiler.options.name && this.sdk.setName(compiler.options.name), (0, plugins_namespaceObject.setSDK)(this.sdk), compiler.hooks.afterPlugins.tap(pluginTapPostOptions, this.afterPlugins.bind(this, compiler)), compiler.hooks.done.tapPromise({
+                    ...pluginTapPostOptions,
+                    stage: pluginTapPostOptions.stage + 100
+                }, this.done.bind(this, compiler)), new plugins_namespaceObject.InternalSummaryPlugin(this).apply(compiler), this.options.features.loader && (new build_utils_namespaceObject.Loader.ProbeLoaderPlugin().apply(compiler), this.sdk.addClientRoutes([
+                    types_namespaceObject.Manifest.RsdoctorManifestClientRoutes.WebpackLoaders
+                ]), common_namespaceObject.Loader.isVue(compiler) || new plugins_namespaceObject.InternalLoaderPlugin(this).apply(compiler)), this.options.features.plugins && new plugins_namespaceObject.InternalPluginsPlugin(this).apply(compiler), this.options.features.bundle && (new plugins_namespaceObject.InternalBundlePlugin(this).apply(compiler), new plugins_namespaceObject.InternalBundleTagPlugin(this).apply(compiler)), this.options.features.resolver && new plugins_namespaceObject.InternalResolverPlugin(this).apply(compiler), new plugins_namespaceObject.InternalRulesPlugin(this).apply(compiler), new plugins_namespaceObject.InternalErrorReporterPlugin(this).apply(compiler);
+                let RsdoctorRspackNativePlugin = compiler.webpack.experiments?.RsdoctorPlugin;
+                if (RsdoctorRspackNativePlugin) {
+                    logger_namespaceObject.logger.debug('[RspackNativePlugin] Enabled');
+                    let enableNativePlugin = this.options.experiments?.enableNativePlugin;
+                    new RsdoctorRspackNativePlugin({
+                        moduleGraphFeatures: 'boolean' == typeof enableNativePlugin ? enableNativePlugin : enableNativePlugin?.moduleGraph || !1,
+                        chunkGraphFeatures: 'boolean' == typeof enableNativePlugin ? enableNativePlugin : enableNativePlugin?.chunkGraph || !1,
+                        sourceMapFeatures: {
+                            cheap: !1,
+                            module: !1
+                        }
+                    }).apply(compiler);
+                }
+            } finally{
+                (0, logger_namespaceObject.timeEnd)('RsdoctorRspackPlugin.apply');
+            }
+        }
+        ensureModulesChunksGraphApplied(compiler) {
+            (0, plugins_namespaceObject.ensureModulesChunksGraphFn)(compiler, this);
+        }
+        afterPlugins = (compiler)=>{
+            (0, logger_namespaceObject.time)('RsdoctorRspackPlugin.afterPlugins');
+            try {
+                this.getRspackConfig(compiler);
+            } finally{
+                (0, logger_namespaceObject.timeEnd)('RsdoctorRspackPlugin.afterPlugins');
+            }
+        };
+        done = async (compiler)=>{
+            (0, logger_namespaceObject.time)('RsdoctorRspackPlugin.done');
+            try {
+                await this.sdk.bootstrap(), this.sdk.addClientRoutes([
+                    types_namespaceObject.Manifest.RsdoctorManifestClientRoutes.Overall
+                ]), this.outsideInstance && 'parent' in this.sdk && this.sdk.parent.master.setOutputDir(external_path_default().resolve(this.options.output.reportDir || compiler.outputPath, this.options.output.mode === types_namespaceObject.SDK.IMode[types_namespaceObject.SDK.IMode.brief] ? '' : `./${types_namespaceObject.Constants.RsdoctorOutputFolder}`)), this.sdk.setOutputDir(external_path_default().resolve(this.options.output.reportDir || compiler.outputPath, this.options.output.mode === types_namespaceObject.SDK.IMode[types_namespaceObject.SDK.IMode.brief] ? '' : `./${types_namespaceObject.Constants.RsdoctorOutputFolder}`)), await this.sdk.writeStore(), this.options.disableClientServer || (this.options.output.mode === types_namespaceObject.SDK.IMode[types_namespaceObject.SDK.IMode.brief] ? await (0, plugins_namespaceObject.handleBriefModeReport)(this.sdk, this.options, this.options.disableClientServer) : await this.sdk.server.openClientPage('homepage')), (this.options.disableClientServer || this.options.output.mode === types_namespaceObject.SDK.IMode[types_namespaceObject.SDK.IMode.brief] && Array.isArray(this.options.output.options?.type) && 1 === this.options.output.options.type.length && 'json' === this.options.output.options.type[0]) && await this.sdk.dispose();
+            } finally{
+                (0, logger_namespaceObject.timeEnd)('RsdoctorRspackPlugin.done');
+            }
+        };
+        getRspackConfig(compiler) {
+            (0, logger_namespaceObject.time)('RsdoctorRspackPlugin.getRspackConfig');
+            try {
+                if (compiler.isChild()) return;
+                let configuration = (0, plugins_namespaceObject.processCompilerConfig)(compiler.options), rspackVersion = compiler.webpack?.rspackVersion, webpackVersion = compiler.webpack?.version;
+                this.sdk.reportConfiguration({
+                    name: rspackVersion ? 'rspack' : 'webpack',
+                    version: rspackVersion || webpackVersion || 'unknown',
+                    config: configuration,
+                    root: (0, sdk_namespaceObject.findRoot)() || ''
+                });
+            } finally{
+                (0, logger_namespaceObject.timeEnd)('RsdoctorRspackPlugin.getRspackConfig');
+            }
+        }
+    }
+    class RsdoctorRspackMultiplePlugin extends RsdoctorRspackPlugin {
+        controller;
+        constructor(options = {}){
+            const controller = (()=>{
+                if (globalController) return globalController;
+                let controller = new sdk_namespaceObject.RsdoctorSDKController();
+                return globalController = controller, controller;
+            })(), normallizedOptions = (0, plugins_namespaceObject.normalizeUserConfig)(options);
+            super({
+                ...options,
+                sdkInstance: controller.createSlave({
+                    name: options.name || 'Builder',
+                    stage: options.stage,
+                    extraConfig: {
+                        innerClientPath: normallizedOptions.innerClientPath,
+                        printLog: normallizedOptions.printLog,
+                        mode: normallizedOptions.output.mode ? normallizedOptions.output.mode : void 0,
+                        brief: normallizedOptions.output.mode === types_namespaceObject.SDK.IMode[types_namespaceObject.SDK.IMode.brief] && normallizedOptions.output.options || void 0
+                    },
+                    type: normallizedOptions.output.reportCodeType
+                })
+            }), this.controller = controller;
+        }
+        apply(compiler) {
+            'dependencies' in compiler.options && (this.sdk.dependencies = compiler.options.dependencies), super.apply(compiler);
+        }
+    }
+})(), exports.RsdoctorRspackMultiplePlugin = __webpack_exports__.RsdoctorRspackMultiplePlugin, exports.RsdoctorRspackPlugin = __webpack_exports__.RsdoctorRspackPlugin, __webpack_exports__)-1 === [
+    "RsdoctorRspackMultiplePlugin",
+    "RsdoctorRspackPlugin"
+].indexOf(__rspack_i) && (exports[__rspack_i] = __webpack_exports__[__rspack_i]);
+Object.defineProperty(exports, '__esModule', {
+    value: !0
+});

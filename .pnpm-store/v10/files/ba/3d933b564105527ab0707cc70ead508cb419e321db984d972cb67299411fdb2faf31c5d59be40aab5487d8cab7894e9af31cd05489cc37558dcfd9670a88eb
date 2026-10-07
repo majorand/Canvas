@@ -1,0 +1,64 @@
+"use strict";
+var __webpack_require__ = {};
+(()=>{
+    __webpack_require__.d = (exports1, definition)=>{
+        for(var key in definition)if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key)) Object.defineProperty(exports1, key, {
+            enumerable: true,
+            get: definition[key]
+        });
+    };
+})();
+(()=>{
+    __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop);
+})();
+(()=>{
+    __webpack_require__.r = (exports1)=>{
+        if ("u" > typeof Symbol && Symbol.toStringTag) Object.defineProperty(exports1, Symbol.toStringTag, {
+            value: 'Module'
+        });
+        Object.defineProperty(exports1, '__esModule', {
+            value: true
+        });
+    };
+})();
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+    internalPluginTapPostOptions: ()=>internalPluginTapPostOptions,
+    internalPluginTapPreOptions: ()=>internalPluginTapPreOptions,
+    pluginTapName: ()=>pluginTapName,
+    pluginTapPostOptions: ()=>pluginTapPostOptions,
+    pluginTapPreOptions: ()=>pluginTapPreOptions
+});
+const pluginTapName = 'RsdoctorWebpackPlugin';
+const pluginTapPostOptions = {
+    name: pluginTapName,
+    stage: 999
+};
+const pluginTapPreOptions = {
+    name: pluginTapName,
+    stage: -999
+};
+const internalPluginTapPreOptions = (namespace)=>({
+        name: `${pluginTapName}:${namespace}`,
+        stage: -998
+    });
+const internalPluginTapPostOptions = (namespace)=>({
+        name: `${pluginTapName}:${namespace}`,
+        stage: 1000
+    });
+exports.internalPluginTapPostOptions = __webpack_exports__.internalPluginTapPostOptions;
+exports.internalPluginTapPreOptions = __webpack_exports__.internalPluginTapPreOptions;
+exports.pluginTapName = __webpack_exports__.pluginTapName;
+exports.pluginTapPostOptions = __webpack_exports__.pluginTapPostOptions;
+exports.pluginTapPreOptions = __webpack_exports__.pluginTapPreOptions;
+for(var __rspack_i in __webpack_exports__)if (-1 === [
+    "internalPluginTapPostOptions",
+    "internalPluginTapPreOptions",
+    "pluginTapName",
+    "pluginTapPostOptions",
+    "pluginTapPreOptions"
+].indexOf(__rspack_i)) exports[__rspack_i] = __webpack_exports__[__rspack_i];
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});

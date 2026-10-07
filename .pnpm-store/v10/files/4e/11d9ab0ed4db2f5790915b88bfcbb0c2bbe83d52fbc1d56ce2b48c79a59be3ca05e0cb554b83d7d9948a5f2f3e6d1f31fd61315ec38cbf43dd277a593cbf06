@@ -1,0 +1,80 @@
+"use strict";
+var __webpack_require__ = {};
+(()=>{
+    __webpack_require__.d = (exports1, definition)=>{
+        for(var key in definition)if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key)) Object.defineProperty(exports1, key, {
+            enumerable: true,
+            get: definition[key]
+        });
+    };
+})();
+(()=>{
+    __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop);
+})();
+(()=>{
+    __webpack_require__.r = (exports1)=>{
+        if ("u" > typeof Symbol && Symbol.toStringTag) Object.defineProperty(exports1, Symbol.toStringTag, {
+            value: 'Module'
+        });
+        Object.defineProperty(exports1, '__esModule', {
+            value: true
+        });
+    };
+})();
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+    patchNativeChunkGraph: ()=>patchNativeChunkGraph,
+    patchNativeAssets: ()=>patchNativeAssets
+});
+const graph_namespaceObject = require("@rsdoctor/graph");
+function patchNativeChunkGraph(cg, rawChunkGraph) {
+    const { chunks: rawChunks, entrypoints: rawEntrypoints } = rawChunkGraph;
+    const chunks = rawChunks.map((chunk)=>new graph_namespaceObject.Chunk(chunk.ukey.toString(), chunk.name, 0, chunk.initial, chunk.entry));
+    cg.setChunks(chunks);
+    const entrypoints = rawEntrypoints.map((entrypoint)=>{
+        const res = new graph_namespaceObject.EntryPoint(entrypoint.name);
+        res.setId(entrypoint.ukey);
+        return res;
+    });
+    cg.setEntrypoints(entrypoints);
+    for (const rawChunk of rawChunks){
+        const chunk = cg.getChunkById(rawChunk.ukey.toString());
+        chunk.setDependencies(rawChunk.dependencies.map((ukey)=>cg.getChunkById(ukey.toString())));
+        chunk.setImported(rawChunk.imported.map((ukey)=>cg.getChunkById(ukey.toString())));
+    }
+    for (const rawEntrypoint of rawEntrypoints){
+        const entrypoint = cg.getEntryPointById(rawEntrypoint.ukey);
+        entrypoint.setChunks(rawEntrypoint.chunks.map((ukey)=>cg.getChunkById(ukey.toString())));
+    }
+}
+function patchNativeAssets(cg, rawAssetPatch) {
+    const { assets: rawAssets, chunkAssets: rawChunkAssets, entrypointAssets: rawEntrypointAssets } = rawAssetPatch;
+    const assets = rawAssets.map((asset)=>{
+        const res = new graph_namespaceObject.Asset(asset.path, asset.size, [], '');
+        res.setId(asset.ukey);
+        return res;
+    });
+    cg.setAssets(assets);
+    for (const rawAsset of rawAssets){
+        const asset = cg.getAssetById(rawAsset.ukey);
+        asset.setChunks(rawAsset.chunks.map((ukey)=>cg.getChunkById(ukey.toString())));
+    }
+    for (const rawChunkAsset of rawChunkAssets){
+        const chunk = cg.getChunkById(rawChunkAsset.chunk.toString());
+        chunk.setAssets(rawChunkAsset.assets.map((ukey)=>cg.getAssetById(ukey)));
+    }
+    for (const rawEntrypointAsset of rawEntrypointAssets){
+        const entrypoint = cg.getEntryPointById(rawEntrypointAsset.entrypoint);
+        entrypoint.setAssets(rawEntrypointAsset.assets.map((ukey)=>cg.getAssetById(ukey)));
+    }
+}
+exports.patchNativeAssets = __webpack_exports__.patchNativeAssets;
+exports.patchNativeChunkGraph = __webpack_exports__.patchNativeChunkGraph;
+for(var __rspack_i in __webpack_exports__)if (-1 === [
+    "patchNativeAssets",
+    "patchNativeChunkGraph"
+].indexOf(__rspack_i)) exports[__rspack_i] = __webpack_exports__[__rspack_i];
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});

@@ -1,0 +1,117 @@
+"use strict";
+var __webpack_require__ = {};
+(()=>{
+    __webpack_require__.d = (exports1, definition)=>{
+        for(var key in definition)if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key)) Object.defineProperty(exports1, key, {
+            enumerable: true,
+            get: definition[key]
+        });
+    };
+})();
+(()=>{
+    __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop);
+})();
+(()=>{
+    __webpack_require__.r = (exports1)=>{
+        if ("u" > typeof Symbol && Symbol.toStringTag) Object.defineProperty(exports1, Symbol.toStringTag, {
+            value: 'Module'
+        });
+        Object.defineProperty(exports1, '__esModule', {
+            value: true
+        });
+    };
+})();
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+    applyRspackNativePlugin: ()=>applyRspackNativePlugin
+});
+const graph_namespaceObject = require("@rsdoctor/graph");
+const index_cjs_namespaceObject = require("../../build-utils/build/index.cjs");
+const external_constants_cjs_namespaceObject = require("../constants.cjs");
+const logger_namespaceObject = require("@rsdoctor/utils/logger");
+function applyRspackNativePlugin(compiler, plugin, RsdoctorRspackPlugin) {
+    logger_namespaceObject.logger.debug('[RspackNativePlugin] Apply hooks');
+    compiler.hooks.compilation.tap('RsdoctorRspackPlugin', (compilation)=>{
+        const hooks = RsdoctorRspackPlugin.getCompilationHooks(compilation);
+        const cached = {};
+        const dependOn = {
+            chunkGraphData: [],
+            moduleGraphData: [
+                'chunkGraphData'
+            ],
+            assetPatchData: [
+                'chunkGraphData'
+            ],
+            moduleIdsPatchData: [
+                'moduleGraphData'
+            ],
+            moduleSourcesPatchData: [
+                'moduleGraphData'
+            ]
+        };
+        const consumer = {
+            chunkGraphData: (data)=>{
+                plugin.chunkGraph = new graph_namespaceObject.ChunkGraph();
+                index_cjs_namespaceObject.Chunks.patchNativeChunkGraph(plugin.chunkGraph, data);
+            },
+            moduleGraphData: (data)=>{
+                index_cjs_namespaceObject.ModuleGraph.patchNativeModuleGraph(plugin.modulesGraph, plugin.chunkGraph, data);
+            },
+            moduleIdsPatchData: (data)=>{
+                index_cjs_namespaceObject.ModuleGraph.patchNativeModuleIds(plugin.modulesGraph, data);
+            },
+            moduleSourcesPatchData: (data)=>{
+                index_cjs_namespaceObject.ModuleGraph.patchNativeModuleSources(plugin.modulesGraph, data);
+            },
+            assetPatchData: (data)=>{
+                index_cjs_namespaceObject.Chunks.patchNativeAssets(plugin.chunkGraph, data);
+            }
+        };
+        const tryConsumeData = (key, data)=>{
+            if (true === cached[key]) return;
+            cached[key] = data;
+            while(true){
+                let hasConsumed = false;
+                for (const [_task, deps] of Object.entries(dependOn)){
+                    const task = _task;
+                    if (true === cached[task] || void 0 === cached[task]) continue;
+                    const prepared = deps.every((dep)=>true === cached[dep]);
+                    if (prepared) {
+                        consumer[task](cached[task]);
+                        cached[task] = true;
+                        hasConsumed = true;
+                    }
+                }
+                if (!hasConsumed) break;
+            }
+        };
+        hooks.chunkGraph.tap((0, external_constants_cjs_namespaceObject.internalPluginTapPreOptions)('nativeChunkGraph'), (rawChunkGraph)=>{
+            logger_namespaceObject.logger.debug('[RspackNativePlugin] Called chunkGraph hook');
+            tryConsumeData('chunkGraphData', rawChunkGraph);
+        });
+        hooks.moduleGraph.tap((0, external_constants_cjs_namespaceObject.internalPluginTapPreOptions)('nativeModuleGraph'), (rawModuleGraph)=>{
+            logger_namespaceObject.logger.debug('[RspackNativePlugin] Called moduleGraph hook');
+            tryConsumeData('moduleGraphData', rawModuleGraph);
+        });
+        hooks.moduleIds.tap((0, external_constants_cjs_namespaceObject.internalPluginTapPreOptions)('nativeSourcePatch'), (rawModuleIdsPatch)=>{
+            logger_namespaceObject.logger.debug('[RspackNativePlugin] Called moduleIds hook');
+            tryConsumeData('moduleIdsPatchData', rawModuleIdsPatch);
+        });
+        hooks.moduleSources.tap((0, external_constants_cjs_namespaceObject.internalPluginTapPreOptions)('nativeModuleSourcesPatch'), (rawModuleSourcesPatch)=>{
+            logger_namespaceObject.logger.debug('[RspackNativePlugin] Called moduleSources hook');
+            tryConsumeData('moduleSourcesPatchData', rawModuleSourcesPatch);
+        });
+        hooks.assets.tap((0, external_constants_cjs_namespaceObject.internalPluginTapPreOptions)('nativeAssetPatch'), (rawAssetPatch)=>{
+            logger_namespaceObject.logger.debug('[RspackNativePlugin] Called assets hook');
+            tryConsumeData('assetPatchData', rawAssetPatch);
+        });
+    });
+}
+exports.applyRspackNativePlugin = __webpack_exports__.applyRspackNativePlugin;
+for(var __rspack_i in __webpack_exports__)if (-1 === [
+    "applyRspackNativePlugin"
+].indexOf(__rspack_i)) exports[__rspack_i] = __webpack_exports__[__rspack_i];
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});

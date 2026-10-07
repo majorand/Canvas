@@ -1,0 +1,8 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+function getErrorMsgForDupPckChunks(chunks, pkgName) {
+    let message = `The same package ${pkgName} was bundled into different chunks:\n`;
+    for (const chunkName of chunks)message += ` ${chunkName}\n`;
+    return message.slice(0, -1);
+}
+export { getErrorMsgForDupPckChunks };

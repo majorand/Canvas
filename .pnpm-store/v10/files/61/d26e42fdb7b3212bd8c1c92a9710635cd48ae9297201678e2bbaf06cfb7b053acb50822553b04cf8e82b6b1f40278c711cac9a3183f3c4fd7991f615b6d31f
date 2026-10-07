@@ -1,0 +1,322 @@
+"use strict";
+const __rslib_import_meta_url__ = "u" < typeof document ? new (require('url'.replace('', ''))).URL('file:' + __filename).href : document.currentScript && document.currentScript.src || new URL('main.js', document.baseURI).href;
+var __webpack_require__ = {};
+__webpack_require__.d = (exports1, definition)=>{
+    for(var key in definition)__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key) && Object.defineProperty(exports1, key, {
+        enumerable: !0,
+        get: definition[key]
+    });
+}, __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop), __webpack_require__.r = (exports1)=>{
+    "u" > typeof Symbol && Symbol.toStringTag && Object.defineProperty(exports1, Symbol.toStringTag, {
+        value: 'Module'
+    }), Object.defineProperty(exports1, '__esModule', {
+        value: !0
+    });
+};
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__), __webpack_require__.d(__webpack_exports__, {
+    Document: ()=>Document,
+    isES6: ()=>isES6,
+    getIdentifierInDeclaration: ()=>getIdentifierInDeclaration,
+    canParse: ()=>canParse,
+    ECMAVersion: ()=>types_ECMAVersion,
+    asserts: ()=>asserts,
+    clearDocument: ()=>clearDocument,
+    isES5: ()=>isES5,
+    getIdentifierInExport: ()=>getIdentifierInExport,
+    getIdentifierInImport: ()=>getIdentifierInImport,
+    getDocument: ()=>getDocument,
+    detectECMAVersion: ()=>detectECMAVersion,
+    getDefaultImports: ()=>getDefaultImports,
+    parser: ()=>parser,
+    getIdentifierInPattern: ()=>getIdentifierInPattern,
+    isSameSemantics: ()=>isSameSemantics
+});
+var utils_namespaceObject = {};
+__webpack_require__.r(utils_namespaceObject), __webpack_require__.d(utils_namespaceObject, {
+    canParse: ()=>canParse,
+    detectECMAVersion: ()=>detectECMAVersion,
+    getDefaultImports: ()=>getDefaultImports,
+    getIdentifierInDeclaration: ()=>getIdentifierInDeclaration,
+    getIdentifierInExport: ()=>getIdentifierInExport,
+    getIdentifierInImport: ()=>getIdentifierInImport,
+    getIdentifierInPattern: ()=>getIdentifierInPattern,
+    isES5: ()=>isES5,
+    isES6: ()=>isES6,
+    isSameSemantics: ()=>isSameSemantics
+});
+const external_lines_and_columns_namespaceObject = require("lines-and-columns");
+function isUndefined(value) {
+    return void 0 === value;
+}
+function isNumber(value) {
+    return 'number' == typeof value && !Number.isNaN(value);
+}
+function isObject(value) {
+    return 'object' == typeof value && null !== value;
+}
+function isEmpty(value) {
+    return null == value || Array.isArray(value) && 0 === value.length || 'object' == typeof value && 0 === Object.keys(value).length;
+}
+function last(array) {
+    return array[array.length - 1];
+}
+function compact(array) {
+    return array.filter((item)=>null != item || !item);
+}
+function isNil(value) {
+    return null == value;
+}
+const isPlainObject = (obj)=>null !== obj && 'object' == typeof obj && Object.getPrototypeOf(obj) === Object.prototype, isString = (v)=>'string' == typeof v || !!v && 'object' == typeof v && !Array.isArray(v) && '[object String]' === ({}).toString.call(v);
+function pick(obj, keys) {
+    let result = {};
+    for(let i = 0; i < keys.length; i++){
+        let key = keys[i];
+        Object.hasOwn(obj, key) && (result[key] = obj[key]);
+    }
+    return result;
+}
+class Document {
+    _text = '';
+    positionAt;
+    offsetAt;
+    constructor(content){
+        this._text, this._text = content, this.createFinder();
+    }
+    createFinder() {
+        let find = new external_lines_and_columns_namespaceObject.LinesAndColumns(this._text);
+        this.positionAt = (offset)=>{
+            offset >= this._text.length && (offset = this._text.length - 1), offset < 0 && (offset = 0);
+            let result = find.locationForIndex(offset);
+            if (result) return {
+                line: result.line + 1,
+                column: result.column
+            };
+        }, this.offsetAt = (position)=>find.indexForLocation({
+                line: position.line - 1,
+                column: position.column
+            }) ?? void 0;
+    }
+    getText(range) {
+        if (!range) return this._text;
+        let start = 'number' == typeof range.start ? range.start : this.offsetAt(range.start), end = 'number' == typeof range.end ? range.end : this.offsetAt(range.end);
+        if (isUndefined(start)) throw Error(`Location ${JSON.stringify(start)} is illegal`);
+        if (isUndefined(end)) throw Error(`Location ${JSON.stringify(end)} is illegal`);
+        return this._text.slice(start, end);
+    }
+    edit(data) {
+        let { _text: content } = this, startOffset = isNumber(data.start) ? data.start : this.offsetAt(data.start), endOffset = isNumber(data.end) ? data.end : this.offsetAt(data.end);
+        if (isUndefined(startOffset) || isUndefined(endOffset)) return;
+        let startTxt = content.substring(0, startOffset), endTxt = content.substring(endOffset, content.length);
+        return startTxt + data.newText + endTxt;
+    }
+}
+const store = new Map();
+function getDocument(content) {
+    if (store.has(content)) return store.get(content);
+    let doc = new Document(content);
+    return store.set(content, doc), doc;
+}
+function clearDocument() {
+    store.clear();
+}
+function isSyntaxNode(node) {
+    return isObject(node) && 'type' in node;
+}
+function assertCreator(type) {
+    return (node)=>isSyntaxNode(node) && node.type === type;
+}
+const asserts = {
+    isProgram: assertCreator('Program'),
+    isEmptyStatement: assertCreator('EmptyStatement'),
+    isBlockStatement: assertCreator('BlockStatement'),
+    isStaticBlock: assertCreator('StaticBlock'),
+    isExpressionStatement: assertCreator('ExpressionStatement'),
+    isIfStatement: assertCreator('IfStatement'),
+    isLabeledStatement: assertCreator('LabeledStatement'),
+    isBreakStatement: assertCreator('BreakStatement'),
+    isContinueStatement: assertCreator('ContinueStatement'),
+    isWithStatement: assertCreator('WithStatement'),
+    isSwitchStatement: assertCreator('SwitchStatement'),
+    isReturnStatement: assertCreator('ReturnStatement'),
+    isThrowStatement: assertCreator('ThrowStatement'),
+    isTryStatement: assertCreator('TryStatement'),
+    isWhileStatement: assertCreator('WhileStatement'),
+    isDoWhileStatement: assertCreator('DoWhileStatement'),
+    isForStatement: assertCreator('ForStatement'),
+    isForInStatement: assertCreator('ForInStatement'),
+    isForOfStatement: assertCreator('ForOfStatement'),
+    isDebuggerStatement: assertCreator('DebuggerStatement'),
+    isFunctionDeclaration: assertCreator('FunctionDeclaration'),
+    isVariableDeclaration: assertCreator('VariableDeclaration'),
+    isVariableDeclarator: assertCreator('VariableDeclarator'),
+    isChainExpression: assertCreator('ChainExpression'),
+    isThisExpression: assertCreator('ThisExpression'),
+    isArrayExpression: assertCreator('ArrayExpression'),
+    isObjectExpression: assertCreator('ObjectExpression'),
+    isPrivateIdentifier: assertCreator('PrivateIdentifier'),
+    isProperty: assertCreator('Property'),
+    isPropertyDefinition: assertCreator('PropertyDefinition'),
+    isFunctionExpression: assertCreator('FunctionExpression'),
+    isSequenceExpression: assertCreator('SequenceExpression'),
+    isUnaryExpression: assertCreator('UnaryExpression'),
+    isBinaryExpression: assertCreator('BinaryExpression'),
+    isAssignmentExpression: assertCreator('AssignmentExpression'),
+    isUpdateExpression: assertCreator('UpdateExpression'),
+    isLogicalExpression: assertCreator('LogicalExpression'),
+    isConditionalExpression: assertCreator('ConditionalExpression'),
+    isNewExpression: assertCreator('NewExpression'),
+    isSwitchCase: assertCreator('SwitchCase'),
+    isCatchClause: assertCreator('CatchClause'),
+    isIdentifier: assertCreator('Identifier'),
+    isLiteral: assertCreator('Literal'),
+    isSuper: assertCreator('Super'),
+    isSpreadElement: assertCreator('SpreadElement'),
+    isArrowFunctionExpression: assertCreator('ArrowFunctionExpression'),
+    isYieldExpression: assertCreator('YieldExpression'),
+    isTemplateLiteral: assertCreator('TemplateLiteral'),
+    isTaggedTemplateExpression: assertCreator('TaggedTemplateExpression'),
+    isTemplateElement: assertCreator('TemplateElement'),
+    isObjectPattern: assertCreator('ObjectPattern'),
+    isArrayPattern: assertCreator('ArrayPattern'),
+    isRestElement: assertCreator('RestElement'),
+    isAssignmentPattern: assertCreator('AssignmentPattern'),
+    isClassBody: assertCreator('ClassBody'),
+    isClassDeclaration: assertCreator('ClassDeclaration'),
+    isClassExpression: assertCreator('ClassExpression'),
+    isMetaProperty: assertCreator('MetaProperty'),
+    isImportDeclaration: assertCreator('ImportDeclaration'),
+    isImportSpecifier: assertCreator('ImportSpecifier'),
+    isImportExpression: assertCreator('ImportExpression'),
+    isImportDefaultSpecifier: assertCreator('ImportDefaultSpecifier'),
+    isImportNamespaceSpecifier: assertCreator('ImportNamespaceSpecifier'),
+    isExportNamedDeclaration: assertCreator('ExportNamedDeclaration'),
+    isExportSpecifier: assertCreator('ExportSpecifier'),
+    isExportDefaultDeclaration: assertCreator('ExportDefaultDeclaration'),
+    isExportAllDeclaration: assertCreator('ExportAllDeclaration'),
+    isAwaitExpression: assertCreator('AwaitExpression'),
+    isMethodDefinition: assertCreator('MethodDefinition'),
+    isMemberExpression: assertCreator('MemberExpression'),
+    isComment: (node)=>isSyntaxNode(node) && ('Line' === node.type || 'Block' === node.type),
+    isDirective: (node)=>asserts.isExpressionStatement(node) && 'directive' in node,
+    isSimpleCallExpression: (node)=>isSyntaxNode(node) && 'CallExpression' === node.type,
+    isAssignmentProperty: (node)=>asserts.isProperty(node) && 'init' === node.kind,
+    isSimpleLiteral: (node)=>asserts.isLiteral(node) && !asserts.isRegExpLiteral(node) && !asserts.isBigIntLiteral(node),
+    isRegExpLiteral: (node)=>asserts.isLiteral(node) && 'regex' in node,
+    isBigIntLiteral: (node)=>asserts.isLiteral(node) && 'bigint' in node,
+    isExportStatement: (node)=>asserts.isExportAllDeclaration(node) || asserts.isExportDefaultDeclaration(node) || asserts.isExportNamedDeclaration(node)
+}, external_acorn_namespaceObject = require("acorn"), external_acorn_import_attributes_namespaceObject = require("acorn-import-attributes"), external_acorn_walk_namespaceObject = require("acorn-walk");
+var types_ECMAVersion = function(ECMAVersion) {
+    return ECMAVersion.ES5 = "ES5", ECMAVersion.ES6 = "ES6", ECMAVersion.ES7P = "ES7+", ECMAVersion;
+}({});
+function isSameSemantics(node1, node2) {
+    if (node1.type !== node2.type) return !1;
+    switch(node1.type){
+        case 'CallExpression':
+            return node1.arguments.length === node2.arguments.length && !!node1.optional == !!node2.optional && isSameSemantics(node1.callee, node2.callee) && node1.arguments.every((node, i)=>isSameSemantics(node, node2.arguments[i]));
+        case 'MemberExpression':
+            return node1.computed === node2.computed && !!node1.optional == !!node2.optional && isSameSemantics(node1.object, node2.object) && isSameSemantics(node1.property, node2.property);
+        case 'Identifier':
+            return node1.name === node2.name;
+        case 'Literal':
+            if (asserts.isSimpleLiteral(node1) && asserts.isSimpleLiteral(node2)) return node1.value === node2.value;
+            return node1.raw === node2.raw;
+        case 'ObjectExpression':
+            return node1.properties.length === node2.properties.length && node1.properties.every((prop, i)=>isSameSemantics(prop, node2.properties[i]));
+        case 'Property':
+            return node1.computed === node2.computed && node1.kind === node2.kind && node1.method === node2.method && isSameSemantics(node1.key, node2.key) && isSameSemantics(node1.value, node2.value);
+        default:
+            throw Error(`Unknown node type: ${node1.type}`);
+    }
+}
+function getDefaultImports(node) {
+    return node.body.filter((statement)=>{
+        if ('ImportDeclaration' !== statement.type) return !1;
+        let specifier = statement?.specifiers?.[0];
+        return specifier?.type === 'ImportDefaultSpecifier';
+    });
+}
+function getIdentifierInPattern(name, node) {
+    if (asserts.isIdentifier(node) && node.name === name) return node;
+    if (asserts.isObjectPattern(node)) for (let prop of node.properties){
+        if (asserts.isAssignmentProperty(prop)) return getIdentifierInPattern(name, prop.value);
+        if (asserts.isRestElement(prop)) return getIdentifierInPattern(name, prop);
+    }
+    if (asserts.isArrayPattern(node)) {
+        for (let el of node.elements)if (el) {
+            let result = getIdentifierInPattern(name, el);
+            if (result) return result;
+        }
+    }
+    return asserts.isRestElement(node) ? getIdentifierInPattern(name, node.argument) : asserts.isAssignmentPattern(node) ? getIdentifierInPattern(name, node.left) : void 0;
+}
+function getIdentifierInDeclaration(name, node) {
+    var node1;
+    return asserts.isFunctionDeclaration(node) || asserts.isClassDeclaration(node) ? (node1 = node, asserts.isIdentifier(node1.id) && node1.id.name === name ? node1.id : void 0) : asserts.isVariableDeclaration(node) ? node.declarations.find((item)=>getIdentifierInPattern(name, item.id))?.id : void 0;
+}
+function getIdentifierInImport(name, node) {
+    if (asserts.isImportDeclaration(node)) {
+        for (let specifier of node.specifiers ?? [])if (specifier.local.name === name) return specifier.local;
+    }
+}
+function getIdentifierInExport(name, node) {
+    if (asserts.isExportNamedDeclaration(node)) {
+        if (node.declaration) return getIdentifierInDeclaration(name, node.declaration);
+        for (let specifier of node.specifiers ?? [])if (specifier.exported.name === name) return specifier.exported;
+    }
+    if (asserts.isExportAllDeclaration(node) && node.exported && node.exported.name === name) return node.exported;
+}
+function canParse(code, ecmaVersion) {
+    try {
+        return (0, external_acorn_namespaceObject.parse)(code, {
+            ecmaVersion,
+            sourceType: 'number' == typeof ecmaVersion && ecmaVersion <= 5 ? "script" : 'module'
+        }), !0;
+    } catch (err) {
+        return !1;
+    }
+}
+function isES5(code) {
+    return canParse(code, 5);
+}
+function isES6(code) {
+    return canParse(code, 6);
+}
+function detectECMAVersion(code) {
+    return isES6(code) ? isES5(code) ? types_ECMAVersion.ES5 : types_ECMAVersion.ES6 : types_ECMAVersion.ES7P;
+}
+const acornParserInternal = external_acorn_namespaceObject.Parser.extend(external_acorn_import_attributes_namespaceObject.importAttributes);
+let acornParserExport = external_acorn_namespaceObject.Parser.extend(external_acorn_import_attributes_namespaceObject.importAttributes);
+const parser = {
+    walk: external_acorn_walk_namespaceObject,
+    parse: (input, options)=>acornParserExport.parse(input, options),
+    parseExpressionAt: (input, pos, options)=>acornParserExport.parseExpressionAt(input, pos, options),
+    extend: (...args)=>acornParserExport = acornParserExport.extend(...args),
+    asserts: asserts,
+    utils: utils_namespaceObject,
+    internal: {
+        parse: (input, options)=>acornParserInternal.parse(input, options),
+        parseExpressionAt: (input, pos, options)=>acornParserInternal.parseExpressionAt(input, pos, options)
+    }
+};
+for(var __rspack_i in exports.Document = __webpack_exports__.Document, exports.ECMAVersion = __webpack_exports__.ECMAVersion, exports.asserts = __webpack_exports__.asserts, exports.canParse = __webpack_exports__.canParse, exports.clearDocument = __webpack_exports__.clearDocument, exports.detectECMAVersion = __webpack_exports__.detectECMAVersion, exports.getDefaultImports = __webpack_exports__.getDefaultImports, exports.getDocument = __webpack_exports__.getDocument, exports.getIdentifierInDeclaration = __webpack_exports__.getIdentifierInDeclaration, exports.getIdentifierInExport = __webpack_exports__.getIdentifierInExport, exports.getIdentifierInImport = __webpack_exports__.getIdentifierInImport, exports.getIdentifierInPattern = __webpack_exports__.getIdentifierInPattern, exports.isES5 = __webpack_exports__.isES5, exports.isES6 = __webpack_exports__.isES6, exports.isSameSemantics = __webpack_exports__.isSameSemantics, exports.parser = __webpack_exports__.parser, __webpack_exports__)-1 === [
+    "Document",
+    "ECMAVersion",
+    "asserts",
+    "canParse",
+    "clearDocument",
+    "detectECMAVersion",
+    "getDefaultImports",
+    "getDocument",
+    "getIdentifierInDeclaration",
+    "getIdentifierInExport",
+    "getIdentifierInImport",
+    "getIdentifierInPattern",
+    "isES5",
+    "isES6",
+    "isSameSemantics",
+    "parser"
+].indexOf(__rspack_i) && (exports[__rspack_i] = __webpack_exports__[__rspack_i]);
+Object.defineProperty(exports, '__esModule', {
+    value: !0
+});

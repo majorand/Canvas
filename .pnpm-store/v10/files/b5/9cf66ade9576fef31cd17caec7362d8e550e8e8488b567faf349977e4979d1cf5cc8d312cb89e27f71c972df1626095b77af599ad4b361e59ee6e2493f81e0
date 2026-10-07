@@ -1,0 +1,74 @@
+import 'module';
+/*#__PURE__*/ import.meta.url;
+import { ExportInfo, ModuleGraphModule, ModuleGraphTrans, SideEffect, Statement, Variable, Webpack } from "@rsdoctor/graph";
+import { getDeclarationIdentifier, getExportIdentifierStatement } from "./utils.js";
+function transformMgm(origin, webpackGraph, graph, cache) {
+    const module = graph.getModuleByWebpackId(origin.identifier());
+    if (!module) return;
+    const mgm = new ModuleGraphModule(module, graph);
+    const originalMgm = webpackGraph.getExportsInfo(origin);
+    graph.addModuleGraphModule(mgm);
+    for (const info of originalMgm.exports){
+        const { name } = info;
+        const exportIdStatement = getExportIdentifierStatement(name, module) ?? Statement.getDefaultStatement(module);
+        const declareIdStatement = getDeclarationIdentifier(name, module);
+        const exportInfo = new ExportInfo(info.name, exportIdStatement);
+        if (declareIdStatement) {
+            const variable = new Variable(name, module, info.getUsedInfo(), declareIdStatement);
+            variable.setExportInfo(exportInfo);
+            mgm.addVariable(variable);
+        }
+        cache.set(info, exportInfo);
+        mgm.addExportInfo(exportInfo);
+    }
+    for (const dep of origin.dependencies){
+        if ('harmony import specifier' !== dep.type) continue;
+        const HISDep = dep;
+        const { name, userRequest } = HISDep;
+        const originName = HISDep.getIds(webpackGraph)[0] ?? SideEffect.NamespaceSymbol;
+        const importIdStatement = module.getStatement(dep.loc);
+        const importInfo = new SideEffect(name, module, importIdStatement, userRequest, originName);
+        mgm.addSideEffect(importInfo);
+    }
+}
+function appendExportConnection(origin, webpackGraph, graph, cache) {
+    const module = graph.getModuleByWebpackId(origin.identifier());
+    const mgm = graph.getModuleGraphModule(module);
+    const originalMgm = webpackGraph.getExportsInfo(origin);
+    if (!mgm || !module) return;
+    for (const info of originalMgm.exports){
+        if (!info.isReexport()) continue;
+        const lastExport = Webpack.getLastExportInfo(info, webpackGraph);
+        const lastSdkExport = cache.get(lastExport);
+        const sdkExport = cache.get(info);
+        if (!lastSdkExport || !sdkExport) return;
+        sdkExport.setFromExport(lastSdkExport);
+    }
+}
+function appendImportConnection(origin, graph) {
+    const module = graph.getModuleByWebpackId(origin.identifier());
+    const mgm = graph.getModuleGraphModule(module);
+    if (!mgm || !module) return;
+    for (const info of mgm.getSideEffects()){
+        const exportName = info.originName ?? info.name;
+        const resolveModule = info.fromDependency?.dependency;
+        if (!resolveModule) continue;
+        const resolveExport = graph.getModuleGraphModule(resolveModule).getExport(exportName);
+        if (resolveExport) info.setExportInfo(resolveExport);
+    }
+}
+function appendTreeShaking(moduleGraph, compilation) {
+    if (!ModuleGraphTrans.isWebpack5orRspack(compilation)) return moduleGraph;
+    if ('moduleGraph' in compilation) {
+        const exportData = new Map();
+        const webpackCompilation = compilation;
+        const { moduleGraph: webpackGraph } = webpackCompilation;
+        const allModules = Webpack.getAllModules(webpackCompilation);
+        allModules.forEach((origin)=>transformMgm(origin, webpackGraph, moduleGraph, exportData));
+        allModules.forEach((origin)=>appendExportConnection(origin, webpackGraph, moduleGraph, exportData));
+        allModules.forEach((origin)=>appendImportConnection(origin, moduleGraph));
+        exportData.clear();
+    }
+    return moduleGraph;
+}
+export { appendTreeShaking };

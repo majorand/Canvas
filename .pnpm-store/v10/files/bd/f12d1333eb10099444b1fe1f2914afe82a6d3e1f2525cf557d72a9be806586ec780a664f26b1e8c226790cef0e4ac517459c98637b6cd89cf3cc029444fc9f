@@ -1,0 +1,150 @@
+"use strict";
+var __webpack_require__ = {};
+(()=>{
+    __webpack_require__.n = (module)=>{
+        var getter = module && module.__esModule ? ()=>module['default'] : ()=>module;
+        __webpack_require__.d(getter, {
+            a: getter
+        });
+        return getter;
+    };
+})();
+(()=>{
+    __webpack_require__.d = (exports1, definition)=>{
+        for(var key in definition)if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key)) Object.defineProperty(exports1, key, {
+            enumerable: true,
+            get: definition[key]
+        });
+    };
+})();
+(()=>{
+    __webpack_require__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop);
+})();
+(()=>{
+    __webpack_require__.r = (exports1)=>{
+        if ('undefined' != typeof Symbol && Symbol.toStringTag) Object.defineProperty(exports1, Symbol.toStringTag, {
+            value: 'Module'
+        });
+        Object.defineProperty(exports1, '__esModule', {
+            value: true
+        });
+    };
+})();
+var __webpack_exports__ = {};
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+    browserslistToESVersion: ()=>browserslistToESVersion
+});
+const external_browserslist_namespaceObject = require("browserslist");
+var external_browserslist_default = /*#__PURE__*/ __webpack_require__.n(external_browserslist_namespaceObject);
+const ES_VERSIONS_MAP = {
+    chrome: [
+        51,
+        52,
+        57,
+        64,
+        73,
+        80,
+        85,
+        94,
+        110
+    ],
+    edge: [
+        15,
+        15,
+        15,
+        79,
+        79,
+        80,
+        85,
+        94,
+        110
+    ],
+    safari: [
+        10,
+        10.3,
+        11,
+        16.4,
+        17,
+        17,
+        17,
+        17,
+        17
+    ],
+    firefox: [
+        54,
+        54,
+        54,
+        78,
+        78,
+        80,
+        80,
+        93,
+        115
+    ],
+    opera: [
+        38,
+        39,
+        44,
+        51,
+        60,
+        67,
+        71,
+        80,
+        96
+    ],
+    samsung: [
+        5,
+        6.2,
+        6.2,
+        8.2,
+        11.1,
+        13,
+        14,
+        17,
+        21
+    ]
+};
+const aliases = {
+    ios_saf: 'safari',
+    and_chr: 'chrome',
+    and_ff: 'firefox'
+};
+const renameBrowser = (name)=>aliases[name] || name;
+function browserslistToESVersion(browsers) {
+    const projectBrowsers = external_browserslist_default()(browsers, {
+        ignoreUnknownVersions: true
+    });
+    let esVersion = 2023;
+    for (const item of projectBrowsers){
+        const pairs = item.split(' ');
+        if (pairs.length < 2) continue;
+        const browser = renameBrowser(pairs[0]);
+        const version = Number(pairs[1].split('-')[0]);
+        if (Number.isNaN(version)) continue;
+        if ('ie' === browser || 'android' === browser && version < 6) {
+            esVersion = 5;
+            break;
+        }
+        const versions = ES_VERSIONS_MAP[browser];
+        if (versions) {
+            if (version < versions[0]) esVersion = Math.min(5, esVersion);
+            else if (version < versions[1]) esVersion = Math.min(2015, esVersion);
+            else if (version < versions[2]) esVersion = Math.min(2016, esVersion);
+            else if (version < versions[3]) esVersion = Math.min(2017, esVersion);
+            else if (version < versions[4]) esVersion = Math.min(2018, esVersion);
+            else if (version < versions[5]) esVersion = Math.min(2019, esVersion);
+            else if (version < versions[6]) esVersion = Math.min(2020, esVersion);
+            else if (version < versions[7]) esVersion = Math.min(2021, esVersion);
+            else if (version < versions[8]) esVersion = Math.min(2022, esVersion);
+        }
+    }
+    return esVersion;
+}
+exports.browserslistToESVersion = __webpack_exports__.browserslistToESVersion;
+for(var __webpack_i__ in __webpack_exports__)if (-1 === [
+    "browserslistToESVersion"
+].indexOf(__webpack_i__)) exports[__webpack_i__] = __webpack_exports__[__webpack_i__];
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
