@@ -20,7 +20,7 @@ services:
     command:
       [
         "sh", "-ec",
-        "pnpm install --frozen-lockfile && (cd packages/core/rewriter/wasm && bash build.sh) && exec pnpm dev"
+        "pnpm install --frozen-lockfile && (cd packages/core/rewriter/wasm && bash build.sh) && pnpm exec rspack build && exec pnpm dev"
       ]
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:3000/"]
