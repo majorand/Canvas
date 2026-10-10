@@ -27,6 +27,12 @@ async function newTransport() {
       catch (error) { client.client?.free(); throw error; }
       return client;
     },
+    healthy: async client => {
+      const probe = client.request(new URL('https://example.com/'), 'HEAD', null, [], undefined).then(response => {
+        response.body?.cancel?.().catch(() => {}); return true;
+      });
+      try { return await withTimeout(probe, 6000, 'Relay check timed out.'); } catch { return false; }
+    },
     onState: setConnection,
     onRecovered: () => notice('The relay connection was restored. You can continue using this page.'),
   });

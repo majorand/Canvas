@@ -97,3 +97,28 @@ test('retired Epoxy WASM clients are released exactly once', async () => {
   await relay.init(); await relay.replace(); assert.equal(freed, 1);
   relay.close(); relay.close(); assert.equal(freed, 2);
 });
+
+test('parallel slow assets do not replace a relay that can still serve requests', async () => {
+  let created = 0, checked = 0, freed = 0;
+  const states = [];
+  const relay = new RelayTransport({
+    onState: value => states.push(value),
+    healthy: async () => { checked++; await sleep(2); return true; },
+    create: async () => { created++; return { client: { free() { freed++; } }, async request() { throw new Error('Slow asset'); } }; },
+  });
+  await relay.init();
+  const results = await Promise.allSettled([request(relay), request(relay), request(relay)]);
+  assert.ok(results.every(result => result.status === 'rejected' && result.reason.message === 'Slow asset'));
+  assert.equal(checked, 1); assert.equal(created, 1); assert.equal(freed, 0);
+  assert.equal(states.at(-1), true);
+});
+
+test('a failed relay probe allows one fresh-connection retry', async () => {
+  let created = 0;
+  const response = { status: 200 };
+  const relay = new RelayTransport({ healthy: async () => false, create: async () => {
+    const generation = created++;
+    return { async request() { if (!generation) throw new Error('Lost relay'); return response; } };
+  } });
+  await relay.init(); assert.equal(await request(relay), response); assert.equal(created, 2);
+});

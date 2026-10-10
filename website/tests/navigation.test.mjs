@@ -43,6 +43,7 @@ async function workspaceFixture(t) {
   class Transport {
     constructor(options) { this.options = options; transports.push(this); }
     async init() { if (transportFailure) throw transportFailure; }
+    async request() { return { status: 200 }; }
   }
   const context = vm.createContext({
     console, URL, URLSearchParams, Headers, Request, Response, Blob,

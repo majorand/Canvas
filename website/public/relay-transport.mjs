@@ -2,10 +2,10 @@
 // Retry only reads, once, before response headers; never replay a submitted form
 // or restart an already streaming response.
 export class RelayTransport {
-  constructor({ create, onState = () => {}, onRecovered = () => {}, headerTimeout = 45000 }) {
+  constructor({ create, healthy, onState = () => {}, onRecovered = () => {}, headerTimeout = 45000 }) {
     this.create = create; this.onState = onState; this.onRecovered = onRecovered;
     this.headerTimeout = headerTimeout; this.ready = false; this.generation = 0;
-    this.transport = null; this.pending = null; this.closed = false;
+    this.transport = null; this.pending = null; this.healthCheck = null; this.healthy = healthy; this.closed = false;
   }
   async init() { await this.replace(false); }
   async meta() { return this.transport?.meta(); }
@@ -48,8 +48,17 @@ export class RelayTransport {
     try { const response = await send(); this.onState(true); return response; }
     catch (error) {
       if (signal?.aborted || this.closed) throw error;
+      if (!['GET', 'HEAD'].includes(method.toUpperCase()) || body != null) { this.onState(false); throw error; }
+      if (generation === this.generation && this.healthy) {
+        // A broken advertisement/slow remote server is not a lost relay.
+        // Share the diagnosis so many failed assets cannot start a probe storm.
+        if (!this.healthCheck) this.healthCheck = Promise.resolve().then(() => this.healthy(this.transport)).catch(() => false);
+        const checking = this.healthCheck;
+        const healthy = await checking;
+        if (this.healthCheck === checking) this.healthCheck = null;
+        if (healthy) { this.onState(true); throw error; }
+      }
       this.onState(false);
-      if (!['GET', 'HEAD'].includes(method.toUpperCase()) || body != null) throw error;
       // Parallel failures share one recovery. Late failures use the new generation.
       if (generation === this.generation) await this.replace(true);
       if (signal?.aborted) throw signal.reason;
