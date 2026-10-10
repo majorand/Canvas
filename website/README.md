@@ -59,6 +59,7 @@ Browser data and member sessions are separate for the Pages and Vercel origins. 
 - Relative website navigation and new-tab links keep the proxy workspace. Media frames permit full screen, autoplay, picture in picture, and encrypted media where supported by the browser and publisher.
 - Reconnect replaces the relay transport while retaining the controller and its website cookies. Open original provides a direct new-tab fallback using the visitor's own connection.
 - Failed GET/HEAD requests recover automatically once using a fresh relay credential and transport when a short probe also fails. A slow remote asset does not replace a working relay. Parallel failures share diagnosis and recovery. A 45-second header deadline prevents requests hanging indefinitely; streamed bodies have no artificial time limit. Forms and HTTP denials are never automatically resubmitted, and recovery does not reload the page or reset a game. Retired WASM clients are released.
+- An idle worker restores its controller routes before handling the first proxy request, avoiding static-host 404 pages. Worker activation completes before workspace initialization. An installed worker update reloads an already-open workspace once with its address preserved; this deployment update can restart a game, while ordinary relay recovery keeps the page intact.
 - Service-worker based interception and WebAssembly rewriting.
 - Wisp transport for HTTP/HTTPS traffic, including proxied WebSockets.
 - Connection status, initialization timeouts, loading errors, account settings, and sign-out.

@@ -80,6 +80,42 @@ test('published entry pages and nested modules use one cache revision', async ()
   }
 });
 
+test('an idle worker revives the proxy before its first request reaches the static host', async () => {
+  const handlers = {};
+  let known = false, notified = 0, routed = 0;
+  const context = {
+    URL, Headers, Response, setTimeout: callback => queueMicrotask(callback), importScripts() {},
+    self: {
+      registration: { scope: 'https://majorand.github.io/Canvas/' },
+      addEventListener: (name, callback) => { handlers[name] = callback; },
+      clients: { matchAll: async () => [{ postMessage(message) { assert.deepEqual(Object.keys(message), ['$controller$swrevive']); notified++; known = true; } }] },
+    },
+    fetch: () => { throw new Error('A rewritten URL must never be fetched as a static file'); },
+    $scramjetController: { shouldRoute: () => known, route: async () => { routed++; return new Response('restored website'); } },
+  };
+  vm.runInNewContext(await readFile(new URL('../public/sw.js', import.meta.url), 'utf8'), context);
+  let response;
+  handlers.fetch({ request: { url: 'https://majorand.github.io/Canvas/~/sj/controller/frame/https%3A%2F%2Fexample.com%2F' }, respondWith: value => { response = value; } });
+  assert.equal(await (await response).text(), 'restored website');
+  assert.equal(notified, 1); assert.equal(routed, 1);
+});
+
+test('a proxy without its workspace gives recovery guidance rather than a static-host 404', async () => {
+  const handlers = {};
+  const context = {
+    URL, Headers, Response, setTimeout: callback => queueMicrotask(callback), importScripts() {},
+    self: { registration: { scope: 'https://majorand.github.io/Canvas/' }, addEventListener: (name, cb) => { handlers[name] = cb; }, clients: { matchAll: async () => [] } },
+    fetch: () => { throw new Error('Proxy requests must not fall through to static hosting'); },
+    $scramjetController: { shouldRoute: () => false },
+  };
+  vm.runInNewContext(await readFile(new URL('../public/sw.js', import.meta.url), 'utf8'), context);
+  let response;
+  handlers.fetch({ request: { url: 'https://majorand.github.io/Canvas/~/sj/controller/frame/https%3A%2F%2Fexample.com%2F' }, respondWith: value => { response = value; } });
+  const result = await response;
+  assert.equal(result.status, 503); assert.equal(result.headers.get('retry-after'), '1');
+  assert.match(await result.text(), /Reload the workspace/);
+});
+
 test('sign-in and workspace navigation retain the deployed revision', () => {
   const module = 'https://example.test/Canvas/runtime.mjs?v=revision123';
   assert.equal(appUrl('workspace.html',module).href,'https://example.test/Canvas/workspace.html?v=revision123');

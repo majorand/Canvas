@@ -19,7 +19,18 @@ export async function prepareWorker(pendingAddress) {
   try {
     const registration = await Promise.race([
       (async () => {
-        await navigator.serviceWorker.register(appUrl('sw.js'), { scope: appUrl('./').pathname, updateViaCache: 'none' });
+        const registered = await navigator.serviceWorker.register(appUrl('sw.js'), { scope: appUrl('./').pathname, updateViaCache: 'none' });
+        // ready can still refer to the previous active worker during an update.
+        // Register the controller only after the replacement has activated.
+        if (registered.installing) await new Promise((resolve, reject) => {
+          const worker = registered.installing;
+          const changed = () => {
+            if (!['activated', 'redundant'].includes(worker.state)) return;
+            worker.removeEventListener('statechange', changed);
+            worker.state === 'activated' ? resolve() : reject(new Error('The workspace update could not activate. Reload and try again.'));
+          };
+          worker.addEventListener('statechange', changed); changed();
+        });
         const ready = await navigator.serviceWorker.ready;
         if (!navigator.serviceWorker.controller) await new Promise(resolve => {
           navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true });

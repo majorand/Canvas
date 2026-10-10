@@ -185,6 +185,15 @@ const presenceTimer = setInterval(() => accountApi('presence').catch(error => {
   }
 }), 60000);
 window.addEventListener('pagehide', () => { clearInterval(presenceTimer); activeTransport?.close(); });
+let refreshingWorker = false;
+navigator.serviceWorker?.addEventListener('controllerchange', () => {
+  if (!controller || refreshingWorker) return;
+  refreshingWorker = true;
+  const target = appUrl('workspace.html');
+  const remote = resolveRemoteUrl(currentUrl || address.value);
+  if (remote) target.searchParams.set('goto', remote.href);
+  location.replace(target);
+});
 
 document.addEventListener('keydown', event => { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'l') { event.preventDefault(); address.focus(); address.select(); } });
 window.addEventListener('offline', () => { setConnection(false); notice('Your browser reports that internet access is offline. Check your Wi-Fi or network connection to continue browsing.'); });

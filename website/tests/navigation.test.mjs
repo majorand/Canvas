@@ -17,6 +17,8 @@ async function workspaceFixture(t) {
   const elements = new Map();
   const timers = new Set();
   const windowListeners = new Map();
+  const workerListeners = new Map();
+  const replacements = [];
   const controllers = [];
   const transports = [];
   let transportFailure;
@@ -51,9 +53,9 @@ async function workspaceFixture(t) {
     atob, btoa, performance, WebSocket: ProbeSocket,
     fetch: async () => { throw new Error('Unexpected network request in isolated test'); },
     Window: class {}, WorkerGlobalScope: class {},
-    navigator: { userAgent: 'Isolated application test' },
+    navigator: { userAgent: 'Isolated application test', serviceWorker: { addEventListener: (name, cb) => workerListeners.set(name, cb) } },
     document: browserDocument,
-    location: { href: 'https://majorand.github.io/Canvas/workspace.html' },
+    location: { href: 'https://majorand.github.io/Canvas/workspace.html', replace: url => replacements.push(url) },
     history: { replaceState() {} },
     setTimeout(callback, delay) {
       const timer = setTimeout(callback, delay);
@@ -96,7 +98,7 @@ async function workspaceFixture(t) {
   assert.equal(controllers.length, 1, 'workspace initialization must succeed');
   t.after(() => { for (const timer of timers) clearTimeout(timer); });
   return {
-    context, elements, element, controllers, transports, Tap,
+    context, elements, element, controllers, transports, Tap, workerListeners, replacements,
     frame: controllers[0].frame,
     setTransportFailure(error) { transportFailure = error; },
   };
@@ -197,4 +199,13 @@ test('a failed Reconnect preserves the working transport and re-enables retry', 
   assert.equal(element('reconnect').disabled, false);
   assert.match(element('notice').textContent, /Connection unavailable/);
   assert.equal(element('connection').textContent, 'Relay unavailable');
+});
+
+test('an activated worker update reloads the shell once with the website address preserved', async t => {
+  const { workerListeners, replacements } = await workspaceFixture(t);
+  workerListeners.get('controllerchange')(); workerListeners.get('controllerchange')();
+  assert.equal(replacements.length, 1);
+  assert.equal(replacements[0].pathname, '/Canvas/workspace.html');
+  assert.equal(replacements[0].searchParams.get('goto'), 'https://www.youtube.com/');
+  assert.equal(replacements[0].searchParams.get('v'), 'test-revision');
 });
