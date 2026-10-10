@@ -45,7 +45,7 @@ export class RelayTransport {
       try { return await Promise.race([operation, aborted]); }
       finally { clearTimeout(timer); combined.removeEventListener('abort', onAbort); }
     };
-    try { return await send(); }
+    try { const response = await send(); this.onState(true); return response; }
     catch (error) {
       if (signal?.aborted || this.closed) throw error;
       this.onState(false);

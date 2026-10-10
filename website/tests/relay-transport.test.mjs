@@ -31,17 +31,20 @@ test('stale read connections recover once, sharing recovery and keeping the resp
 test('form submissions, caller cancellation, and HTTP denials are never replayed', async () => {
   let created = 0, sent = 0;
   let response;
-  const relay = new RelayTransport({ create: async () => {
+  const states = [];
+  const relay = new RelayTransport({ onState: value => states.push(value), create: async () => {
     created++;
     return { async request() { sent++; if (response) return response; throw new Error('Network failed'); } };
   } });
   await relay.init();
   await assert.rejects(request(relay, 'POST', 'important form'), /Network failed/);
   assert.equal(sent, 1); assert.equal(created, 1);
+  assert.equal(states.at(-1), false);
   const abort = new AbortController(); abort.abort(new Error('User stopped loading'));
   await assert.rejects(request(relay, 'GET', null, abort.signal), /User stopped/);
   assert.equal(sent, 1);
   response = { status: 403 }; assert.equal(await request(relay), response);
+  assert.equal(states.at(-1), true, 'a later successful connection restores the status without replaying the form');
   response = { status: 429 }; assert.equal(await request(relay), response);
   assert.equal(created, 1);
 });
