@@ -4,17 +4,22 @@ import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { authorizedRelayUrl } from '../public/auth-client.mjs';
 
-test('authenticated relay URL works with libcurl trailing-slash validation', async () => {
+test('authenticated relay URLs retain a scoped ticket and support explicit credential refresh', async () => {
   const token = 'a'.repeat(64);
   const previous = { window:globalThis.window, fetch:globalThis.fetch, sessionStorage:globalThis.sessionStorage };
   globalThis.window = { SCRAMJET_CONFIG:{wisp:'wss://relay.example/api/wisp/',api:'https://relay.example/api/access'} };
   globalThis.sessionStorage = {getItem:()=>null};
-  globalThis.fetch = async () => ({ok:true,json:async()=>({token,expiresAt:new Date(Date.now()+60000).toISOString()})});
+  let minted = 0;
+  globalThis.fetch = async () => { minted++; return {ok:true,json:async()=>({token: minted === 1 ? token : 'b'.repeat(64),expiresAt:new Date(Date.now()+60000).toISOString()})}; };
   try {
     const address = await authorizedRelayUrl();
     assert.ok(address.endsWith('/'));
     assert.equal(new URL(address).searchParams.get('ticket'),token);
     assert.equal(new URL(address).pathname,'/api/wisp/');
+    assert.equal(await authorizedRelayUrl(), address);
+    assert.equal(minted, 1);
+    assert.equal(new URL(await authorizedRelayUrl(true)).searchParams.get('ticket'), 'b'.repeat(64));
+    assert.equal(minted, 2);
   } finally {
     for (const [key,value] of Object.entries(previous)) {
       if (value === undefined) delete globalThis[key]; else globalThis[key] = value;

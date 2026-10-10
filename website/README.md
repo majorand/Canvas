@@ -10,6 +10,8 @@ Backend: wss://scramjet-xi.vercel.app/api/wisp/ (a WebSocket URL, not a page to 
 
 Deployable website for this Scramjet fork. Uses the published `2.0.67-alpha.2` core and matching `0.0.14` controller, pinned in package-lock.json. The upstream source stays in packages/.
 
+The browser transport uses pinned `@mercuryworkshop/epoxy-transport` `3.0.1` and `epoxy-tls` `2.1.19-1`. It replaces libcurl after browser testing exposed its session cleanup/event-loop crash during recovery. Vendor bundles participate in the build revision so deployed upgrades bypass cached copies.
+
 ## Local use
 
 With Node.js 22 or newer, from this directory:
@@ -53,6 +55,10 @@ Browser data and member sessions are separate for the Pages and Vercel origins. 
 - Website address entry and Google search queries.
 - Browser workspace with back, forward, reload, home and full screen.
 - Google, Wikipedia, YouTube and Example Domain shortcuts.
+- A signed-in Games menu with all 138 titles listed on [Invisible Character Activities](https://www.invisible-character.com/activities) on October 2, 2026. Includes search, category filters, and device-local favorites. Play opens the publisher's original game page through the workspace; no third-party game code or art is rehosted.
+- Relative website navigation and new-tab links keep the proxy workspace. Media frames permit full screen, autoplay, picture in picture, and encrypted media where supported by the browser and publisher.
+- Reconnect replaces the relay transport while retaining the controller and its website cookies. Open original provides a direct new-tab fallback using the visitor's own connection.
+- Failed GET/HEAD requests recover automatically once using a fresh relay credential and transport. Parallel failures share recovery. A 45-second header deadline prevents requests hanging indefinitely; streamed bodies have no artificial time limit. Forms and HTTP denials are never automatically resubmitted, and recovery does not reload the page or reset a game. Retired WASM clients are released.
 - Service-worker based interception and WebAssembly rewriting.
 - Wisp transport for HTTP/HTTPS traffic, including proxied WebSockets.
 - Connection status, initialization timeouts, loading errors, account settings, and sign-out.
@@ -66,6 +72,10 @@ The about:blank wrapper does not make a tab unclosable or invisible to browser-m
 The relay allows web ports 80/443, blocks private/loopback destinations and UDP, and checks browser origins. Origin checks supplement mandatory server-side account authentication. Supabase-backed sessions enforce access to both account APIs and the relay. Site compatibility varies; DRM, CAPTCHAs, sign-in and anti-proxy systems may prevent particular features from working. Scramjet stores site data and cookies in the browser.
 
 The wisp-js 0.5.0 per-host stream limit contains an upstream iterator bug, so this app uses its total-stream limit instead. The optional scramjet-utils release expects different runtime versions and is intentionally not loaded.
+
+HTTP 403/429 responses and media errors show recovery guidance. Reconnect does not solve CAPTCHAs or remove publisher restrictions. YouTube can still reject shared datacenter IP addresses, and some browsers have upstream video compatibility issues. Vercel's 300-second socket limit can interrupt a long video; reconnect may resume page use but does not guarantee uninterrupted playback.
+
+A website cannot disable the computer's Wi-Fi adapter. A relay timeout can look like loss of Wi-Fi inside the workspace. If the operating system's Wi-Fi icon disconnects or other tabs lose internet access too, that requires separate device/network troubleshooting.
 
 ## Earlier deployment verification
 

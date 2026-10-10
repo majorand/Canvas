@@ -6,13 +6,17 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const dist = path.join(root, 'dist');
 await mkdir(dist, { recursive: true });
 await cp(path.join(root, 'public'), dist, { recursive: true });
+const vendorFiles = [];
 for (const [pkg, files, folder] of [
   ['scramjet', ['scramjet.js', 'scramjet.wasm'], 'scramjet'],
   ['scramjet-controller', ['controller.api.js', 'controller.inject.js', 'controller.sw.js'], 'controller'],
-  ['libcurl-transport', ['index.js'], 'transport'],
+  ['epoxy-transport', ['index.js'], 'transport'],
 ]) {
   await mkdir(path.join(dist, folder), { recursive: true });
-  for (const file of files) await copyFile(path.join(root, 'node_modules/@mercuryworkshop', pkg, 'dist', file), path.join(dist, folder, file));
+  for (const file of files) {
+    await copyFile(path.join(root, 'node_modules/@mercuryworkshop', pkg, 'dist', file), path.join(dist, folder, file));
+    vendorFiles.push(path.join(dist, folder, file));
+  }
 }
 const wisp = process.env.WISP_URL || (process.argv.includes('--pages') ? 'wss://scramjet-xi.vercel.app/api/wisp/' : '');
 if (wisp) {
@@ -26,7 +30,9 @@ await writeFile(path.join(dist, 'config.js'), `window.SCRAMJET_CONFIG = ${JSON.s
 const appFiles = (await readdir(path.join(root, 'public'))).filter(file => /\.(html|js|mjs|css)$/.test(file)).sort();
 const sources = await Promise.all(appFiles.map(file => readFile(path.join(dist, file), 'utf8')));
 const config = await readFile(path.join(dist, 'config.js'), 'utf8');
-const revision = createHash('sha256').update(sources.join('\n') + config).digest('hex').slice(0,16);
+const revisionHash = createHash('sha256').update(sources.join('\n') + config);
+for (const file of vendorFiles) revisionHash.update(await readFile(file));
+const revision = revisionHash.digest('hex').slice(0,16);
 for (let index = 0; index < appFiles.length; index++) {
   const source = sources[index].replace(/(['"])(\.\/[^'"\s?]+\.(?:html|js|mjs|css))(?:\?([^'"\s]*))?\1/g, (_match, quote, file, query) => {
     const params = new URLSearchParams(query);

@@ -19,7 +19,7 @@ test('all application and Scramjet paths remain within the deployed directory', 
 });
 
 test('built HTML assets and navigation are relative and resolve inside Pages', async () => {
-  for (const page of ['index.html', 'workspace.html', 'access.html', 'admin.html']) {
+  for (const page of ['index.html', 'workspace.html', 'access.html', 'admin.html', 'games.html']) {
     const html = await readFile(new URL('../dist/' + page, import.meta.url), 'utf8');
     for (const [, target] of html.matchAll(/(?:src|href)="([^"]+)"/g)) {
       if (target.startsWith('https:') || target.startsWith('#')) continue;
@@ -70,7 +70,7 @@ test('published entry pages and nested modules use one cache revision', async ()
   const workspace = await read('workspace.html');
   const revision = /workspace-loader\.js\?v=([a-f0-9]{16})/.exec(workspace)?.[1];
   assert.ok(revision, 'workspace loader must bypass older cached scripts');
-  for (const file of ['index.html','workspace.html','access.html','admin.html','workspace-loader.js','app.js','auth-client.mjs','access.js','admin.js','calculator.js','sw.js']) {
+  for (const file of ['index.html','workspace.html','access.html','admin.html','games.html','games.js','games-catalog.mjs','relay-transport.mjs','workspace-loader.js','app.js','auth-client.mjs','access.js','admin.js','calculator.js','sw.js']) {
     const source = await read(file);
     for (const [, target] of source.matchAll(/['"](\.\/[^'"\s]+\.(?:html|js|mjs|css)(?:\?[^'"\s]*)?)['"]/g)) {
       const url = new URL(target,'https://example.test/Canvas/');

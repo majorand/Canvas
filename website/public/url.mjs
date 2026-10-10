@@ -10,3 +10,12 @@ export function normalizeAddress(input) {
   if (/^[^\s/]+\.[^\s/]+(?:\/\S*)?$/.test(value)) return new URL('https://' + value).href;
   return 'https://www.google.com/search?q=' + encodeURIComponent(value);
 }
+
+// Website navigation hooks also report relative URLs, including YouTube search/watch.
+export function resolveRemoteUrl(input, base) {
+  try {
+    const url = new URL(String(input), base);
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return null;
+    return url;
+  } catch { return null; }
+}

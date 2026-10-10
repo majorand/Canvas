@@ -4,3 +4,5 @@
 .brand img{object-fit:contain}.brand-name{font-size:21px;letter-spacing:-.6px;white-space:nowrap}@media(max-width:640px){.brand{gap:8px}.brand img{width:30px;height:30px}.brand-name{font-size:19px}.header-actions{gap:6px}}
 
 .auth-loading>header,.auth-loading>main,.auth-loading>footer,.auth-loading>dialog{display:none}.header-actions{flex-wrap:wrap;gap:10px}#signed-in-name{max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#signed-in-name:before{display:none}@media(max-width:640px){#signed-in-name{display:none}.header-actions{gap:0}.header-actions .quiet{padding:6px}#connection{display:none}.brand-name{font-size:16px}.brand img{width:25px;height:25px}}
+
+.page-tools{display:flex;align-items:center;gap:4px;flex-wrap:wrap}.page-meta{gap:8px;flex-wrap:wrap}.games-link{color:#a6f0cf;border:1px solid #3b5343;border-radius:7px}.browsing .header{height:auto;min-height:65px}.page-tools a:hover{text-decoration:underline}@media(max-width:640px){.header-actions .games-link{padding:6px 8px;margin-right:4px}.page-meta{padding:0 10px}.page-tools .quiet{padding:8px 6px;font-size:10px}}

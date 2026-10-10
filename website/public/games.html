@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Browse games from the Invisible Character Activities catalog in your signed-in workspace.">
+  <title>Canvas - Highland Park High School</title>
+  <link rel="icon" href="./scots.png" type="image/png">
+  <link rel="stylesheet" href="./games.css">
+  <script src="./config.js" defer></script>
+  <script src="./exit.js" defer></script>
+  <script type="module" src="./games.js"></script>
+</head>
+<body>
+  <div class="exit-bar"><a class="emergency-exit" data-exit-canvas href="https://hpisd.instructure.com/" target="_top" referrerpolicy="no-referrer">Leave this page and go to Canvas</a></div>
+  <section id="auth-status" class="auth-status" role="status"><p id="auth-status-text">Checking sign-in…</p><a href="./access.html">Return to sign in</a></section>
+  <div id="games-content" hidden>
+    <header class="header">
+      <a class="brand" data-app-link="workspace.html" href="./workspace.html"><img src="./scots.png" width="32" height="32" alt="Scots logo"><span>Scots Canvas</span></a>
+      <nav class="header-actions" aria-label="Workspace"><span id="signed-in-name"></span><a class="quiet" data-app-link="workspace.html" href="./workspace.html">Browser</a><a class="quiet" data-app-link="access.html" href="./access.html">Account</a><button class="quiet" id="sign-out" type="button">Sign out</button></nav>
+    </header>
+    <main>
+      <section class="hero" aria-labelledby="games-heading"><div class="eyebrow">TAKE A PLAY BREAK</div><h1 id="games-heading">Pick your next<br><em>little adventure.</em></h1><p>138 games, one place to start. Pick a game to open it in your browser workspace.</p></section>
+      <section class="catalog" aria-label="Games catalog">
+        <form class="filters" id="games-filter" role="search">
+          <div class="search-field"><label for="game-search">Find a game</label><div class="input-wrap"><span aria-hidden="true">⌕</span><input type="search" id="game-search" placeholder="Search games or categories" autocomplete="off"><button id="clear-search" type="button" aria-label="Clear game search" hidden>✕</button></div></div>
+          <div class="category-field"><label for="game-category">Category</label><select id="game-category"><option value="">All categories</option></select></div>
+          <label class="favorites-filter"><input id="favorites-only" type="checkbox"><span>Favorites only</span></label>
+        </form>
+        <div class="results-bar"><p id="games-count" role="status" aria-live="polite" aria-atomic="true"></p><button id="reset-filters" class="quiet" type="button" hidden>Reset filters</button><span class="shortcut-hint">Press / to search</span></div>
+        <ul class="game-grid" id="game-grid" aria-label="Available games"></ul>
+        <div class="empty-state" id="no-games" hidden><span aria-hidden="true">⌕</span><h2>No games found</h2><p id="empty-message">Try a different search or category.</p><button class="primary" id="empty-reset" type="button">Show all games</button></div>
+        <aside class="catalog-note"><span aria-hidden="true">↗</span><div><strong>Games load from their original publisher.</strong><p>This menu links to all 138 games listed on <a href="https://www.invisible-character.com/activities" target="_blank" rel="noopener noreferrer">Invisible Character Activities</a> on October 2, 2026. The games are hosted there; availability and proxy compatibility can vary. Use a game's “Original page” link if it does not work in the workspace.</p><p id="favorites-note">Favorites are saved only in this browser.</p></div></aside>
+      </section>
+    </main>
+    <footer><span>A window to what's next.</span><a data-app-link="workspace.html" href="./workspace.html">Back to browser ↗</a></footer>
+  </div>
+</body>
+</html>

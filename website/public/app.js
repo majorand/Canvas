@@ -1,13 +1,14 @@
 import { accountApi, authorizedRelayUrl, clearMember, signOut, signInUrl } from './auth-client.mjs';
-import { normalizeAddress } from './url.mjs';
+import { normalizeAddress, resolveRemoteUrl } from './url.mjs';
 import { appUrl, controllerPaths, prepareWorker } from './runtime.mjs';
+import { RelayTransport } from './relay-transport.mjs';
 const $ = id => document.getElementById(id);
 const address = $('address');
-let controller, frame, initPromise, loadTimer, currentUrl = '';
+let controller, frame, initPromise, activeTransport, loadTimer, currentUrl = '', pageWarning = '';
 function notice(message = '') { $('notice').textContent = message; $('notice').hidden = !message; }
 function setConnection(online) { $('connection').textContent = online ? 'Relay connected' : 'Relay unavailable'; $('connection').className = `status ${online ? 'online' : 'offline'}`; }
-async function checkRelay() {
-  const relay = await authorizedRelayUrl();
+async function checkRelay(refresh = false) {
+  const relay = await authorizedRelayUrl(refresh);
   return new Promise((resolve, reject) => {
     let ws;
     const timer = setTimeout(() => finish(new Error('The relay did not respond. Check your internet connection and try again shortly.')), 20000);
@@ -17,36 +18,82 @@ async function checkRelay() {
   });
 }
 function withTimeout(promise, ms, message) { let timer; return Promise.race([promise, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(message)), ms); })]).finally(() => clearTimeout(timer)); }
+async function newTransport() {
+  const transport = new RelayTransport({
+    create: async refresh => {
+      await checkRelay(refresh);
+      const client = new EpoxyTransport.default({ wisp: await authorizedRelayUrl() });
+      try { await withTimeout(client.init(), 20000, 'The transport could not start. Check your connection and try Reconnect.'); }
+      catch (error) { client.client?.free(); throw error; }
+      return client;
+    },
+    onState: setConnection,
+    onRecovered: () => notice('The relay connection was restored. You can continue using this page.'),
+  });
+  await transport.init();
+  return transport;
+}
 async function initialize() {
   const registration = await workspaceReady;
   if (!registration) return false;
-  await checkRelay();
-  const transport = new LibcurlTransport.LibcurlClient({ wisp: await authorizedRelayUrl() });
-  await withTimeout(transport.init(), 20000, 'The transport could not start. Reload and try again.');
+  const transport = await newTransport();
+  activeTransport?.close(); activeTransport = transport;
   controller = new $scramjetController.Controller({ serviceworker: registration.active, transport, config: controllerPaths() });
   await withTimeout(controller.wait(), 20000, 'Scramjet could not initialize. Reload and try again.');
   frame = controller.createFrame($('web-frame'));
   $scramjet.Tap.tap(frame.hooks.init.post, context => {
     if (!context.isTopLevel) return;
-    const update = url => { currentUrl = url; address.value = url; $('page-state').textContent = new URL(url).hostname; clearTimeout(loadTimer); notice(); };
+    const update = input => {
+      const url = resolveRemoteUrl(input, context.client.url.href || currentUrl);
+      if (!url) return;
+      currentUrl = url.href; address.value = currentUrl;
+      $('open-original').href = currentUrl; $('open-original').hidden = false;
+      $('page-state').textContent = url.hostname; clearTimeout(loadTimer); notice(pageWarning);
+    };
     update(context.client.url.href);
     $scramjet.Tap.tap(context.client.hooks.lifecycle.navigate, (_context, props) => update(props.url));
+    context.window.document.addEventListener('error', event => {
+      if (['VIDEO', 'AUDIO'].includes(event.target?.tagName) && event.target.error) {
+        pageWarning = 'This website could not play the media. Try Reconnect once. If it still fails, use Open original; some video formats, protected content, or site restrictions cannot work through this proxy.';
+        notice(pageWarning);
+      }
+    }, true);
+  });
+  // Match upstream CatchEscapedLinksPlugin so new-tab links retain the workspace.
+  $scramjet.Tap.tap(frame.hooks.fetch.intercept, (context, props) => {
+    if (context.parsed.destination !== 'document') return;
+    const remote = resolveRemoteUrl(context.parsed.url);
+    if (!remote) return;
+    const target = appUrl('workspace.html');
+    target.searchParams.set('goto', remote.href);
+    props.response = { body: '', status: 302, statusText: 'Found', headers: $scramjet.ScramjetHeaders.fromRawHeaders([['Location', target.href]]) };
+  }, undefined, { after: ['scramjet-http-cache'] });
+  $scramjet.Tap.tap(frame.hooks.fetch.preresponse, (context, props) => {
+    if (![403, 429].includes(props.response.status)) return;
+    const url = context.parsed.url;
+    const media = /(^|\.)googlevideo\.com$/.test(url.hostname);
+    if (!media && context.parsed.isIframe) return;
+    if (!media && !['document', 'iframe'].includes(context.parsed.destination)) return;
+    pageWarning = props.response.status === 429
+      ? 'This website is limiting requests from the relay. Wait before retrying, or use Open original.'
+      : 'This website denied access through the relay. It may require sign-in or verification, or block shared server addresses. Use Open original if verification or playback will not work here.';
+    clearTimeout(loadTimer); notice(pageWarning);
   });
   $scramjet.Tap.tap(frame.hooks.error.request, context => {
-    if (['document', 'iframe'].includes(context.rawrequest.destination)) { clearTimeout(loadTimer); $('page-state').textContent = 'Could not load this page'; notice('This page could not be loaded. Try reloading or opening a different website.'); }
+    if (['document', 'iframe'].includes(context.rawrequest.destination)) { clearTimeout(loadTimer); $('page-state').textContent = 'Could not load this page'; notice('This page could not be loaded. Try Reconnect or Open original.'); }
   });
   return true;
 }
 async function navigate(input) {
   $('go').disabled = true;
-  notice();
+  pageWarning = ''; notice();
   try {
     const url = normalizeAddress(input);
     address.value = url;
     if (!initPromise) initPromise = initialize().catch(error => { initPromise = null; throw error; });
     if (!await initPromise) return;
     history.replaceState(null, '', appUrl('workspace.html'));
-    currentUrl = url; address.value = url;
+    currentUrl = url; address.value = url; $('open-original').href = url; $('open-original').hidden = false;
     document.body.classList.add('browsing');
     for (const id of ['landing', 'start-content', 'footer']) $(id).hidden = true;
     $('workspace').hidden = false; $('navigation').hidden = false;
@@ -83,7 +130,7 @@ $('open-blank').addEventListener('click', () => {
     doc.head.append(style);
     const workspace = doc.createElement('iframe');
     workspace.title = 'Scramjet workspace';
-    workspace.allow = 'fullscreen; autoplay; cross-origin-isolated';
+    workspace.allow = 'fullscreen; autoplay; encrypted-media; picture-in-picture; cross-origin-isolated';
     workspace.referrerPolicy = 'no-referrer';
     workspace.addEventListener('load', () => {
       try {
@@ -112,7 +159,15 @@ document.querySelectorAll('[data-url]').forEach(button => button.addEventListene
 $('home').addEventListener('click', () => location.assign(appUrl('workspace.html')));
 $('back').addEventListener('click', () => frame?.back());
 $('forward').addEventListener('click', () => frame?.forward());
-$('reload').addEventListener('click', () => { notice(); frame?.reload(); });
+$('reload').addEventListener('click', () => { pageWarning = ''; notice(); frame?.reload(); });
+$('reconnect').addEventListener('click', async () => {
+  $('reconnect').disabled = true; pageWarning = ''; notice('Reconnecting…');
+  try {
+    if (!controller || !frame) { initPromise = null; if (currentUrl || address.value) await navigate(currentUrl || address.value); else await checkRelay(); }
+    else { const next = await newTransport(); controller.setTransport(next); activeTransport?.close(); activeTransport = next; frame.reload(); notice('Relay reconnected. Reloading the page…'); }
+  } catch (error) { setConnection(false); notice(error.message || 'Could not reconnect. Try again shortly.'); }
+  finally { $('reconnect').disabled = false; }
+});
 $('fullscreen').addEventListener('click', async () => { try { if (document.fullscreenElement) await document.exitFullscreen(); else await $('workspace').requestFullscreen(); } catch { notice('Full screen is unavailable in this browser.'); } });
 $('settings-open').addEventListener('click', () => $('settings').showModal());
 $('sign-out').addEventListener('click', signOut);
@@ -122,11 +177,14 @@ const presenceTimer = setInterval(() => accountApi('presence').catch(error => {
     clearInterval(presenceTimer); clearMember(); location.replace(signInUrl());
   }
 }), 60000);
-window.addEventListener('pagehide', () => clearInterval(presenceTimer));
+window.addEventListener('pagehide', () => { clearInterval(presenceTimer); activeTransport?.close(); });
 
 document.addEventListener('keydown', event => { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'l') { event.preventDefault(); address.focus(); address.select(); } });
-window.addEventListener('offline', () => { setConnection(false); notice('You are offline. Reconnect to continue browsing.'); });
-window.addEventListener('online', () => checkRelay().then(() => notice()).catch(error => notice(error.message)));
+window.addEventListener('offline', () => { setConnection(false); notice('Your browser reports that internet access is offline. Check your Wi-Fi or network connection to continue browsing.'); });
+window.addEventListener('online', () => {
+  const restore = activeTransport ? activeTransport.replace(true) : checkRelay();
+  restore.then(() => notice('Your internet connection is back. You can continue using this page.')).catch(error => notice(error.message));
+});
 const initialUrl = new URL(location.href).searchParams.get('goto');
 $('open-blank').disabled = true;
 const workspaceReady = prepareWorker(() => address.value || initialUrl).then(registration => {

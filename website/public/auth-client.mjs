@@ -26,12 +26,12 @@ export async function requireMember() {
   catch (error) { if (error.status === 401 || error.status === 403) { clearMember(); location.replace(signInUrl()); return null; } throw error; }
 }
 let relayCredential;
-export async function authorizedRelayUrl() {
-  if (!relayCredential || new Date(relayCredential.expiresAt).getTime() < Date.now() + 30000) relayCredential = await accountApi('relay');
+export async function authorizedRelayUrl(refresh = false) {
+  if (refresh || !relayCredential || new Date(relayCredential.expiresAt).getTime() < Date.now() + 30000) relayCredential = await accountApi('relay');
   const address = window.SCRAMJET_CONFIG?.wisp || `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/api/wisp/`;
   const url = new URL(address);
   url.searchParams.set('ticket', relayCredential.token);
-  // libcurl validates the complete URL string, including its query, for a final slash.
+  // Retain the trailing slash accepted by both current and older transport clients.
   return url.href + '&transport=/';
 }
 export async function signOut() {
