@@ -14,7 +14,7 @@ The browser transport uses pinned `@mercuryworkshop/epoxy-transport` `3.0.1` and
 
 ## Local use
 
-With Node.js 22 or newer, from this directory:
+With Node.js 24 or newer, from this directory (the pinned browser core uses ES2025 regular-expression modifiers in the regression tests):
 
 ```sh
 npm ci --workspaces=false

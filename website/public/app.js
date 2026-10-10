@@ -34,6 +34,7 @@ async function newTransport() {
   return transport;
 }
 async function initialize() {
+  if (!window.$scramjet?.Tap || !window.$scramjetController?.Controller || !window.EpoxyTransport?.default) throw new Error('The browser could not load the workspace engine. Reload once, then try an up-to-date Chrome, Edge, or Firefox browser if it still fails.');
   const registration = await workspaceReady;
   if (!registration) return false;
   const transport = await newTransport();
