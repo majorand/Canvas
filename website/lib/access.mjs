@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
+import { sanitizeActivity } from '../public/activity-details.mjs';
 
 export class AccessError extends Error {
   constructor(status, message) { super(message); this.status = status; }
@@ -30,6 +31,7 @@ function usernameCheck(value) {
   return username;
 }
 function checked(result) {
+  if (result.error?.message?.includes('session_limit')) throw new AccessError(409, 'The account has reached its sign-in session limit. Sign out on another device or ask the administrator to end a session.');
   if (result.error?.code === '23505') throw new AccessError(409, 'That email or username is already in use.');
   if (result.error) throw new AccessError(503, 'Account storage is unavailable. Please try again later.');
   return result.data;
@@ -37,6 +39,14 @@ function checked(result) {
 export function createAccessService({ db, authClient, ownerEmail, siteUrl, now = () => Date.now() }) {
   const owner = ownerEmail.trim().toLowerCase();
   const expires = milliseconds => new Date(now() + milliseconds).toISOString();
+  const settings = async () => checked(await db.from('site_settings').select('*').eq('id', true).maybeSingle());
+  async function featureAccess(account, feature, config = undefined) {
+    if (account.role === 'admin') return;
+    config ||= await settings();
+    if (config.maintenance_enabled) throw new AccessError(403, config.maintenance_message);
+    if (feature === 'workspace' && !account.can_browse) throw new AccessError(403, 'Workspace access is disabled for your account. Contact the administrator.');
+    if (feature === 'games' && (!account.can_play || !config.games_enabled)) throw new AccessError(403, 'The games menu is disabled for your account.');
+  }
   async function rate(key, limit, seconds = 900) {
     const allowed = checked(await db.rpc('site_allow_attempt', { p_key: digest(key), p_limit: limit, p_seconds: seconds }));
     if (!allowed) throw new AccessError(429, 'Too many attempts. Please try again later.');
@@ -63,7 +73,8 @@ export function createAccessService({ db, authClient, ownerEmail, siteUrl, now =
   }
   async function mint(account, kind, parentToken, deadline) {
     const token = randomBytes(32).toString('hex');
-    const expiresAt = deadline || expires(kind === 'admin' ? 3600000 : 14400000);
+    let expiresAt = deadline || expires(kind === 'admin' ? 3600000 : (await settings()).session_hours * 3600000);
+    if (kind === 'member' && account.role !== 'admin' && account.access_expires_at && account.access_expires_at < expiresAt) expiresAt = account.access_expires_at;
     checked(await db.from('site_sessions').insert({
       token_hash: digest(token), user_id: account.id, kind, expires_at: expiresAt,
       parent_hash: parentToken ? digest(parentToken) : null,
@@ -141,23 +152,57 @@ export function createAccessService({ db, authClient, ownerEmail, siteUrl, now =
     }
     if (!account || account.id !== user.id || !account.enabled || !account.activated) throw new AccessError(403, 'This account does not have access. Contact the administrator.');
     if (kind === 'admin' && account.role !== 'admin') throw new AccessError(403, 'Administrator access is required.');
+    if (account.role !== 'admin' && account.access_expires_at && new Date(account.access_expires_at).getTime() <= now()) throw new AccessError(403, 'Your account access has expired. Contact the administrator.');
+    if (kind === 'member') await featureAccess(account, 'login');
+    const session = await mint(account, kind);
     await log(account, kind === 'admin' ? 'admin_sign_in' : 'sign_in');
-    return mint(account, kind);
+    return session;
   }
   async function dispatch(action, body, token, ip) {
     if (action === 'status') return status();
     if (action === 'setup') return setup(body, ip);
     if (action === 'complete-setup') return completeSetup(body, ip);
     if (action === 'login') return login(body, ip);
-    const adminAction = ['admin-data', 'create-user', 'update-user', 'admin-password', 'admin-logout', 'admin-profile'].includes(action);
+    const adminAction = ['admin-data', 'create-user', 'update-user', 'admin-password', 'admin-logout', 'admin-profile', 'admin-settings', 'revoke-session', 'revoke-user-sessions', 'revoke-member-sessions'].includes(action);
     const account = await authorize(token, adminAction ? 'admin' : 'member');
-    if (action === 'me') return { user: account };
+    if (action === 'me') {
+      const config = await settings();
+      return { user: { ...account, settings: { activity_logging: config.activity_logging, retention_days: config.retention_days, games_enabled: config.games_enabled, maintenance_enabled: config.maintenance_enabled, maintenance_message: config.maintenance_message } } };
+    }
+    if (action === 'feature') {
+      if (!['workspace','games'].includes(body.feature)) throw new AccessError(400, 'Choose a workspace feature.');
+      await featureAccess(account, body.feature); return { ok: true };
+    }
     if (action === 'enter' || action === 'presence') {
+      await rate('presence:' + account.id, 90, 60);
+      const feature = body.feature === 'games' ? 'games' : 'workspace';
+      const config = await settings();
+      await featureAccess(account, feature, config);
       checked(await db.from('site_accounts').update({ last_seen_at: new Date(now()).toISOString() }).eq('id', account.id));
+      if (body.tabId) {
+        if (!/^[a-f0-9-]{36}$/i.test(body.tabId)) throw new AccessError(400, 'Invalid tab.');
+        checked(await db.rpc('site_touch_tab', { p_hash: digest(token), p_id: body.tabId, p_feature: feature, p_visible: body.visible !== false }));
+      }
       if (action === 'enter') await log(account, 'workspace_open');
+      return { ok: true, settings: { activity_logging: config.activity_logging, retention_days: config.retention_days, games_enabled: config.games_enabled } };
+    }
+    if (action === 'tab-close') {
+      if (typeof body.tabId !== 'string' || !/^[a-f0-9-]{36}$/i.test(body.tabId)) throw new AccessError(400, 'Invalid tab.');
+      checked(await db.from('site_workspace_tabs').delete().eq('id', body.tabId).eq('session_hash', digest(token)));
+      return { ok: true };
+    }
+    if (action === 'activity') {
+      await featureAccess(account, 'workspace');
+      const config = await settings();
+      if (!config.activity_logging) return { ok: true };
+      const details = sanitizeActivity(body);
+      if (!details) throw new AccessError(400, 'Invalid activity.');
+      await rate('activity:' + account.id, 60, 60);
+      checked(await db.from('site_activity').insert({ user_id: account.id, ...details }));
       return { ok: true };
     }
     if (action === 'relay') {
+      await featureAccess(account, 'workspace');
       await rate('relay:' + account.id, 60, 60);
       return mint(account, 'relay', token, account.expires_at);
     }
@@ -184,9 +229,56 @@ export function createAccessService({ db, authClient, ownerEmail, siteUrl, now =
     }
     if (action === 'admin-data') {
       checked(await db.rpc('site_cleanup'));
-      const users = checked(await db.from('site_accounts').select('id,email,username,display_name,role,enabled,activated,created_at,last_seen_at').order('created_at', { ascending: false }).limit(500));
+      const users = checked(await db.from('site_accounts').select('id,email,username,display_name,role,enabled,activated,created_at,last_seen_at,can_browse,can_play,access_expires_at').order('created_at', { ascending: false }).limit(500));
       const events = checked(await db.from('site_access_events').select('id,email,event,created_at').gte('created_at', new Date(now() - 30 * 86400000).toISOString()).order('created_at', { ascending: false }).limit(200));
-      return { users, events };
+      const config = await settings();
+      const sessions = checked(await db.from('site_sessions').select('id,user_id,created_at,expires_at').eq('kind', 'member').gte('expires_at', new Date(now()).toISOString()).order('created_at', { ascending: false }).limit(1000));
+      const tabs = checked(await db.from('site_workspace_tabs').select('id,user_id,feature,visible,last_seen_at').gte('last_seen_at', new Date(now() - 120000).toISOString()).order('last_seen_at', { ascending: false }).limit(1000));
+      const activity = checked(await db.from('site_activity').select('id,user_id,kind,domain,query,created_at').gte('created_at', new Date(now() - config.retention_days * 86400000).toISOString()).order('created_at', { ascending: false }).limit(500));
+      const stats = checked(await db.rpc('site_admin_stats'));
+      return { users, events, settings: config, sessions, tabs, activity, stats };
+    }
+    if (action === 'admin-settings') {
+      const updates = {};
+      for (const key of ['activity_logging','games_enabled','maintenance_enabled']) {
+        if (typeof body[key] !== 'boolean') throw new AccessError(400, 'Check the site settings.');
+        updates[key] = body[key];
+      }
+      for (const [key,min,max] of [['retention_days',7,30],['session_hours',1,24],['session_limit',1,20]]) {
+        if (!Number.isInteger(body[key]) || body[key] < min || body[key] > max || (key === 'retention_days' && ![7,14,30].includes(body[key]))) throw new AccessError(400, 'Check the site settings.');
+        updates[key] = body[key];
+      }
+      const message = String(body.maintenance_message || '').trim();
+      if (!message || message.length > 200) throw new AccessError(400, 'Use a maintenance message between 1 and 200 characters.');
+      updates.maintenance_message = message;
+      checked(await db.from('site_settings').update(updates).eq('id', true));
+      await log(account, 'site_settings_changed');
+      return { message: 'Site settings saved. Session duration and limits apply to new sign-ins. Permissions take effect within 60 seconds.' };
+    }
+    if (action === 'revoke-session' || action === 'revoke-user-sessions' || action === 'revoke-member-sessions') {
+      if (action !== 'revoke-member-sessions' && (typeof body.id !== 'string' || !/^[a-f0-9-]{36}$/i.test(body.id))) throw new AccessError(400, 'Choose an account or session.');
+      if (action === 'revoke-member-sessions') {
+        const members = checked(await db.from('site_accounts').select('id,email').eq('role', 'member'));
+        for (const member of members) {
+          checked(await db.from('site_sessions').delete().eq('user_id', member.id).eq('kind', 'member'));
+        }
+        await log(account, 'all_member_sessions_ended');
+      } else {
+        let targetId = body.id;
+        if (action === 'revoke-session') {
+          const session = checked(await db.from('site_sessions').select('user_id').eq('id', body.id).eq('kind', 'member').maybeSingle());
+          if (!session) throw new AccessError(404, 'That session has already ended.');
+          targetId = session.user_id;
+        }
+        if (typeof targetId !== 'string' || !/^[a-f0-9-]{36}$/i.test(targetId)) throw new AccessError(400, 'Choose an account or session.');
+        const target = checked(await db.from('site_accounts').select('*').eq('id', targetId).maybeSingle());
+        if (!target || target.role === 'admin') throw new AccessError(403, 'Administrator sessions are protected.');
+        let query = db.from('site_sessions').delete().eq('user_id', target.id).eq('kind', 'member');
+        if (action === 'revoke-session') query = query.eq('id', body.id);
+        checked(await query);
+        await log(target, action === 'revoke-session' ? 'session_ended_by_admin' : 'account_sessions_ended', account);
+      }
+      return { message: 'Sessions ended. Open relay connections close within 30 seconds.' };
     }
     if (action === 'create-user') {
       await rate('admin-create:' + account.id, 30, 3600);
@@ -209,6 +301,12 @@ export function createAccessService({ db, authClient, ownerEmail, siteUrl, now =
       if (body.username !== undefined) updates.username = await uniqueUsername(body.username, target.id);
       if (body.name !== undefined) updates.display_name = displayName(body.name);
       if (typeof body.enabled === 'boolean') updates.enabled = body.enabled;
+      for (const key of ['can_browse','can_play']) if (typeof body[key] === 'boolean') updates[key] = body[key];
+      if (body.access_expires_at !== undefined) {
+        const value = body.access_expires_at;
+        if (value !== null && (typeof value !== 'string' || !Number.isFinite(new Date(value).getTime()))) throw new AccessError(400, 'Choose a valid access expiry date.');
+        updates.access_expires_at = value === null ? null : new Date(value).toISOString();
+      }
       if (body.password) {
         passwordCheck(body.password);
         const result = await db.auth.admin.updateUserById(target.id, { password: body.password });
@@ -219,7 +317,7 @@ export function createAccessService({ db, authClient, ownerEmail, siteUrl, now =
       if (Object.keys(updates).length) {
         checked(await db.from('site_accounts').update(updates).eq('id', target.id));
         if (updates.enabled === false) await revoke(target.id);
-        await log(target, updates.enabled === false ? 'account_disabled' : updates.enabled === true ? 'account_enabled' : 'account_updated', account);
+        await log(target, updates.enabled !== undefined && updates.enabled !== target.enabled ? (updates.enabled ? 'account_enabled' : 'account_disabled') : 'account_updated', account);
       }
       return { message: 'Account updated.' };
     }

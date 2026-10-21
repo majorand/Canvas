@@ -9,9 +9,9 @@ export function memberSession() {
 }
 export function saveMember(value) { sessionStorage.setItem(storageKey, JSON.stringify(value)); }
 export function clearMember() { sessionStorage.removeItem(storageKey); relayCredential = null; }
-export async function accountApi(action, fields = {}, token = memberSession()?.token) {
+export async function accountApi(action, fields = {}, token = memberSession()?.token, options = {}) {
   const response = await fetch(window.SCRAMJET_CONFIG?.api || appUrl('api/access').href, {
-    method: 'POST', credentials: 'omit', cache: 'no-store',
+    method: 'POST', credentials: 'omit', cache: 'no-store', keepalive: options.keepalive === true,
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
     body: JSON.stringify({ ...fields, action }), signal: AbortSignal.timeout(20000),
   });

@@ -70,3 +70,48 @@ test('actual PostgreSQL schema restricts roles, limits attempts, and revokes rel
     assert.equal((await db.query('select count(*)::integer as count from public.site_access_events')).rows[0].count,0);
   } finally { await db.close(); }
 });
+
+test('PostgreSQL admin migration preserves data, protects activity, and enforces session controls', async () => {
+  const db = new PGlite();
+  try {
+    await db.exec('create role anon; create role authenticated; create role service_role bypassrls; create schema auth; create table auth.users(id uuid primary key);');
+    const schema = await readFile(new URL('../supabase/schema.sql',import.meta.url),'utf8');
+    await db.exec(schema);
+    const id='11111111-1111-4111-8111-111111111111', other='22222222-2222-4222-8222-222222222222', tab='33333333-3333-4333-8333-333333333333';
+    await db.query('insert into auth.users values ($1),($2)',[id,other]);
+    await db.query("insert into public.site_accounts(id,email,display_name) values ($1,'first@example.test','First'),($2,'second@example.test','Second')",[id,other]);
+    await db.query("insert into public.site_sessions(token_hash,user_id,kind,expires_at) values ('first',$1,'member',now()+interval '1 hour'),('second',$2,'member',now()+interval '1 hour')",[id,other]);
+    // The dedicated migration can also be safely applied to an existing database.
+    await db.exec(await readFile(new URL('../supabase/admin-controls.sql',import.meta.url),'utf8'));
+    assert.equal((await db.query('select count(*)::integer as n from public.site_accounts')).rows[0].n,2);
+    for (const role of ['anon','authenticated']) {
+      await db.exec('set role '+role);
+      for (const table of ['site_activity','site_workspace_tabs','site_settings']) await assert.rejects(db.query('select * from public.'+table),/permission denied/);
+      await assert.rejects(db.query('select public.site_admin_stats()'),/permission denied/);
+      await assert.rejects(db.query("select public.site_touch_tab('first',$1,'workspace',true)",[tab]),/permission denied/);
+      await db.exec('reset role');
+    }
+    await db.exec('set role service_role');
+    await db.query("select public.site_touch_tab('first',$1,'workspace',true)",[tab]);
+    await db.query("select public.site_touch_tab('second',$1,'games',false)",[tab]);
+    assert.equal((await db.query('select user_id from public.site_workspace_tabs')).rows[0].user_id,id);
+    assert.equal((await db.query('select public.site_admin_stats() as stats')).rows[0].stats.active_tabs,1);
+    await db.query('update public.site_settings set session_limit=1');
+    await assert.rejects(db.query("insert into public.site_sessions(token_hash,user_id,kind,expires_at) values ('third',$1,'member',now()+interval '1 hour')",[id]),/session_limit/);
+    await db.query("insert into public.site_sessions(token_hash,user_id,kind,parent_hash,expires_at) values ('relay',$1,'relay','first',now()+interval '1 hour')",[id]);
+    const auth = async () => (await db.query("select public.site_authorize_session('relay','relay') as result")).rows[0].result;
+    assert.equal((await auth()).id,id);
+    await db.query('update public.site_accounts set can_browse=false where id=$1',[id]); assert.equal(await auth(),null);
+    await db.query('update public.site_accounts set can_browse=true where id=$1',[id]);
+    await db.query('update public.site_settings set maintenance_enabled=true'); assert.equal(await auth(),null);
+    await db.query('update public.site_accounts set role=\'admin\' where id=$1',[id]); assert.equal((await auth()).id,id);
+    await db.query('update public.site_settings set maintenance_enabled=false');
+    await db.query("update public.site_accounts set role='member',access_expires_at=now()-interval '1 second' where id=$1",[id]); assert.equal(await auth(),null);
+    await db.query("insert into public.site_activity(user_id,kind,domain,query,created_at) values ($1,'search','google.com','expired',now()-interval '15 days'),($1,'visit','example.com','',now())",[id]);
+    await db.query('update public.site_settings set retention_days=14'); await db.query('select public.site_cleanup()');
+    assert.equal((await db.query('select count(*)::integer as n from public.site_activity')).rows[0].n,1);
+    await db.query("delete from public.site_sessions where token_hash='first'");
+    assert.equal((await db.query('select count(*)::integer as n from public.site_workspace_tabs')).rows[0].n,0);
+    assert.equal((await db.query("select count(*)::integer as n from public.site_sessions where token_hash='relay'")).rows[0].n,0);
+  } finally { await db.close(); }
+});

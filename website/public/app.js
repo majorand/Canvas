@@ -1,7 +1,8 @@
-import { accountApi, authorizedRelayUrl, clearMember, signOut, signInUrl } from './auth-client.mjs';
+import { authorizedRelayUrl, signOut } from './auth-client.mjs';
 import { normalizeAddress, resolveRemoteUrl } from './url.mjs';
 import { appUrl, controllerPaths, prepareWorker } from './runtime.mjs';
 import { RelayTransport } from './relay-transport.mjs';
+import { recordNavigation, startPresence } from './member-activity.mjs';
 const $ = id => document.getElementById(id);
 const address = $('address');
 let controller, frame, initPromise, activeTransport, loadTimer, currentUrl = '', pageWarning = '';
@@ -54,6 +55,7 @@ async function initialize() {
       const url = resolveRemoteUrl(input, context.client.url.href || currentUrl);
       if (!url) return;
       currentUrl = url.href; address.value = currentUrl;
+      recordNavigation(url.href);
       $('open-original').href = currentUrl; $('open-original').hidden = false;
       $('page-state').textContent = url.hostname; clearTimeout(loadTimer); notice(pageWarning);
     };
@@ -96,6 +98,7 @@ async function navigate(input) {
   pageWarning = ''; notice();
   try {
     const url = normalizeAddress(input);
+    recordNavigation(url);
     address.value = url;
     if (!initPromise) initPromise = initialize().catch(error => { initPromise = null; throw error; });
     if (!await initPromise) return;
@@ -178,13 +181,12 @@ $('reconnect').addEventListener('click', async () => {
 $('fullscreen').addEventListener('click', async () => { try { if (document.fullscreenElement) await document.exitFullscreen(); else await $('workspace').requestFullscreen(); } catch { notice('Full screen is unavailable in this browser.'); } });
 $('settings-open').addEventListener('click', () => $('settings').showModal());
 $('sign-out').addEventListener('click', signOut);
-accountApi('enter').catch(error => notice(error.message));
-const presenceTimer = setInterval(() => accountApi('presence').catch(error => {
-  if (error.status === 401 || error.status === 403) {
-    clearInterval(presenceTimer); clearMember(); location.replace(signInUrl());
-  }
-}), 60000);
-window.addEventListener('pagehide', () => { clearInterval(presenceTimer); activeTransport?.close(); });
+startPresence('workspace', error => {
+  activeTransport?.close();
+  document.body.classList.add('auth-loading');
+  $('auth-status').hidden = false; $('auth-status-text').textContent = error.message;
+});
+window.addEventListener('pagehide', () => { activeTransport?.close(); });
 let refreshingWorker = false;
 navigator.serviceWorker?.addEventListener('controllerchange', () => {
   if (!controller || refreshingWorker) return;

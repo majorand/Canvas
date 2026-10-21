@@ -1,18 +1,28 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer">
-<title>Site administration</title><link rel="icon" href="./scots.png"><link rel="stylesheet" href="./accounts.css">
+<title>Site administration</title><link rel="icon" href="./scots.png"><link rel="stylesheet" href="./accounts.css"><link rel="stylesheet" href="./admin.css">
 <script src="./config.js?v=accounts-1" defer></script><script type="module" src="./admin.js"></script>
 </head><body><header><a class="brand" href="./">Calculator</a><a href="./access.html">Member sign in</a></header>
 <main><div class="eyebrow">SITE ADMINISTRATION</div><h1>Your people. Your access.</h1>
-<p class="lead">Manage individual accounts and see recent access to your workspace.</p><p class="status" id="message" role="status">Sign in with your administrator account.</p>
+<p class="lead">Manage access, understand activity, and keep your workspace running.</p><p class="status" id="message" role="status">Sign in with your administrator account.</p>
 <section class="card narrow" id="admin-login"><h2>Administrator sign in</h2><form id="admin-login-form">
 <label>Username or email<input name="identifier" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required maxlength="254"></label>
 <label>Administrator password<input name="password" type="password" autocomplete="current-password" required maxlength="128"></label>
 <button class="primary" type="submit">Sign in as administrator</button></form>
 </section>
 <div id="admin-panel" hidden><div class="toolbar"><p id="admin-name"></p><div><button id="refresh">Refresh</button><button id="admin-logout">Sign out</button></div></div>
-<div class="stats"><div><strong id="account-count">0</strong><span>Accounts</span></div><div><strong id="enabled-count">0</strong><span>Enabled</span></div><div><strong id="recent-count">0</strong><span>Active in the last 2 minutes</span></div></div>
-<div class="columns"><section class="card"><h2>Create an account</h2><form id="create-form">
+<nav class="admin-nav" aria-label="Administration"><a href="#sessions-section">Sessions</a><a href="#activity-section">Searches &amp; activity</a><a href="#accounts-section">Accounts &amp; permissions</a><a href="#settings-section">Site settings</a></nav>
+<div class="stats"><div><strong id="account-count">0</strong><span>Accounts · <b id="enabled-count">0</b> enabled</span></div><div><strong id="session-count">0</strong><span>Unexpired sign-in sessions</span></div><div><strong id="tab-count">0</strong><span>Recently active tabs</span></div><div><strong id="recent-count">0</strong><span>Accounts online · last 2 min</span></div><div><strong id="search-count">0</strong><span>Searches today · UTC</span></div></div>
+<p class="small" id="updated-at"></p>
+<section class="card" id="sessions-section"><div class="section-heading"><h2>Sessions &amp; connected tabs</h2><button id="end-all-sessions" class="danger" type="button">End all member sessions</button></div>
+<p class="small">A sign-in session can remain valid after a tab closes. Tabs are counted from a heartbeat every minute and disappear from the active count after 2 minutes without a heartbeat. Background or offline devices can be delayed. Administrator sessions are protected.</p>
+<div class="table-scroll"><table><caption>Unexpired member sign-ins · latest 1,000</caption><thead><tr><th>Account</th><th>Signed in</th><th>Expires</th><th>Action</th></tr></thead><tbody id="sessions"></tbody></table></div>
+<details><summary>Recently active workspace and games tabs</summary><div class="table-scroll"><table><thead><tr><th>Account</th><th>Page</th><th>Visibility</th><th>Last heartbeat</th></tr></thead><tbody id="tabs"></tbody></table></div></details></section>
+<section class="card" id="activity-section"><div class="section-heading"><h2>Searches &amp; browsing activity</h2><button id="export-activity" type="button">Export filtered CSV</button></div><p class="small" id="activity-summary"></p>
+<p class="small">New activity only, reported by the browser. Captures top-level page domains and submitted Google, Bing, DuckDuckGo, and YouTube searches. Full URLs, passwords, keystrokes, and form contents are excluded. This identifies the account used, not a verified person; it is not a complete browsing history.</p>
+<div class="filters"><label>Account<select id="activity-account"><option value="">All accounts</option></select></label><label>Type<select id="activity-kind"><option value="">All activity</option><option value="search">Searches</option><option value="visit">Page domains</option></select></label><label>Filter results<input type="search" id="activity-filter" placeholder="Search, domain, or account" maxlength="160"></label></div>
+<div class="table-scroll activity-scroll"><table><thead><tr><th>Time</th><th>Account</th><th>Type</th><th>Domain</th><th>Search</th></tr></thead><tbody id="activity"></tbody></table></div></section>
+<div class="columns" id="accounts-section"><section class="card"><h2>Create an account</h2><form id="create-form">
 <label>Name<input name="name" required maxlength="80" autocomplete="off"></label><label>Email<input name="email" type="email" required maxlength="254" autocomplete="off"></label>
 <label>Username (optional)<input name="username" minlength="3" maxlength="32" autocomplete="off" autocapitalize="none" spellcheck="false"></label>
 <p class="small">Usernames are unique and ignore capitalization. Use 3–32 letters, numbers, dots, underscores, or hyphens.</p>
@@ -22,10 +32,22 @@
 <label>Name<input id="edit-name" name="name" required maxlength="80"></label>
 <label>Username (optional)<input id="edit-username" name="username" minlength="3" maxlength="32" autocomplete="off" autocapitalize="none" spellcheck="false"></label>
 <label class="check"><input id="edit-enabled" name="enabled" type="checkbox">Account enabled</label>
+<label class="check"><input id="edit-browse" name="can_browse" type="checkbox">Workspace / relay access</label>
+<label class="check"><input id="edit-play" name="can_play" type="checkbox">Games menu access</label>
+<label>Access expires (optional, your local time)<input id="edit-expiry" name="access_expires_at" type="datetime-local"></label>
 <label>New password (optional)<input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128"></label>
-<button class="primary" type="submit">Save account</button></form><p class="small">Disabling access or resetting a password ends existing sessions. Open relay connections close within 30 seconds.</p></section></div>
-<section class="card"><h2>Accounts</h2><div class="table-scroll"><table><thead><tr><th>Name</th><th>Username</th><th>Email</th><th>Access</th><th>Last seen</th></tr></thead><tbody id="users"></tbody></table></div></section>
-<section class="card"><div class="section-heading"><h2>Access log</h2><span class="small">Latest 200 events · 30 days</span></div><p class="small">Shows the account used, not a verified physical identity. “Active” is an estimate based on recent workspace activity. Browsing destinations are not logged here.</p><div class="table-scroll"><table><thead><tr><th>Time</th><th>Account</th><th>Event</th></tr></thead><tbody id="events"></tbody></table></div></section>
+<button class="primary" type="submit">Save account</button><button id="end-user-sessions" type="button">End this account’s sessions</button></form><p class="small">Disabling access or resetting a password ends existing sessions. Relay permission changes take effect within 30 seconds; page permissions within 60 seconds. Games-menu access controls this menu; someone with workspace access can still visit external game sites.</p></section></div>
+<section class="card"><h2>Accounts</h2><label>Find an account<input id="account-filter" type="search" placeholder="Name, username, or email"></label><div class="table-scroll"><table><thead><tr><th>Name</th><th>Username</th><th>Email</th><th>Access &amp; permissions</th><th>Last seen</th></tr></thead><tbody id="users"></tbody></table></div></section>
+<section class="card" id="settings-section"><h2>Site settings</h2><form id="settings-form"><div class="columns"><div>
+<label class="check"><input id="setting-activity" type="checkbox">Record submitted searches and page domains</label>
+<label>Activity retention<select id="setting-retention"><option value="7">7 days</option><option value="14">14 days</option><option value="30">30 days</option></select></label>
+<label class="check"><input id="setting-games" type="checkbox">Enable the games menu</label>
+<label class="check"><input id="setting-maintenance" type="checkbox">Pause member access (maintenance mode)</label>
+<label>Maintenance message<input id="setting-message" maxlength="200" required></label>
+</div><div><label>New member session duration (hours)<input id="setting-hours" type="number" min="1" max="24" required></label>
+<label>Maximum sign-in sessions per member<input id="setting-limit" type="number" min="1" max="20" required></label>
+<p class="small">Limits and duration apply at the next sign-in. Maintenance pauses members while keeping the administrator’s access available. Account access events are kept for 30 days. Turning activity logging off stops new search/domain records; existing records expire under the selected retention period. Reducing retention permanently removes older activity on the next dashboard refresh.</p></div></div><button class="primary" type="submit">Save site settings</button></form></section>
+<section class="card"><div class="section-heading"><h2>Security &amp; access log</h2><span class="small">Latest 200 events · 30 days</span></div><p class="small">Sign-ins, failed attempts, account changes, session revocations, and site-setting changes.</p><div class="table-scroll activity-scroll"><table><thead><tr><th>Time</th><th>Account</th><th>Event</th></tr></thead><tbody id="events"></tbody></table></div></section>
 <section class="card"><h2>Your administrator username</h2><form id="admin-profile-form"><label>Username (optional)<input id="admin-username" name="username" minlength="3" maxlength="32" autocomplete="off" autocapitalize="none" spellcheck="false"></label><button type="submit">Save username</button></form><p class="small">You can always continue signing in with your email.</p></section>
 <section class="card"><details><summary>Change administrator password</summary><form id="admin-password-form">
 <label>Current password<input name="currentPassword" type="password" autocomplete="current-password" required maxlength="128"></label>

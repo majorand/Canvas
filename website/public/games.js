@@ -1,5 +1,6 @@
 import { appUrl } from './runtime.mjs';
-import { requireMember, signOut } from './auth-client.mjs';
+import { accountApi, requireMember, signOut } from './auth-client.mjs';
+import { startPresence, showActivityNotice } from './member-activity.mjs';
 import { games, gameCategories, filterGames, gameLaunchUrl } from './games-catalog.mjs';
 
 const $ = id => document.getElementById(id);
@@ -99,6 +100,11 @@ function render() {
 try {
   const user = await requireMember();
   if (user) {
+    await accountApi('feature', { feature:'games' });
+    showActivityNotice(user.settings);
+    startPresence('games', error => {
+      $('games-content').hidden = true; $('auth-status').hidden = false; $('auth-status-text').textContent = error.message;
+    });
     $('signed-in-name').textContent = user.display_name || user.username || user.email;
     render(); $('auth-status').hidden = true; $('games-content').hidden = false;
   }

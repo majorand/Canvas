@@ -3,7 +3,7 @@
 The calculator remains public. Code Mode + 0000 opens the sign-in page.
 The workspace requires an individual account; the relay enforces access on the server.
 GitHub Pages serves the frontend. Vercel runs the account API and Wisp relay.
-Supabase stores identities, profiles, scoped sessions, rate limits, and access events.
+Supabase stores identities, profiles, scoped sessions, tab heartbeats, site settings, activity, rate limits, and access events.
 
 ## Deploy
 
@@ -34,16 +34,28 @@ application account is also required.
 
 - Create named member accounts.
 - Rename members, enable/disable access, and reset member passwords.
+- Grant workspace/relay and games-menu permissions separately, with optional account expiry.
+- View unexpired sign-in sessions, recently active tabs, foreground/background state, and online account estimates.
+- End an individual session, all sessions for a member, or all member sessions. Owner sessions are protected.
+- Filter submitted searches and page-domain activity by account, type, or text, and export the matching loaded records to CSV.
+- Set activity logging, 7/14/30-day activity retention, games-menu availability, maintenance mode, new session duration (1–24 hours), and simultaneous session limits (1–20 per member).
 - Change the administrator's own password after verifying the current one.
 - View account sign-ins, failed sign-ins for known accounts, workspace visits,
   account changes, and approximate recent activity.
 - The dashboard shows the latest 200 events from the last 30 days and up to 500 accounts.
   Expired logs and sessions are removed when the administrator loads the dashboard.
-  No browsing destinations, passwords, or raw session tokens are saved in access logs.
+  Search/domain activity is separate: the latest 500 records within the configured retention period.
+  Browser-reported top-level domains and submitted Google.com, Bing, DuckDuckGo, and YouTube searches are recorded after this update.
+  Full URLs, credentials, arbitrary URL parameters, keystrokes, and form contents are excluded from activity collection.
+  Both the sign-in page and workspace disclose administrator visibility. Tracking is approximate, can be blocked by clients, and is not a complete history.
+- Session lists show up to 1,000 rows; headline totals are database aggregates. Tabs heartbeat every minute and count as active for 2 minutes.
 - Logs identify the account used, not a verified physical person.
 
 Passwords require 12–128 characters and are managed by Supabase Auth.
-Member sessions last four hours; administrator sessions last one hour.
+Member sessions default to four hours and a maximum of ten concurrent sign-ins; administrator sessions last one hour.
+New duration/limit settings apply to future sign-ins; account expiry and permission changes are checked for existing access.
+Maintenance mode pauses member access while keeping the owner's administrator/member access available.
+Games permission controls the catalog menu; general workspace access still allows external game websites.
 Logout, password changes, and account disabling revoke relevant server sessions.
 Existing relay sockets recheck permission every 30 seconds and close on expiry or failed checks.
 Admin credentials are separate from member and relay credentials. Admin session tokens stay
@@ -51,7 +63,7 @@ in page memory; refreshing admin.html requires signing in again.
 
 ## Local development and tests
 
-Copy .env.example to .env.local and fill it privately, then use Node 22+:
+Copy .env.example to .env.local and fill it privately, then use Node 24+:
 
 ```sh
 npm ci --workspaces=false
@@ -82,3 +94,13 @@ are letters, numbers, dots, underscores, and hyphens; start with a letter or num
 Clearing a username removes that alias without changing the email or password.
 For an existing database, apply supabase/usernames.sql before deploying this update.
 The isolated demonstration member also accepts test.member as its login.
+
+## Upgrading the administrator dashboard
+
+For an existing Canvas database, apply `supabase/admin-controls.sql` before deploying the matching website update.
+The migration is additive and repeatable; it preserves accounts, passwords, and existing sessions.
+New installations use the complete `supabase/schema.sql` instead. All new tables have RLS enabled with no anon/authenticated grants;
+only the existing server service-role client can use them. Session-list responses never expose session token hashes.
+Session limits use a PostgreSQL advisory lock and trigger so parallel login requests cannot bypass the limit.
+Expired records are pruned during administrator dashboard loads; retention filtering also excludes expired activity from responses.
+Audit logs retain settings changes and session revocations for 30 days.
