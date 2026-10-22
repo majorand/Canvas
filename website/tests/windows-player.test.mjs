@@ -28,7 +28,7 @@ test('window pointer drag and resize capture their pointer, preserve embedded co
   const handles=new Map();let paused=0,closed=0,captured;
   const handle=selector=>{if(!handles.has(selector))handles.set(selector,{textContent:'',listeners:new Map(),addEventListener(name,cb){this.listeners.set(name,cb)},setPointerCapture:id=>{captured=id},releasePointerCapture:()=>{captured=null},setAttribute(){}});return handles.get(selector);};
   const panel={style:new Proxy({removeProperty:key=>delete styles[key]},{set:(_,key,value)=>{styles[key]=value;return true}}),classList:{add:(...names)=>names.forEach(n=>classes.add(n)),remove:(...names)=>names.forEach(n=>classes.delete(n)),contains:name=>classes.has(name),toggle(name,state){const next=state??!classes.has(name);next?classes.add(name):classes.delete(name);return next;}},querySelector:handle,
-    getBoundingClientRect:()=>({left:parseFloat(styles.left||100),top:parseFloat(styles.top||100),width:parseFloat(styles.width||600),height:parseFloat(styles.height||450)}),addEventListener:(name,cb)=>listeners.set(name,cb)};
+    getBoundingClientRect:()=>({left:parseFloat(styles.left||100),top:parseFloat(styles.top||100),width:parseFloat(styles.width||600),height:classes.has('window-minimized')?42:parseFloat(styles.height||450)}),addEventListener:(name,cb)=>listeners.set(name,cb)};
   const old=globalThis.window;globalThis.window={innerWidth:1200,innerHeight:800,addEventListener(){}};
   try{
     const control=floatingWindow(panel,{onClose:()=>closed++,onMinimize:()=>paused++});control.float();
@@ -39,6 +39,9 @@ test('window pointer drag and resize capture their pointer, preserve embedded co
     title.listeners.get('pointercancel')(event);assert.equal(captured,null);assert.ok(!classes.has('window-interacting'));
     resize.listeners.get('keydown')({target:resize,key:'ArrowRight',preventDefault(){}});assert.equal(styles.width,'608px');
     handle('[data-window-minimize]').listeners.get('click')();assert.equal(paused,1);
+    const fullHeight=styles.height;
+    title.listeners.get('keydown')({target:title,key:'ArrowRight',preventDefault(){}});
+    handle('[data-window-minimize]').listeners.get('click')();assert.equal(styles.height,fullHeight);
     control.dock();assert.ok(!classes.has('floating'));assert.ok(!classes.has('window-minimized'));assert.equal(styles.left,undefined);
     control.close();assert.equal(panel.hidden,true);assert.equal(closed,1);
   }finally{globalThis.window=old;}

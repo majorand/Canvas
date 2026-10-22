@@ -4,7 +4,7 @@ export function floatingWindow(panel, { onClose = () => {}, onMinimize = () => {
   const titlebar = panel.querySelector('[data-window-titlebar]');
   const resize = panel.querySelector('[data-window-resize]');
   const toggle = panel.querySelector('[data-window-toggle]');
-  let floating = false, maximized = false, previous, interaction;
+  let floating = false, maximized = false, previous, interaction, minimizedSize;
   const viewport = () => ({ width:window.innerWidth,height:window.innerHeight,top:Math.min(48,window.innerHeight-100) });
   const bounds = () => { const r=panel.getBoundingClientRect();return {x:r.left,y:r.top,width:r.width,height:r.height}; };
   const focus = () => { if (floating) panel.style.zIndex=String(++topLayer); };
@@ -20,12 +20,19 @@ export function floatingWindow(panel, { onClose = () => {}, onMinimize = () => {
     focus(); if(toggle)toggle.textContent='Dock';
   }
   function dock() {
-    end(); floating=false;maximized=false;panel.classList.remove('floating','maximized','window-minimized');
+    end(); floating=false;maximized=false;minimizedSize=null;panel.classList.remove('floating','maximized','window-minimized');
     for(const property of ['left','top','width','height','z-index'])panel.style.removeProperty(property);
     if(toggle)toggle.textContent='Float';
     panel.querySelector('[data-window-maximize]')?.setAttribute('aria-pressed','false');
   }
+  function restoreMinimized() {
+    if(!panel.classList.contains('window-minimized'))return;
+    panel.classList.remove('window-minimized');
+    if(minimizedSize)apply({...bounds(),...minimizedSize});
+    minimizedSize=null;
+  }
   function maximize() {
+    restoreMinimized();
     if(!floating)float();
     if(maximized){maximized=false;apply(previous);}else{previous=bounds();maximized=true;apply({x:0,y:48,width:window.innerWidth,height:window.innerHeight-48});}
     panel.classList.toggle('maximized',maximized);
@@ -63,8 +70,13 @@ export function floatingWindow(panel, { onClose = () => {}, onMinimize = () => {
   panel.addEventListener('pointerdown',focus);
   toggle?.addEventListener('click',()=>floating?dock():float());
   panel.querySelector('[data-window-maximize]')?.addEventListener('click',maximize);
-  panel.querySelector('[data-window-minimize]')?.addEventListener('click',()=>{end();panel.classList.toggle('window-minimized');onMinimize(panel.classList.contains('window-minimized'));});
+  panel.querySelector('[data-window-minimize]')?.addEventListener('click',()=>{
+    end();
+    if(panel.classList.contains('window-minimized'))restoreMinimized();
+    else{const {width,height}=bounds();minimizedSize={width,height};panel.classList.add('window-minimized');}
+    onMinimize(panel.classList.contains('window-minimized'));
+  });
   panel.querySelector('[data-window-close]')?.addEventListener('click',()=>{end();panel.hidden=true;onClose();});
   window.addEventListener('resize',()=>{if(floating)apply(maximized?{x:0,y:48,width:window.innerWidth,height:window.innerHeight-48}:bounds());});
-  return { float,dock,show(){panel.hidden=false;panel.classList.remove('window-minimized');float();focus();},close(){end();panel.hidden=true;onClose();} };
+  return { float,dock,show(){panel.hidden=false;restoreMinimized();float();focus();},close(){end();panel.hidden=true;onClose();} };
 }
