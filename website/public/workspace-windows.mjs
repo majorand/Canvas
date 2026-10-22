@@ -23,6 +23,7 @@ export function initWorkspaceWindows({ currentUrl }) {
   const status=message=>{$('youtube-status').textContent=message;};
   function stop() {
     sequence++;clearTimeout(loadTimer);try{player?.destroy();}catch{}player=null;
+    $('youtube-play').disabled=true;$('youtube-pause').disabled=true;
     $('youtube-video').replaceChildren();status('Paste a video link to start.');
   }
   const youtubeWindow=floatingWindow(panel,{minimum:{width:360,height:460},onClose:stop,onMinimize:minimized=>{if(minimized)try{player?.pauseVideo();}catch{}}});
@@ -48,7 +49,7 @@ export function initWorkspaceWindows({ currentUrl }) {
     try{
       const YT=await youtubeApi();if(sequence!==revision)return;
       player=new YT.Player(iframe,{events:{
-        onReady:()=>{if(sequence!==revision)return;clearTimeout(loadTimer);status('Ready. Press Play inside the video.');},
+        onReady:()=>{if(sequence!==revision)return;clearTimeout(loadTimer);$('youtube-play').disabled=false;$('youtube-pause').disabled=false;status('Ready. Press Play to watch.');},
         onStateChange:event=>{if(sequence!==revision)return;if(event.data===1){clearTimeout(loadTimer);status('Playing directly from YouTube.');}else if(event.data===2)status('Paused.');else if(event.data===0)status('Video ended. Paste another link to keep watching.');},
         onError:event=>{if(sequence!==revision)return;clearTimeout(loadTimer);status(youtubeError(event.data));},
         onAutoplayBlocked:()=>{if(sequence===revision)status('Your browser requires a click. Press Play inside the video.');},
@@ -59,6 +60,8 @@ export function initWorkspaceWindows({ currentUrl }) {
   $('youtube-current').addEventListener('click',()=>open(currentUrl() || $('address').value));
   $('youtube-form').addEventListener('submit',event=>{event.preventDefault();load($('youtube-url').value);});
   $('youtube-retry').addEventListener('click',()=>load($('youtube-url').value));
+  $('youtube-play').addEventListener('click',()=>{try{player?.playVideo();}catch{status('The player could not resume. Try Retry video.');}});
+  $('youtube-pause').addEventListener('click',()=>{try{player?.pauseVideo();}catch{status('The player could not pause. Close the panel to stop playback.');}});
   $('youtube-search-form').addEventListener('submit',event=>{
     event.preventDefault();const query=$('youtube-search').value.trim();if(!query)return;
     const url=new URL('https://www.youtube.com/results');url.searchParams.set('search_query',query);
