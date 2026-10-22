@@ -4,10 +4,28 @@ import { appUrl, controllerPaths, prepareWorker } from './runtime.mjs';
 import { RelayTransport } from './relay-transport.mjs';
 import { recordNavigation, startPresence } from './member-activity.mjs';
 import { initWorkspaceWindows } from './workspace-windows.mjs';
+import { createBrowserTabs } from './browser-tabs.mjs';
 const $ = id => document.getElementById(id);
 const address = $('address');
-let controller, frame, initPromise, activeTransport, loadTimer, windowTools, currentUrl = '', pageWarning = '';
+let controller, frame, initPromise, activeTransport, windowTools, browserTabs, currentUrl = '';
 function notice(message = '') { $('notice').textContent = message; $('notice').hidden = !message; }
+function paintTab(tab) {
+  if(!tab || tab.closed || browserTabs.active!==tab)return;
+  frame=tab.frame;currentUrl=tab.url;address.value=tab.url;
+  $('open-original').href=tab.url || '#';$('open-original').hidden=!tab.url;
+  $('page-state').textContent=tab.status || (tab.url?new URL(tab.url).hostname:'New tab');
+  const browsing=Boolean(tab.url);
+  document.body.classList.toggle('browsing',browsing);
+  for(const id of ['landing','start-content','footer'])$(id).hidden=browsing;
+  $('workspace').hidden=!browsing;$('navigation').hidden=!browsing;
+  notice(tab.warning);
+}
+function tabWarning(tab,message) { if(!tab || tab.closed)return;tab.warning=message;if(browserTabs.active===tab)notice(message); }
+function closeTab(tab) {
+  clearTimeout(tab.timer);
+  if(controller?.frames && tab.frame){const index=controller.frames.indexOf(tab.frame);if(index>=0)controller.frames.splice(index,1);}
+  for(const dispose of tab.disposers || [])dispose();
+}
 function setConnection(online) { $('connection').textContent = online ? 'Relay connected' : 'Relay unavailable'; $('connection').className = `status ${online ? 'online' : 'offline'}`; }
 async function checkRelay(refresh = false) {
   const relay = await authorizedRelayUrl(refresh);
@@ -49,28 +67,38 @@ async function initialize() {
   activeTransport?.close(); activeTransport = transport;
   controller = new $scramjetController.Controller({ serviceworker: registration.active, transport, config: controllerPaths() });
   await withTimeout(controller.wait(), 20000, 'Scramjet could not initialize. Reload and try again.');
-  frame = controller.createFrame($('web-frame'));
-  $scramjet.Tap.tap(frame.hooks.init.post, context => {
+  return true;
+}
+function attachFrame(tab) {
+  const tabFrame=controller.createFrame(tab.element);tab.frame=tabFrame;tab.disposers=[];
+  if(browserTabs.active===tab)frame=tabFrame;
+  $scramjet.Tap.tap(tabFrame.hooks.init.post, context => {
+    if(tab.closed)return;
     if (!context.isTopLevel) return;
+    for(const dispose of tab.disposers)dispose();tab.disposers=[];
     const update = input => {
-      const url = resolveRemoteUrl(input, context.client.url.href || currentUrl);
-      if (!url) return;
-      currentUrl = url.href; address.value = currentUrl;
+      const url = resolveRemoteUrl(input, context.client.url.href || tab.url);
+      if (!url || tab.closed) return;
+      browserTabs.update(tab,{url:url.href,title:context.window.document.title?.trim().slice(0,80) || url.hostname,status:url.hostname});
       recordNavigation(url.href);
-      $('open-original').href = currentUrl; $('open-original').hidden = false;
-      $('page-state').textContent = url.hostname; clearTimeout(loadTimer); notice(pageWarning);
+      clearTimeout(tab.timer);paintTab(tab);
     };
     update(context.client.url.href);
     $scramjet.Tap.tap(context.client.hooks.lifecycle.navigate, (_context, props) => update(props.url));
+    const refreshTitle=()=>{const title=context.window.document.title?.trim().slice(0,80) || (tab.url?new URL(tab.url).hostname:'New tab');if(!tab.closed && title!==tab.title)browserTabs.update(tab,{title});};
+    context.window.document.addEventListener('DOMContentLoaded',refreshTitle,{once:true});
+    if(context.window.MutationObserver && context.window.document.head){
+      const observer=new context.window.MutationObserver(refreshTitle);observer.observe(context.window.document.head,{childList:true,subtree:true,characterData:true});
+      tab.disposers.push(()=>observer.disconnect());
+    }
     context.window.document.addEventListener('error', event => {
       if (['VIDEO', 'AUDIO'].includes(event.target?.tagName) && event.target.error) {
-        pageWarning = 'This website could not play the media. Try Reconnect once. If it still fails, use Open original; some video formats, protected content, or site restrictions cannot work through this proxy.';
-        notice(pageWarning);
+        tabWarning(tab,'This website could not play the media. Try Reconnect once. If it still fails, use Open original; some video formats, protected content, or site restrictions cannot work through this proxy.');
       }
     }, true);
   });
   // Match upstream CatchEscapedLinksPlugin so new-tab links retain the workspace.
-  $scramjet.Tap.tap(frame.hooks.fetch.intercept, (context, props) => {
+  $scramjet.Tap.tap(tabFrame.hooks.fetch.intercept, (context, props) => {
     if (context.parsed.destination !== 'document') return;
     const remote = resolveRemoteUrl(context.parsed.url);
     if (!remote) return;
@@ -78,41 +106,40 @@ async function initialize() {
     target.searchParams.set('goto', remote.href);
     props.response = { body: '', status: 302, statusText: 'Found', headers: $scramjet.ScramjetHeaders.fromRawHeaders([['Location', target.href]]) };
   }, undefined, { after: ['scramjet-http-cache'] });
-  $scramjet.Tap.tap(frame.hooks.fetch.preresponse, (context, props) => {
+  $scramjet.Tap.tap(tabFrame.hooks.fetch.preresponse, (context, props) => {
     if (![403, 429].includes(props.response.status)) return;
     const url = context.parsed.url;
     const media = /(^|\.)googlevideo\.com$/.test(url.hostname);
     if (!media && context.parsed.isIframe) return;
     if (!media && !['document', 'iframe'].includes(context.parsed.destination)) return;
-    pageWarning = props.response.status === 429
+    const warning = props.response.status === 429
       ? 'This website is limiting requests from the relay. Wait before retrying, or use Open original.'
       : 'This website denied access through the relay. It may require sign-in or verification, or block shared server addresses. Use Open original if verification or playback will not work here.';
-    clearTimeout(loadTimer); notice(pageWarning);
+    clearTimeout(tab.timer);tabWarning(tab,warning);
   });
-  $scramjet.Tap.tap(frame.hooks.error.request, context => {
-    if (['document', 'iframe'].includes(context.rawrequest.destination)) { clearTimeout(loadTimer); $('page-state').textContent = 'Could not load this page'; notice('This page could not be loaded. Try Reconnect or Open original.'); }
+  $scramjet.Tap.tap(tabFrame.hooks.error.request, context => {
+    if(tab.closed)return;
+    if (['document', 'iframe'].includes(context.rawrequest.destination)) { clearTimeout(tab.timer);tab.status='Could not load this page';tabWarning(tab,'This page could not be loaded. Try Reconnect or Open original.');paintTab(tab); }
   });
-  return true;
+  return tabFrame;
 }
-async function navigate(input) {
+async function navigate(input,tab=browserTabs.active) {
   $('go').disabled = true;
-  pageWarning = ''; notice();
   try {
     const url = normalizeAddress(input);
+    if(!tab || tab.closed)return;
+    tab.warning='';
     recordNavigation(url);
-    address.value = url;
+    browserTabs.update(tab,{url,title:new URL(url).hostname,status:'Loading '+new URL(url).hostname+'…'});paintTab(tab);
     if (!initPromise) initPromise = initialize().catch(error => { initPromise = null; throw error; });
     if (!await initPromise) return;
+    if(tab.closed)return;
     history.replaceState(null, '', appUrl('workspace.html'));
-    currentUrl = url; address.value = url; $('open-original').href = url; $('open-original').hidden = false;
-    document.body.classList.add('browsing');
-    for (const id of ['landing', 'start-content', 'footer']) $(id).hidden = true;
-    $('workspace').hidden = false; $('navigation').hidden = false;
-    $('page-state').textContent = 'Loading ' + new URL(url).hostname + '…';
-    clearTimeout(loadTimer);
-    loadTimer = setTimeout(() => notice('This website is taking longer than expected. You can reload it or try another address. Some websites restrict proxy access.'), 45000);
-    frame.go(url);
-  } catch (error) { notice(error.message || 'Unable to open this website.'); }
+    const destinationFrame=tab.frame || attachFrame(tab);paintTab(tab);
+    clearTimeout(tab.timer);
+    tab.timer = setTimeout(() => tabWarning(tab,'This website is taking longer than expected. You can reload it or try another address. Some websites restrict proxy access.'), 45000);
+    destinationFrame.go(url);
+  } catch (error) { if(tab)tabWarning(tab,error.message || 'Unable to open this website.'); }
   finally { $('go').disabled = false; }
 }
 $('address-form').addEventListener('submit', event => { event.preventDefault(); navigate(address.value); });
@@ -167,15 +194,16 @@ $('open-blank').addEventListener('click', () => {
   }
 });
 document.querySelectorAll('[data-url]').forEach(button => button.addEventListener('click', () => navigate(button.dataset.url)));
-$('home').addEventListener('click', () => location.assign(appUrl('workspace.html')));
+$('home').addEventListener('click', () => browserTabs.add());
 $('back').addEventListener('click', () => frame?.back());
 $('forward').addEventListener('click', () => frame?.forward());
-$('reload').addEventListener('click', () => { pageWarning = ''; notice(); frame?.reload(); });
+$('reload').addEventListener('click', () => { tabWarning(browserTabs.active,'');frame?.reload(); });
 $('reconnect').addEventListener('click', async () => {
-  $('reconnect').disabled = true; pageWarning = ''; notice('Reconnecting…');
+  const requestedTab=browserTabs.active;
+  $('reconnect').disabled = true;tabWarning(browserTabs.active,'');notice('Reconnecting…');
   try {
-    if (!controller || !frame) { initPromise = null; if (currentUrl || address.value) await navigate(currentUrl || address.value); else await checkRelay(); }
-    else { const next = await newTransport(); controller.setTransport(next); activeTransport?.close(); activeTransport = next; frame.reload(); notice('Relay reconnected. Reloading the page…'); }
+    if (!controller) { initPromise = null; if (currentUrl || address.value) await navigate(currentUrl || address.value); else await checkRelay(); }
+    else { const next = await newTransport(); controller.setTransport(next); activeTransport?.close(); activeTransport = next;if(!requestedTab.closed)requestedTab.frame?.reload();notice('Relay reconnected. Other website tabs stay open.'); }
   } catch (error) { setConnection(false); notice(error.message || 'Could not reconnect. Try again shortly.'); }
   finally { $('reconnect').disabled = false; }
 });
@@ -185,6 +213,7 @@ $('sign-out').addEventListener('click', signOut);
 startPresence('workspace', error => {
   activeTransport?.close();
   windowTools?.closePlayers();
+  for(const tab of [...browserTabs.all]){closeTab(tab);tab.closed=true;tab.element.src='about:blank';tab.element.remove();}
   document.body.classList.add('auth-loading');
   $('auth-status').hidden = false; $('auth-status-text').textContent = error.message;
 });
@@ -206,6 +235,9 @@ window.addEventListener('online', () => {
   restore.then(() => notice('Your internet connection is back. You can continue using this page.')).catch(error => notice(error.message));
 });
 const initialUrl = new URL(location.href).searchParams.get('goto');
+browserTabs=createBrowserTabs({document,firstElement:$('web-frame'),container:$('browser-pages'),list:$('browser-tabs'),addButton:$('new-tab'),
+  onSelect:(tab,created)=>{paintTab(tab);if(tab.url && !tab.frame)navigate(tab.url,tab);else if(created)address.focus();},onClose:closeTab,onLimit:message=>notice(message)});
+paintTab(browserTabs.active);
 $('open-blank').disabled = true;
 const workspaceReady = prepareWorker(() => address.value || initialUrl).then(registration => {
   if (registration) $('open-blank').disabled = false;

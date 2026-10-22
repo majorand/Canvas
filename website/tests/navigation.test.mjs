@@ -5,6 +5,8 @@ import vm from 'node:vm';
 import { normalizeAddress, resolveRemoteUrl } from '../public/url.mjs';
 import { appUrl, controllerPaths } from '../public/runtime.mjs';
 import { RelayTransport } from '../public/relay-transport.mjs';
+import { createBrowserTabs } from '../public/browser-tabs.mjs';
+import { tabDocument } from './fixtures/tab-dom.mjs';
 
 const [appSource, coreSource] = await Promise.all([
   readFile(new URL('../public/app.js', import.meta.url), 'utf8'),
@@ -14,7 +16,7 @@ const [appSource, coreSource] = await Promise.all([
 // Execute the actual application hooks with the pinned core's Tap implementation.
 // Browser rendering and network I/O remain isolated deterministic fixtures.
 async function workspaceFixture(t) {
-  const elements = new Map();
+  const {document:browserDocument,element,elements}=tabDocument();
   const timers = new Set();
   const windowListeners = new Map();
   const workerListeners = new Map();
@@ -22,20 +24,8 @@ async function workspaceFixture(t) {
   const controllers = [];
   const transports = [];
   let transportFailure;
-  const element = id => {
-    if (!elements.has(id)) elements.set(id, {
-      id, hidden: true, value: '', textContent: '', listeners: new Map(),
-      addEventListener(name, callback) { this.listeners.set(name, callback); },
-      focus() {}, select() {},
-    });
-    return elements.get(id);
-  };
-  const browserDocument = {
-    getElementById: element,
-    querySelectorAll: () => [],
-    addEventListener() {},
-    body: { classList: { add() {} } },
-  };
+  const lookup=browserDocument.getElementById;
+  browserDocument.getElementById=id=>lookup(id)||element(id);
   class ProbeSocket {
     constructor() {
       queueMicrotask(() => this.onmessage?.({ data: new Uint8Array([3]).buffer }));
@@ -64,7 +54,7 @@ async function workspaceFixture(t) {
     clearTimeout(timer) { clearTimeout(timer); timers.delete(timer); },
     setInterval: () => 1, clearInterval() {},
     addEventListener: (name, callback) => windowListeners.set(name, callback),
-    normalizeAddress, resolveRemoteUrl, RelayTransport,
+    normalizeAddress, resolveRemoteUrl, RelayTransport,createBrowserTabs,
     appUrl: file => appUrl(file, 'https://majorand.github.io/Canvas/runtime.mjs?v=test-revision'),
     controllerPaths,
     prepareWorker: async () => ({ active: {} }),
@@ -80,7 +70,7 @@ async function workspaceFixture(t) {
   vm.runInContext(coreSource, context, { filename: 'pinned-scramjet.js' });
   const { Tap } = context.$scramjet;
   class Controller {
-    constructor(options) { this.transport = options.transport; this.replacements = []; controllers.push(this); }
+    constructor(options) { this.transport = options.transport; this.replacements = [];this.frames=[];controllers.push(this); }
     async wait() {}
     createFrame(element) {
       this.frame = {
@@ -89,7 +79,7 @@ async function workspaceFixture(t) {
         go(url) { this.destination = url; },
         reload() { this.reloads = (this.reloads || 0) + 1; },
       };
-      return this.frame;
+      this.frames.push(this.frame);return this.frame;
     }
     setTransport(next) { this.transport = next; this.replacements.push(next); }
   }
@@ -100,7 +90,7 @@ async function workspaceFixture(t) {
   t.after(() => { for (const timer of timers) clearTimeout(timer); });
   return {
     context, elements, element, controllers, transports, Tap, workerListeners, replacements,
-    frame: controllers[0].frame,
+    frame: controllers[0].frame,tabs:vm.runInContext('browserTabs',context),
     setTransportFailure(error) { transportFailure = error; },
   };
 }
@@ -209,4 +199,45 @@ test('an activated worker update reloads the shell once with the website address
   assert.equal(replacements[0].pathname, '/Canvas/workspace.html');
   assert.equal(replacements[0].searchParams.get('goto'), 'https://www.youtube.com/');
   assert.equal(replacements[0].searchParams.get('v'), 'test-revision');
+});
+
+test('website tabs retain independent frames and ignore background navigation in the active address bar',async t=>{
+  const {tabs,context,controllers,Tap,element}=await workspaceFixture(t);
+  const first=tabs.active,firstFrame=first.frame;
+  const second=tabs.add();await context.navigate('https://example.com/',second);
+  const secondFrame=second.frame;
+  assert.notEqual(firstFrame,secondFrame);assert.equal(controllers.length,1);assert.equal(controllers[0].frames.length,2);
+  const client={url:new URL('https://www.youtube.com/'),hooks:{lifecycle:Tap.create()}};
+  const remoteDocument={title:'Background video',addEventListener(){}};
+  await Tap.dispatch(firstFrame.hooks.init.post,{isTopLevel:true,client,window:{document:remoteDocument}},{});
+  await Tap.dispatch(client.hooks.lifecycle.navigate,{}, {url:'/watch?v=next'});
+  assert.equal(element('address').value,'https://example.com/');assert.equal(tabs.active,second);
+  assert.equal(first.url,'https://www.youtube.com/watch?v=next');assert.equal(first.title,'Background video');
+  tabs.select(first.id);assert.equal(element('address').value,first.url);assert.equal(first.frame,firstFrame);
+  tabs.select(second.id);assert.equal(element('address').value,'https://example.com/');assert.equal(second.frame,secondFrame);
+  await Tap.dispatch(firstFrame.hooks.fetch.preresponse,{parsed:{destination:'document',url:new URL('https://example.com/')}},{response:{status:403}});
+  assert.equal(element('notice').hidden,true);tabs.select(first.id);assert.match(element('notice').textContent,/denied access/);
+});
+
+test('closing tabs disposes their frames, preserves the remaining page, and leaves a usable new tab',async t=>{
+  const {tabs,context,controllers,element}=await workspaceFixture(t);
+  const first=tabs.active,firstFrame=first.frame;
+  const second=tabs.add();await context.navigate('https://example.com/',second);
+  tabs.close(first.id);assert.equal(tabs.active,second);assert.equal(controllers[0].frames.length,1);assert.ok(!controllers[0].frames.includes(firstFrame));assert.equal(first.element.src,'about:blank');assert.equal(first.element.removed,true);
+  tabs.close(second.id);assert.equal(tabs.all.length,1);assert.equal(tabs.active.url,'');assert.equal(element('workspace').hidden,true);assert.equal(controllers[0].frames.length,0);
+  await context.navigate('https://www.wikipedia.org/');assert.equal(controllers.length,1);assert.equal(controllers[0].frames.length,1);assert.equal(element('address').value,'https://www.wikipedia.org/');
+});
+
+test('closing a tab during pending navigation never creates a detached proxy frame',async t=>{
+  const {tabs,context,controllers}=await workspaceFixture(t);
+  const tab=tabs.add();const pending=context.navigate('https://example.com/',tab);tabs.close(tab.id);await pending;
+  assert.equal(controllers[0].frames.length,1);assert.equal(tab.frame,null);assert.equal(tabs.all.length,1);
+});
+
+test('relay reconnect from a new tab preserves the shared controller and loaded background tabs',async t=>{
+  const {tabs,context,controllers,element}=await workspaceFixture(t);
+  const first=tabs.active,originalFrame=first.frame;
+  tabs.add();await element('reconnect').listeners.get('click')();
+  await context.navigate('https://example.com/');
+  assert.equal(controllers.length,1);assert.equal(first.frame,originalFrame);assert.equal(originalFrame.reloads,undefined);assert.equal(controllers[0].frames.length,2);
 });
