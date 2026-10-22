@@ -17,7 +17,7 @@ export function allowedOrigin(req) {
   try {
     const url = new URL(origin);
     const host = req.headers['x-forwarded-host'] || req.headers.host;
-    // The GitHub Pages frontend shares this deployment's Vercel relay.
+    // The GitHub Pages frontend uses this authenticated backend's relay.
     const extra = ['https://majorand.github.io', ...(process.env.ALLOWED_ORIGINS || '').split(',').map(x => x.trim()).filter(Boolean)];
     return (['http:', 'https:'].includes(url.protocol) && url.host === host) || extra.includes(url.origin);
   } catch { return false; }

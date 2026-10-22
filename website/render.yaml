@@ -1,0 +1,26 @@
+# Optional Render Blueprint for recreating this backend. Existing deployment is
+# linked directly to majorand/Canvas, root directory website, on the Free plan.
+services:
+  - type: web
+    name: canvas-backend-majorand
+    runtime: node
+    plan: free
+    rootDir: website
+    buildCommand: npm ci --workspaces=false && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: '24'
+      - key: HOST
+        value: 0.0.0.0
+      - key: AUTH_SITE_URL
+        value: https://majorand.github.io/Canvas/
+      - key: ALLOWED_ORIGINS
+        value: https://majorand.github.io
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: SITE_OWNER_EMAIL
+        sync: false

@@ -18,14 +18,15 @@ for (const [pkg, files, folder] of [
     vendorFiles.push(path.join(dist, folder, file));
   }
 }
-const wisp = process.env.WISP_URL || (process.argv.includes('--pages') ? 'wss://scramjet-xi.vercel.app/api/wisp/' : '');
+const backendOrigin = 'https://canvas-backend-majorand.onrender.com';
+const wisp = process.env.WISP_URL || (process.argv.includes('--pages') ? backendOrigin.replace('https:', 'wss:') + '/api/wisp/' : '');
 if (wisp) {
   const url = new URL(wisp);
   if (!['ws:', 'wss:'].includes(url.protocol) || url.username || url.password) throw new Error('WISP_URL must be a WebSocket URL without credentials');
   if (process.argv.includes('--pages') && url.protocol !== 'wss:') throw new Error('GitHub Pages requires a secure wss:// relay');
 }
 await writeFile(path.join(dist, '.nojekyll'), '');
-await writeFile(path.join(dist, 'config.js'), `window.SCRAMJET_CONFIG = ${JSON.stringify({ wisp, api: process.env.AUTH_API_URL || (process.argv.includes('--pages') ? 'https://scramjet-xi.vercel.app/api/access' : '') })};\n`);
+await writeFile(path.join(dist, 'config.js'), `window.SCRAMJET_CONFIG = ${JSON.stringify({ wisp, api: process.env.AUTH_API_URL || (process.argv.includes('--pages') ? backendOrigin + '/api/access' : '') })};\n`);
 // A shared revision keeps HTML, configuration, and the entire module graph in sync.
 const appFiles = (await readdir(path.join(root, 'public'))).filter(file => /\.(html|js|mjs|css)$/.test(file)).sort();
 const sources = await Promise.all(appFiles.map(file => readFile(path.join(dist, file), 'utf8')));

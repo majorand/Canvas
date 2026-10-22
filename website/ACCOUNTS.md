@@ -2,24 +2,27 @@
 
 The calculator remains public. Code Mode + 0000 opens the sign-in page.
 The workspace requires an individual account; the relay enforces access on the server.
-GitHub Pages serves the frontend. Vercel runs the account API and Wisp relay.
+GitHub Pages serves the frontend. Render Free runs the account API and Wisp relay.
 Supabase stores identities, profiles, scoped sessions, tab heartbeats, site settings, activity, rate limits, and access events.
 
 ## Deploy
 
 1. Create a dedicated Supabase project and run `supabase/schema.sql` in its SQL editor.
-2. In Supabase Authentication → URL Configuration, set Site URL to the Vercel site
-   and allow `https://scramjet-xi.vercel.app/access.html**` as a redirect URL.
+2. In Supabase Authentication → URL Configuration, set Site URL to the Pages site
+   and allow `https://majorand.github.io/Canvas/access.html**` as a redirect URL.
    If using a different domain, replace that URL and AUTH_SITE_URL together.
-3. Add these **server-side Vercel environment variables** before deploying:
+3. Add these **server-side Render environment variables** before deploying:
    - SUPABASE_URL: the dedicated project's URL.
    - SUPABASE_SECRET_KEY: its server secret key (legacy SUPABASE_SERVICE_ROLE_KEY is also accepted).
    - SITE_OWNER_EMAIL: the administrator's email, kept out of the public repository.
-   - AUTH_SITE_URL: `https://scramjet-xi.vercel.app/`.
-4. Deploy the website directory to Vercel and deploy Pages through the existing workflow.
-   Pages defaults to the Vercel account API and relay. AUTH_API_URL and WISP_URL can override
+   - AUTH_SITE_URL: `https://majorand.github.io/Canvas/`.
+   - NODE_VERSION: `24`, HOST: `0.0.0.0`, ALLOWED_ORIGINS: `https://majorand.github.io`.
+4. Deploy the website directory to a Render Free Node web service and deploy Pages through the existing workflow.
+   Pages defaults to the Render account API and relay. AUTH_API_URL and WISP_URL can override
    those public endpoint addresses at build time. Never put a Supabase secret in either.
-5. On access.html, use “Email my setup link” with the configured owner email.
+   For this existing deployment, keep the same Supabase project and key: accounts, passwords,
+   profiles, sessions, and logs stay in place. Do not rerun setup or create a replacement database.
+5. For a fresh installation only: on access.html, use “Email my setup link” with the configured owner email.
    Open the emailed link and choose the administrator password privately.
    Only the verified configured owner can complete setup.
 6. Sign in at admin.html. Create individual accounts with a name, email, and initial

@@ -14,6 +14,7 @@ async function submit(form, action) {
 }
 function matching(fields) { if (fields.password !== fields.confirm) throw new Error('The passwords do not match.'); }
 $('login-form').addEventListener('submit', event => { event.preventDefault(); submit(event.currentTarget, async fields => {
+  show('Signing in… The free account server may take about a minute to wake up.');
   const session = await accountApi('login', fields, '');
   saveMember(session); location.replace(appUrl('workspace.html'));
 }); });
@@ -34,6 +35,7 @@ try {
   if (setupAccessToken) {
     $('complete-card').hidden = false; $('login-card').hidden = true; show('Choose a password with at least 12 characters.');
   } else {
+    show('Connecting to the account server… The first visit after inactivity may take about a minute.');
     const status = await accountApi('status', {}, '');
     $('setup-card').hidden = !status.setupAvailable;
     show(status.setupAvailable ? 'The owner needs to finish administrator setup before accounts can be used.' : 'Enter your username or email and password to continue.');

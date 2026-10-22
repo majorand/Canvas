@@ -335,7 +335,7 @@ export function getAccessService() {
   const options = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
   service = createAccessService({
     db: createClient(url, key, options), authClient: () => createClient(url, key, options),
-    ownerEmail, siteUrl: process.env.AUTH_SITE_URL || 'https://scramjet-xi.vercel.app/',
+    ownerEmail, siteUrl: process.env.AUTH_SITE_URL || 'https://majorand.github.io/Canvas/',
   });
   return service;
 }

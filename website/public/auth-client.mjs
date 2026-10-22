@@ -10,11 +10,18 @@ export function memberSession() {
 export function saveMember(value) { sessionStorage.setItem(storageKey, JSON.stringify(value)); }
 export function clearMember() { sessionStorage.removeItem(storageKey); relayCredential = null; }
 export async function accountApi(action, fields = {}, token = memberSession()?.token, options = {}) {
-  const response = await fetch(window.SCRAMJET_CONFIG?.api || appUrl('api/access').href, {
+  let response;
+  try { response = await fetch(window.SCRAMJET_CONFIG?.api || appUrl('api/access').href, {
     method: 'POST', credentials: 'omit', cache: 'no-store', keepalive: options.keepalive === true,
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
-    body: JSON.stringify({ ...fields, action }), signal: AbortSignal.timeout(20000),
-  });
+    // Free hosting can take about a minute to wake after being idle. Never replay
+    // a login or other mutation automatically when a request times out.
+    body: JSON.stringify({ ...fields, action }), signal: AbortSignal.timeout(90000),
+  }); } catch (error) {
+    throw new Error(error.name === 'TimeoutError'
+      ? 'The account server is taking too long to respond. Free hosting may be waking up. Wait a minute, then try again.'
+      : 'Could not connect to the account server. Check your connection and try again. The free backend may need a minute to wake up.');
+  }
   const data = await response.json().catch(() => ({}));
   if (!response.ok) { const error = new Error(data.error || 'The account service is unavailable. Please try again.'); error.status = response.status; throw error; }
   return data;

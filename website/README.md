@@ -1,12 +1,12 @@
 # Scramjet website
 
-Live site: https://scramjet-xi.vercel.app/
+Live site: https://majorand.github.io/Canvas/
 
-Vercel project: https://vercel.com/major-andrews-projects/canvas
+Backend host: Render Free, service `canvas-backend-majorand` (Node 24).
 
-Health endpoint: https://scramjet-xi.vercel.app/api/health
+Health endpoint: https://canvas-backend-majorand.onrender.com/api/health
 
-Backend: wss://scramjet-xi.vercel.app/api/wisp/ (a WebSocket URL, not a page to open).
+Backend: wss://canvas-backend-majorand.onrender.com/api/wisp/ (a WebSocket URL, not a page to open).
 
 Deployable website for this Scramjet fork. Uses the published `2.0.67-alpha.2` core and matching `0.0.14` controller, pinned in package-lock.json. The upstream source stays in packages/.
 
@@ -25,7 +25,13 @@ node --env-file=.env.local server.mjs
 
 Configure Supabase and create a private .env.local as described in [ACCOUNTS.md](ACCOUNTS.md). Open http://localhost:3030. The local server binds to loopback by default. Set PORT to change the port, or HOST=0.0.0.0 when running on a hosting provider.
 
-## Vercel
+## Render Free backend
+
+Connect `majorand/Canvas`, branch `main`, root directory `website`. Select **Free**, Node, build command `npm ci --workspaces=false && npm run build`, start command `npm start`, and health check `/api/health`. Set `NODE_VERSION=24` and `HOST=0.0.0.0`, plus the private Supabase settings in [ACCOUNTS.md](ACCOUNTS.md). `render.yaml` documents a reproducible Blueprint configuration. Accounts and data remain in the existing Supabase project; there is no account migration or new database.
+
+Render Free sleeps after 15 minutes without inbound traffic and takes about a minute to wake. Account requests allow up to 90 seconds and do not automatically replay login or account mutations. Free instance hours, bandwidth, and service-initiated traffic limits still apply; a busy proxy can exhaust free capacity or be suspended. See [Render's free limits](https://render.com/docs/free). A free plan is not unlimited hosting. Keep billing/spend controls within the user's zero-cost requirement; no paid upgrade is required by this configuration.
+
+## Optional Vercel deployment
 
 Import `majorand/Canvas`, use `website` as the root directory and Other as the framework preset. Build/install/output settings are defined in vercel.json. The static frontend, service worker and WASM are served from dist. `/api/wisp/` runs the WebSocket relay and `/api/health` provides a lightweight health response. The UI probes the actual Wisp handshake instead of treating an HTTP response as proof that proxying works.
 
@@ -38,7 +44,7 @@ Live frontend: https://majorand.github.io/Canvas/
 
 The `.github/workflows/website-pages.yml` workflow builds and tests `website/`, then deploys `website/dist` on pushes to main. In repository Settings → Pages, set Source to **GitHub Actions**. You can also run **Deploy website to GitHub Pages** manually in Actions.
 
-`npm run build:pages` creates the Pages artifact. It defaults to `wss://scramjet-xi.vercel.app/api/wisp/`; set the repository Actions variable `WISP_URL` to use another secure Wisp relay. GitHub Pages only serves static files, so keep the Vercel project running for proxy traffic. The Vercel relay explicitly allows `https://majorand.github.io`; other owners or custom domains must add their exact origin to its `ALLOWED_ORIGINS` environment variable and redeploy the backend. Do not use a wildcard. The default relay is specific to this deployment.
+`npm run build:pages` creates the Pages artifact. It defaults to the Render backend above for both the account API and secure Wisp relay. Repository Actions variables `AUTH_API_URL` and `WISP_URL` override these public endpoints. GitHub Pages serves static files; keep the Render service running for sign-in and proxy traffic. The backend explicitly allows `https://majorand.github.io`; other owners or custom domains must add their exact origin to `ALLOWED_ORIGINS` and redeploy. Do not use a wildcard. The default relay is specific to this deployment. Vercel is not required for the Pages site.
 
 The calculator, Code Mode (`0000`), browsing controls, Canvas exit, and about:blank window work on Pages. All assets, links, proxy prefixes, and worker scope follow the deployed directory, so repository subpaths and root/custom-domain hosting are supported. On the first workspace visit, its service worker reloads once to add cross-origin isolation headers that Pages cannot configure on the server. This preserves the browser features available on Vercel. Unsupported browsers show an error instead of repeatedly reloading.
 
@@ -77,7 +83,7 @@ The relay allows web ports 80/443, blocks private/loopback destinations and UDP,
 
 The wisp-js 0.5.0 per-host stream limit contains an upstream iterator bug, so this app uses its total-stream limit instead. The optional scramjet-utils release expects different runtime versions and is intentionally not loaded.
 
-HTTP 403/429 responses and media errors show recovery guidance. Reconnect does not solve CAPTCHAs or remove publisher restrictions. YouTube can still reject shared datacenter IP addresses, and some browsers have upstream video compatibility issues. Vercel's 300-second socket limit can interrupt a long video; reconnect may resume page use but does not guarantee uninterrupted playback.
+HTTP 403/429 responses and media errors show recovery guidance. Reconnect does not solve CAPTCHAs or remove publisher restrictions. YouTube can still reject shared datacenter IP addresses, and some browsers have upstream video compatibility issues. Host restarts, free-tier limits, and network loss can interrupt streams; reconnect may resume page use but does not guarantee uninterrupted playback.
 
 A website cannot disable the computer's Wi-Fi adapter. A relay timeout can look like loss of Wi-Fi inside the workspace. If the operating system's Wi-Fi icon disconnects or other tabs lose internet access too, that requires separate device/network troubleshooting.
 
