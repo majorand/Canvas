@@ -69,7 +69,7 @@ async function workspaceFixture(t) {
     controllerPaths,
     prepareWorker: async () => ({ active: {} }),
     accountApi: async () => ({}),
-    recordNavigation() {}, startPresence() {},
+    recordNavigation() {}, startPresence() {},initWorkspaceWindows:()=>({closePlayers(){}}),
     authorizedRelayUrl: async () => 'wss://relay.example/api/wisp/?ticket=test&transport=/',
     clearMember() { throw new Error('Reconnect must not clear the member session'); },
     signOut() {},

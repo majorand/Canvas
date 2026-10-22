@@ -4,7 +4,7 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="Your personal Scramjet web workspace. Browse websites and search the web in one place.">
   <title>Canvas - Highland Park High School</title>
-  <link rel="icon" href="./scots.png" type="image/png"><link rel="stylesheet" href="./style.css">
+  <link rel="icon" href="./scots.png" type="image/png"><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./windows.css">
   <script src="./exit.js" defer></script>
   <script src="./config.js?v=accounts-1" defer></script><script src="./scramjet/scramjet.js" defer></script>
   <script src="./controller/controller.api.js" defer></script><script src="./transport/index.js" defer></script>
@@ -14,7 +14,7 @@
   <section id="auth-status" style="padding:48px 24px;text-align:center"><p id="auth-status-text">Checking sign-in…</p><a href="./access.html">Return to sign in</a></section>
   <div class="exit-bar"><a class="emergency-exit" data-exit-canvas href="https://hpisd.instructure.com/" target="_top" referrerpolicy="no-referrer">Leave this page and go to Canvas</a></div>
   <header class="header"><a class="brand" href="./workspace.html" aria-label="Scots Canvas home"><img src="./scots.png" width="36" height="36" alt="Scots logo"><span class="brand-name">Scots Canvas</span></a>
-    <div class="header-actions"><a class="quiet games-link" href="./games.html">Games</a><span id="signed-in-name" class="status"></span><a id="admin-link" class="quiet" href="./admin.html" target="_blank" rel="noopener noreferrer" hidden>Admin</a><button id="sign-out" class="quiet">Sign out</button><span class="status" id="connection" role="status">Checking connection…</span><button class="quiet" id="settings-open">Settings</button></div>
+    <div class="header-actions"><a class="quiet games-link" href="./games.html">Games</a><button class="quiet youtube-link" data-youtube-open>YouTube player</button><button class="quiet" id="reset-windows">Reset windows</button><span id="signed-in-name" class="status"></span><a id="admin-link" class="quiet" href="./admin.html" target="_blank" rel="noopener noreferrer" hidden>Admin</a><button id="sign-out" class="quiet">Sign out</button><span class="status" id="connection" role="status">Checking connection…</span><button class="quiet" id="settings-open">Settings</button></div>
   </header>
   <main>
     <section id="landing" class="landing">
@@ -34,13 +34,26 @@
       <div class="shortcuts">
         <button data-url="https://www.google.com/"><span class="shortcut-icon blue">G</span><span>Google<small>Find something new</small></span><b>↗</b></button>
         <button data-url="https://www.wikipedia.org/"><span class="shortcut-icon lavender">W</span><span>Wikipedia<small>Follow your curiosity</small></span><b>↗</b></button>
-        <button data-url="https://www.youtube.com/"><span class="shortcut-icon coral">▶</span><span>YouTube<small>Watch and discover</small></span><b>↗</b></button>
+        <button data-youtube-open><span class="shortcut-icon coral">▶</span><span>YouTube player<small>Paste a video and watch</small></span><b>↗</b></button>
         <button data-url="https://example.com/"><span class="shortcut-icon mint">◎</span><span>Test connection<small>Open Example Domain</small></span><b>↗</b></button>
       </div>
       <div class="info-row"><span class="info-number">↗</span><div><strong>Powered by Scramjet</strong><p>Websites load here through your connected relay. Compatibility varies by site.</p></div><span class="keyboard-hint">Ctrl / ⌘ + L<br><small>focus the address bar*</small></span></div>
       <p class="footnote">* Click the address bar to navigate. Your browser may reserve its own address shortcut.</p>
     </section>
-    <section id="workspace" hidden><div class="page-meta"><span id="page-state">Loading…</span><a class="emergency-exit fullscreen-exit" data-exit-canvas href="https://hpisd.instructure.com/" target="_top" referrerpolicy="no-referrer">Leave this page and go to Canvas</a><div class="page-tools"><a class="quiet" id="open-original" href="#" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" title="Open directly in a new tab using your own connection" hidden>Open original ↗</a><button class="quiet" id="reconnect" type="button">Reconnect</button><button class="quiet" id="fullscreen">Full screen</button></div></div><iframe id="web-frame" title="Proxied website" allow="fullscreen; autoplay; encrypted-media; picture-in-picture" referrerpolicy="no-referrer"></iframe></section>
+    <section id="workspace" aria-label="Browser window" hidden>
+      <div class="window-titlebar" data-window-titlebar tabindex="0" aria-label="Move browser window. Drag or use arrow keys."><span>Browser · drag here to move</span><div class="window-actions"><button data-window-toggle type="button">Float</button><button data-window-maximize type="button" aria-label="Maximize or restore browser window" aria-pressed="false">□</button></div></div>
+      <div class="page-meta"><span id="page-state">Loading…</span><a class="emergency-exit fullscreen-exit" data-exit-canvas href="https://hpisd.instructure.com/" target="_top" referrerpolicy="no-referrer">Leave this page and go to Canvas</a><div class="page-tools"><a class="quiet" id="open-original" href="#" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" title="Open directly in a new tab using your own connection" hidden>Open original ↗</a><button class="quiet" id="youtube-current" type="button">Use YouTube player</button><button class="quiet" id="reconnect" type="button">Reconnect</button><button class="quiet" id="fullscreen">Full screen</button></div></div><iframe id="web-frame" title="Proxied website" allow="fullscreen; autoplay; encrypted-media; picture-in-picture" referrerpolicy="no-referrer"></iframe>
+      <div data-window-resize tabindex="0" role="button" aria-label="Resize browser window. Drag or use arrow keys."></div>
+    </section>
+    <section id="youtube-panel" aria-label="YouTube player window" hidden>
+      <div class="window-titlebar" data-window-titlebar tabindex="0" aria-label="Move YouTube window. Drag or use arrow keys."><span>YouTube · drag here to move</span><div class="window-actions"><button data-window-toggle type="button">Dock</button><button data-window-minimize type="button" aria-label="Minimize or restore YouTube window">−</button><button data-window-maximize type="button" aria-label="Maximize or restore YouTube window" aria-pressed="false">□</button><button data-window-close type="button" aria-label="Close YouTube player">✕</button></div></div>
+      <div class="youtube-body"><form id="youtube-form"><label class="sr-only" for="youtube-url">YouTube video link or ID</label><input id="youtube-url" placeholder="Paste a YouTube video link or ID" autocomplete="off" spellcheck="false" required maxlength="2048"><button class="primary" type="submit">Open video</button></form>
+      <div class="youtube-video" id="youtube-video"></div><p id="youtube-status" role="status">Paste a video link to start.</p>
+      <div class="youtube-tools"><button class="quiet" id="youtube-retry" type="button">Retry video</button><a id="youtube-original" href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" hidden>Open on YouTube ↗</a></div>
+      <form id="youtube-search-form"><label class="sr-only" for="youtube-search">Search on YouTube</label><input id="youtube-search" placeholder="Find a video on YouTube" maxlength="160" required><button class="quiet" type="submit">Search in new tab ↗</button></form>
+      <p class="youtube-help">Official YouTube player · uses your connection directly. Some videos or networks block embedding. Paste watch, Shorts, live, or youtu.be links. Drag the bottom-right corner to resize; arrow keys also work on the title bar and resize handle. Minimize pauses playback.</p></div>
+      <div data-window-resize tabindex="0" role="button" aria-label="Resize YouTube window. Drag or use arrow keys."></div>
+    </section>
   </main>
   <footer id="footer"><span>A window to what’s next.</span><div><a href="https://github.com/majorand/Canvas" target="_blank" rel="noopener noreferrer">Source code ↗</a><a href="https://github.com/MercuryWorkshop/scramjet" target="_blank" rel="noopener noreferrer">Made with Mercury Workshop</a></div></footer>
   <dialog id="settings"><form method="dialog"><div class="dialog-heading"><h2>Account settings</h2><button class="quiet" aria-label="Close settings">✕</button></div></form><p>Your connection is authenticated through the site's private relay.</p><p><a class="primary" href="./access.html">Change your password</a></p><p data-activity-notice></p><p>Account access events are kept for 30 days. Active tabs are estimated from a heartbeat every minute.</p></dialog>

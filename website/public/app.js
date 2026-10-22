@@ -3,9 +3,10 @@ import { normalizeAddress, resolveRemoteUrl } from './url.mjs';
 import { appUrl, controllerPaths, prepareWorker } from './runtime.mjs';
 import { RelayTransport } from './relay-transport.mjs';
 import { recordNavigation, startPresence } from './member-activity.mjs';
+import { initWorkspaceWindows } from './workspace-windows.mjs';
 const $ = id => document.getElementById(id);
 const address = $('address');
-let controller, frame, initPromise, activeTransport, loadTimer, currentUrl = '', pageWarning = '';
+let controller, frame, initPromise, activeTransport, loadTimer, windowTools, currentUrl = '', pageWarning = '';
 function notice(message = '') { $('notice').textContent = message; $('notice').hidden = !message; }
 function setConnection(online) { $('connection').textContent = online ? 'Relay connected' : 'Relay unavailable'; $('connection').className = `status ${online ? 'online' : 'offline'}`; }
 async function checkRelay(refresh = false) {
@@ -183,6 +184,7 @@ $('settings-open').addEventListener('click', () => $('settings').showModal());
 $('sign-out').addEventListener('click', signOut);
 startPresence('workspace', error => {
   activeTransport?.close();
+  windowTools?.closePlayers();
   document.body.classList.add('auth-loading');
   $('auth-status').hidden = false; $('auth-status-text').textContent = error.message;
 });
@@ -213,3 +215,4 @@ workspaceReady.then(registration => {
   if (!registration) return;
   if (initialUrl) navigate(initialUrl); else checkRelay().catch(error => notice(error.message));
 }).catch(error => { setConnection(false); notice(error.message); });
+windowTools = initWorkspaceWindows({currentUrl:()=>currentUrl});
