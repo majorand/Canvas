@@ -1,7 +1,8 @@
-import { AccessError, bearer, getAccessService } from '../lib/access.mjs';
+import { AccessError, bearer, digest, getAccessService } from '../lib/access.mjs';
+import { videoSources } from '../lib/video-sources.mjs';
 import { allowedOrigin } from '../lib/relay.mjs';
 
-export function createAccessHandler(getService = getAccessService) {
+export function createAccessHandler(getService = getAccessService, videos = videoSources) {
   return async function access(req, res) {
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -31,7 +32,12 @@ export function createAccessHandler(getService = getAccessService) {
       if (body && Buffer.byteLength(JSON.stringify(body)) > 16384) throw new AccessError(413, 'Request is too large.');
       if (!body || typeof body !== 'object' || Array.isArray(body)) throw new AccessError(400, 'Invalid request.');
       const ip = process.env.VERCEL ? String(req.headers['x-vercel-forwarded-for'] || req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim() : req.socket?.remoteAddress || 'local';
-      const result = await getService().dispatch(body.action, body, bearer(req), ip);
+      const token=bearer(req);
+      let result;
+      if(['video-search','video-resolve'].includes(body.action)){
+        await getService().dispatch('feature',{feature:'workspace'},token,ip);
+        result=await videos.run(body.action,body,digest(token));
+      }else result = await getService().dispatch(body.action, body, token, ip);
       res.writeHead(200); res.end(JSON.stringify(result));
     } catch (error) {
       const status = error instanceof AccessError ? error.status : 503;

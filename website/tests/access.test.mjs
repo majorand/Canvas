@@ -20,6 +20,20 @@ async function fixture() {
 }
 const rejected = (promise,status) => assert.rejects(promise,error => error instanceof AccessError && error.status === status);
 
+test('video API requires a valid member with workspace permission before contacting public instances',async()=>{
+  const {service,admin,member}=await fixture();let calls=0;
+  const server=createAppServer({apiHandler:createAccessHandler(()=>service,{run:async()=>{calls++;return {sources:[],fallback:'embed'};}})});
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  try {
+    const base='http://127.0.0.1:'+server.address().port;
+    const request=token=>fetch(base+'/api/access',{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify({action:'video-resolve',id:'aqz-KE-bpKQ'})});
+    assert.equal((await request('')).status,401);assert.equal((await request(admin.token)).status,401);assert.equal(calls,0);
+    assert.equal((await request(member.token)).status,200);assert.equal(calls,1);
+    await service.dispatch('update-user',{id:member.user.id,can_browse:false},admin.token,'1');
+    assert.equal((await request(member.token)).status,403);assert.equal(calls,1);
+  }finally{await new Promise(resolve=>server.close(resolve));}
+});
+
 test('owner setup requires a verified owner link and cannot be repeated', async () => {
   const fake=fakeSupabase();
   const service=createAccessService({...fake,ownerEmail:'owner@example.test',siteUrl:'https://example.test/'});
