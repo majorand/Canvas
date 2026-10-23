@@ -32,6 +32,11 @@ test('API failure, malformed data and video-only sources produce a clear last-re
     const service=createVideoSources({providers:[piped],request:async()=>value});const result=await service.run('video-resolve',{id},'user');assert.equal(result.fallback,'embed');assert.deepEqual(result.sources,[]);
   }
 });
+test('public API bot challenges have a safe diagnostic without leaking upstream stack traces',async()=>{
+  const service=createVideoSources({providers:[piped],request:async()=>JSON.stringify({error:'SignInConfirmNotBotException: LOGIN_REQUIRED sign in to confirm not a bot\nsecret diagnostic stack'})});
+  const result=await service.run('video-resolve',{id},'user');
+  assert.equal(result.attempts[0].status,'bot-verification');assert.equal(JSON.stringify(result).includes('secret diagnostic'),false);
+});
 test('search uses API results in-window and bounds request volume and inputs',async()=>{
   const service=createVideoSources({providers:[piped],request:async()=>JSON.stringify({items:[{type:'stream',url:'/watch?v='+id,title:'Found video'}]})});
   assert.equal((await service.run('video-search',{query:'video'},'user')).items[0].id,id);

@@ -85,11 +85,11 @@ export function createVideoSources({request=requestPublic,now=Date.now,providers
         const path=search?(provider.kind==='piped'?'/search?q='+encodeURIComponent(query)+'&filter=videos':'/api/v1/search?type=video&q='+encodeURIComponent(query)):(provider.kind==='piped'?'/streams/'+body.id:'/api/v1/videos/'+body.id+'?local=true');
         try {
           const data=JSON.parse(await request(provider.url+path));
-          if(data.error)throw new Error('Instance rejected request');
+          if(data.error)throw Object.assign(new Error('Instance rejected request'),{reason:/bot|captcha|LOGIN_REQUIRED/i.test(String(data.error).slice(0,4096))?'bot-verification':'unavailable'});
           const result=search?{items:normalizeSearch(data,provider)}:{sources:normalizeSources(data,provider),title:String(data.title || '').slice(0,200)};
-          if(!search && !result.sources.length)throw new Error('No combined audio/video stream');
+          if(!search && !result.sources.length)throw Object.assign(new Error('No combined audio/video stream'),{reason:'unsupported-stream'});
           preferred.set(action,provider.id);return {...result,provider:provider.id,attempts};
-        }catch(error){cooldown.set(action+provider.id,now()+(error.status===429?300000:60000));attempts.push({provider:provider.id,status:error.status===429?'rate-limited':'unavailable'});}
+        }catch(error){cooldown.set(action+provider.id,now()+(error.status===429?300000:60000));attempts.push({provider:provider.id,status:error.status===429?'rate-limited':error.reason || 'unavailable'});}
       }
       return {items:[],sources:[],attempts,fallback:'embed',message:'The public video APIs are unavailable, blocked, or provide no supported audio/video stream. The official YouTube embed is the last fallback.'};
     } finally {active--;}
