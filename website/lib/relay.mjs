@@ -6,7 +6,7 @@ Object.assign(wisp.options, {
   allow_loopback_ips: false,
   allow_udp_streams: false,
   port_whitelist: [80, 443],
-  // wisp-js 0.5.0 has a broken per-host iterator; use its total stream limit.
+  // Bound concurrent streams across this small free backend.
   stream_limit_total: 128,
   dns_result_order: 'ipv4first',
 });
@@ -54,5 +54,5 @@ export const upgrade = createUpgrade();
 
 export function health(_req, res) {
   res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-  res.end(JSON.stringify({ status: 'ok', service: 'scramjet-relay', protocol: 'wisp', ports: [80, 443] }));
+  res.end(JSON.stringify({ status: 'ok', service: 'scramjet-relay', protocol: 'wisp', ports: [80, 443], node: process.versions.node, openssl: process.versions.openssl }));
 }

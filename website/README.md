@@ -2,7 +2,7 @@
 
 Live site: https://majorand.github.io/Canvas/
 
-Backend host: Render Free, service `canvas-backend-majorand` (Node 24).
+Backend host: Render Free, service `canvas-backend-majorand` (Node 24.22.1).
 
 Health endpoint: https://canvas-backend-majorand.onrender.com/api/health
 
@@ -10,11 +10,11 @@ Backend: wss://canvas-backend-majorand.onrender.com/api/wisp/ (a WebSocket URL, 
 
 Deployable website for this Scramjet fork. Uses the published `2.0.67-alpha.2` core and matching `0.0.14` controller, pinned in package-lock.json. The upstream source stays in packages/.
 
-The browser transport uses pinned `@mercuryworkshop/epoxy-transport` `3.0.1` and `epoxy-tls` `2.1.19-1`. It replaces libcurl after browser testing exposed its session cleanup/event-loop crash during recovery. Vendor bundles participate in the build revision so deployed upgrades bypass cached copies.
+The browser transport uses pinned `@mercuryworkshop/epoxy-transport` `3.0.2` and `epoxy-tls` `2.1.20-1`. It replaces libcurl after browser testing exposed its session cleanup/event-loop crash during recovery. Vendor bundles participate in the build revision so deployed upgrades bypass cached copies.
 
 ## Local use
 
-With Node.js 24 or newer, from this directory (the pinned browser core uses ES2025 regular-expression modifiers in the regression tests):
+With Node.js >=24.22.1 <25, from this directory (the pinned browser core uses ES2025 regular-expression modifiers in the regression tests):
 
 ```sh
 npm ci --workspaces=false
@@ -27,7 +27,7 @@ Configure Supabase and create a private .env.local as described in [ACCOUNTS.md]
 
 ## Render Free backend
 
-Connect `majorand/Canvas`, branch `main`, root directory `website`. Select **Free**, Node, build command `npm ci --workspaces=false && npm run build`, start command `npm start`, and health check `/api/health`. Set `NODE_VERSION=24` and `HOST=0.0.0.0`, plus the private Supabase settings in [ACCOUNTS.md](ACCOUNTS.md). `render.yaml` documents a reproducible Blueprint configuration. Accounts and data remain in the existing Supabase project; there is no account migration or new database.
+Connect `majorand/Canvas`, branch `main`, root directory `website`. Select **Free**, Node, build command `npm ci --workspaces=false && npm run build`, start command `npm start`, and health check `/api/health`. Set `NODE_VERSION=24.22.1` and `HOST=0.0.0.0`, plus the private Supabase settings in [ACCOUNTS.md](ACCOUNTS.md). `render.yaml` documents a reproducible Blueprint configuration. Accounts and data remain in the existing Supabase project; there is no account migration or new database.
 
 Render Free sleeps after 15 minutes without inbound traffic and takes about a minute to wake. Account requests allow up to 90 seconds and do not automatically replay login or account mutations. Free instance hours, bandwidth, and service-initiated traffic limits still apply; a busy proxy can exhaust free capacity or be suspended. See [Render's free limits](https://render.com/docs/free). A free plan is not unlimited hosting. Keep billing/spend controls within the user's zero-cost requirement; no paid upgrade is required by this configuration.
 

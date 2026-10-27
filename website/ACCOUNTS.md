@@ -16,7 +16,7 @@ Supabase stores identities, profiles, scoped sessions, tab heartbeats, site sett
    - SUPABASE_SECRET_KEY: its server secret key (legacy SUPABASE_SERVICE_ROLE_KEY is also accepted).
    - SITE_OWNER_EMAIL: the administrator's email, kept out of the public repository.
    - AUTH_SITE_URL: `https://majorand.github.io/Canvas/`.
-   - NODE_VERSION: `24`, HOST: `0.0.0.0`, ALLOWED_ORIGINS: `https://majorand.github.io`.
+   - NODE_VERSION: `24.22.1`, HOST: `0.0.0.0`, ALLOWED_ORIGINS: `https://majorand.github.io`.
 4. Deploy the website directory to a Render Free Node web service and deploy Pages through the existing workflow.
    Pages defaults to the Render account API and relay. AUTH_API_URL and WISP_URL can override
    those public endpoint addresses at build time. Never put a Supabase secret in either.
@@ -66,7 +66,7 @@ in page memory; refreshing admin.html requires signing in again.
 
 ## Local development and tests
 
-Copy .env.example to .env.local and fill it privately, then use Node 24+:
+Copy .env.example to .env.local and fill it privately, then use Node >=24.22.1 <25:
 
 ```sh
 npm ci --workspaces=false

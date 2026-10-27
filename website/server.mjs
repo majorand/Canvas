@@ -33,6 +33,10 @@ return server;
 }
 export const server = createAppServer();
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const [major,minor,patch]=process.versions.node.split('.').map(Number);
+  if(major!==24 || minor<22 || (minor===22 && patch<1))throw new Error('Canvas requires patched Node >=24.22.1 <25.');
+  console.log(`Runtime Node ${process.version}; OpenSSL ${process.versions.openssl}`);
+  if(process.env.VERIFY_TLS_DISTRUST==='1')import('./scripts/verify-tls.mjs').then(module=>module.verifyTlsDistrust()).catch(error=>console.error('TLS verification could not run:',error.name));
   const port = Number(process.env.PORT || 3030);
   server.listen(port, process.env.HOST || '127.0.0.1', () => console.log(`Scramjet ready at http://localhost:${port}`));
 }
