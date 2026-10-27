@@ -18,16 +18,25 @@ test('moving and resizing keep the title bar and window within the viewport, inc
   const viewport={width:1200,height:800,top:48},start={x:100,y:100,width:600,height:450};
   assert.deepEqual(moveWindow(start,-200,-200,viewport),{x:0,y:48,width:600,height:450});
   assert.deepEqual(moveWindow(start,2000,2000,viewport),{x:600,y:350,width:600,height:450});
-  assert.deepEqual(resizeWindow(start,2000,2000,viewport),{x:0,y:48,width:1200,height:752});
+  assert.deepEqual(resizeWindow(start,2000,2000,viewport),{x:100,y:100,width:1100,height:700});
   assert.deepEqual(resizeWindow(start,-1000,-1000,viewport),{x:100,y:100,width:320,height:260});
   assert.deepEqual(fitWindow(start,{width:280,height:400,top:48}),{x:0,y:48,width:280,height:352});
+});
+
+test('edge resizing anchors the opposite edge and clamps to screen and minimum size',()=>{
+  const view={width:1200,height:800,top:48},start={x:100,y:100,width:600,height:450};
+  assert.deepEqual(resizeWindow(start,100,999,view,undefined,'e'),{x:100,y:100,width:700,height:450});
+  assert.deepEqual(resizeWindow(start,999,100,view,undefined,'s'),{x:100,y:100,width:600,height:550});
+  assert.deepEqual(resizeWindow(start,100,100,view,undefined,'nw'),{x:200,y:200,width:500,height:350});
+  assert.deepEqual(resizeWindow(start,-999,-999,view,undefined,'nw'),{x:0,y:48,width:700,height:502});
+  assert.deepEqual(resizeWindow(start,999,999,view,undefined,'nw'),{x:380,y:290,width:320,height:260});
 });
 
 test('window pointer drag and resize capture their pointer, preserve embedded content, and dock without navigation',()=>{
   const listeners=new Map(); const classes=new Set();const styles={};
   const handles=new Map();let paused=0,closed=0,captured;
-  const handle=selector=>{if(!handles.has(selector))handles.set(selector,{textContent:'',listeners:new Map(),addEventListener(name,cb){this.listeners.set(name,cb)},setPointerCapture:id=>{captured=id},releasePointerCapture:()=>{captured=null},setAttribute(){}});return handles.get(selector);};
-  const panel={style:new Proxy({removeProperty:key=>delete styles[key]},{set:(_,key,value)=>{styles[key]=value;return true}}),classList:{add:(...names)=>names.forEach(n=>classes.add(n)),remove:(...names)=>names.forEach(n=>classes.delete(n)),contains:name=>classes.has(name),toggle(name,state){const next=state??!classes.has(name);next?classes.add(name):classes.delete(name);return next;}},querySelector:handle,
+  const handle=selector=>{if(!handles.has(selector))handles.set(selector,{textContent:'',dataset:{},listeners:new Map(),addEventListener(name,cb){this.listeners.set(name,cb)},setPointerCapture:id=>{captured=id},releasePointerCapture:()=>{captured=null},setAttribute(){}});return handles.get(selector);};
+  const panel={ownerDocument:{createElement:()=>handle(Symbol())},append(){},style:new Proxy({removeProperty:key=>delete styles[key]},{set:(_,key,value)=>{styles[key]=value;return true}}),classList:{add:(...names)=>names.forEach(n=>classes.add(n)),remove:(...names)=>names.forEach(n=>classes.delete(n)),contains:name=>classes.has(name),toggle(name,state){const next=state??!classes.has(name);next?classes.add(name):classes.delete(name);return next;}},querySelector:handle,
     getBoundingClientRect:()=>({left:parseFloat(styles.left||100),top:parseFloat(styles.top||100),width:parseFloat(styles.width||600),height:classes.has('window-minimized')?42:parseFloat(styles.height||450)}),addEventListener:(name,cb)=>listeners.set(name,cb)};
   const old=globalThis.window;globalThis.window={innerWidth:1200,innerHeight:800,addEventListener(){}};
   try{

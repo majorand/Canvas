@@ -3,6 +3,14 @@ let topLayer = 120;
 export function floatingWindow(panel, { onClose = () => {}, onMinimize = () => {}, minimum = {width:320,height:260} } = {}) {
   const titlebar = panel.querySelector('[data-window-titlebar]');
   const resize = panel.querySelector('[data-window-resize]');
+  resize.dataset.windowResize='se';
+  const edges=['n','s','e','w','ne','nw','sw'].map(edge=>{
+    const handle=panel.ownerDocument.createElement('div');handle.dataset.windowResize=edge;
+    handle.tabIndex=0;handle.setAttribute('role','button');
+    handle.setAttribute('aria-label','Resize '+edge.replace('n','top ').replace('s','bottom ').replace('e','right ').replace('w','left ').trim()+' edge. Drag or use arrow keys.');
+    panel.append(handle);return handle;
+  });
+  const handles=[resize,...edges];
   const toggle = panel.querySelector('[data-window-toggle]');
   let floating = false, maximized = false, previous, interaction, minimizedSize;
   const viewport = () => ({ width:window.innerWidth,height:window.innerHeight,top:Math.min(48,window.innerHeight-100) });
@@ -40,7 +48,7 @@ export function floatingWindow(panel, { onClose = () => {}, onMinimize = () => {
   }
   function begin(event,mode) {
     if(event.button!==0 || event.target.closest('button,a,input,select'))return;
-    if(!floating)float();
+    if(!floating){const initial=bounds();float();if(mode!=='move')apply(initial);}
     if(maximized)return;
     focus();event.preventDefault();
     interaction={mode,x:event.clientX,y:event.clientY,start:bounds(),target:event.currentTarget,id:event.pointerId};
@@ -53,18 +61,18 @@ export function floatingWindow(panel, { onClose = () => {}, onMinimize = () => {
   function motion(event) {
     if(!interaction || event.pointerId!==interaction.id)return;
     const {start,x,y,mode}=interaction;
-    apply(mode==='move'?moveWindow(start,event.clientX-x,event.clientY-y,viewport()):resizeWindow(start,event.clientX-x,event.clientY-y,viewport(),minimum));
+    apply(mode==='move'?moveWindow(start,event.clientX-x,event.clientY-y,viewport()):resizeWindow(start,event.clientX-x,event.clientY-y,viewport(),minimum,mode));
   }
   titlebar.addEventListener('pointerdown',event=>begin(event,'move'));
-  resize.addEventListener('pointerdown',event=>begin(event,'resize'));
-  for(const handle of [titlebar,resize]){
+  for(const handle of handles)handle.addEventListener('pointerdown',event=>begin(event,handle.dataset.windowResize));
+  for(const handle of [titlebar,...handles]){
     handle.addEventListener('pointermove',motion);handle.addEventListener('pointerup',end);handle.addEventListener('pointercancel',end);handle.addEventListener('lostpointercapture',end);
     handle.addEventListener('keydown',event=>{
       if(event.target!==handle)return;
       if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;
       event.preventDefault();if(!floating)float();if(maximized)return;
       const step=event.shiftKey?32:8,dx=event.key==='ArrowLeft'?-step:event.key==='ArrowRight'?step:0,dy=event.key==='ArrowUp'?-step:event.key==='ArrowDown'?step:0;
-      apply(handle===resize?resizeWindow(bounds(),dx,dy,viewport(),minimum):moveWindow(bounds(),dx,dy,viewport()));
+      apply(handle!==titlebar?resizeWindow(bounds(),dx,dy,viewport(),minimum,handle.dataset.windowResize):moveWindow(bounds(),dx,dy,viewport()));
     });
   }
   panel.addEventListener('pointerdown',focus);
