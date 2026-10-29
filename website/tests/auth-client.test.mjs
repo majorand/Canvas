@@ -37,3 +37,12 @@ test('account rejection preserves its status so expired sessions still redirect 
   await assert.rejects(fixture.api('me'),error=>error.status===401 && error.message==='Session ended.');
   assert.equal(count,1);
 });
+
+test('hosting suspension HTML produces recovery guidance without clearing sessions or replaying requests',async()=>{
+  for(const status of [402,503]){
+    let count=0;
+    const fixture=await client(async()=>{count++;return {ok:false,status,json:async()=>{throw new SyntaxError('Host returned HTML');}};});
+    await assert.rejects(fixture.api('me'),error=>error.status===status && /hosting dashboard/.test(error.message));
+    assert.equal(count,1);
+  }
+});

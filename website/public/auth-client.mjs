@@ -20,10 +20,17 @@ export async function accountApi(action, fields = {}, token = memberSession()?.t
   }); } catch (error) {
     throw new Error(error.name === 'TimeoutError'
       ? 'The account server is taking too long to respond. Free hosting may be waking up. Wait a minute, then try again.'
-      : 'Could not connect to the account server. Check your connection and try again. The free backend may need a minute to wake up.');
+      : 'Could not connect to the account server. It may be offline or suspended after reaching its hosting allowance, or your network may block it. If retrying after a minute does not help, the site administrator must check the hosting dashboard.');
   }
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) { const error = new Error(data.error || 'The account service is unavailable. Please try again.'); error.status = response.status; throw error; }
+  if (!response.ok) {
+    const unavailable = response.status === 402
+      ? 'The hosting provider has disabled the account server. The site administrator must check its usage allowance in the hosting dashboard.'
+      : response.status === 503
+        ? 'The account server is unavailable. It may be waking up, offline, or suspended by its host. If retrying after a minute does not help, the site administrator must check the hosting dashboard.'
+        : 'The account service is unavailable. Please try again.';
+    const error = new Error(data.error || unavailable); error.status = response.status; throw error;
+  }
   return data;
 }
 export function signInUrl() { return appUrl('access.html'); }
