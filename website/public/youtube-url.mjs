@@ -25,3 +25,16 @@ export function youtubeEmbed(video, origin) {
 export function youtubeError(code) {
   return ({2:'YouTube rejected the video link.',5:'YouTube could not play this video in this browser.',100:'This video was removed, is private, or is unavailable.',101:'The owner does not allow this video to play on other websites.',150:'The owner does not allow this video to play on other websites.',153:'YouTube could not identify this website. Try the player in a regular site tab, or open the video on YouTube.'})[code] || 'YouTube could not play this video. The video or your network may restrict embedded playback.';
 }
+
+// Route navigation only, never YouTube images, scripts, or nested embeds.
+export function youtubeDestination(input, base) {
+  let url;try{url=new URL(String(input),base);}catch{return null;}
+  if(!['http:','https:'].includes(url.protocol)||url.username||url.password)return null;
+  if(['google.com','www.google.com'].includes(url.hostname)&&url.pathname==='/url'){
+    try{url=new URL(url.searchParams.get('q')||url.searchParams.get('url'));}catch{return null;}
+  }
+  if(!['http:','https:'].includes(url.protocol)||url.username||url.password)return null;
+  if(!['youtu.be','youtube.com','www.youtube.com','m.youtube.com','music.youtube.com','youtube-nocookie.com','www.youtube-nocookie.com'].includes(url.hostname))return null;
+  let video;try{video=youtubeVideo(url.href);}catch{}
+  return {url:url.href,video:video||null,query:(url.searchParams.get('search_query')||'').slice(0,200)};
+}

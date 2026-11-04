@@ -83,6 +83,13 @@ function attachFrame(tab) {
       recordNavigation(url.href);
       clearTimeout(tab.timer);paintTab(tab);
     };
+    const clicked=event=>{
+      if(event.defaultPrevented || event.button!==0)return;
+      const link=event.target?.closest?.('a[href]');
+      if(link && windowTools?.openYouTube(link.href,context.client.url.href)){event.preventDefault();event.stopImmediatePropagation();}
+    };
+    context.window.document.addEventListener('click',clicked,true);
+    tab.disposers.push(()=>context.window.document.removeEventListener('click',clicked,true));
     update(context.client.url.href);
     $scramjet.Tap.tap(context.client.hooks.lifecycle.navigate, (_context, props) => update(props.url));
     const refreshTitle=()=>{const title=context.window.document.title?.trim().slice(0,80) || (tab.url?new URL(tab.url).hostname:'New tab');if(!tab.closed && title!==tab.title)browserTabs.update(tab,{title});};
@@ -99,6 +106,9 @@ function attachFrame(tab) {
   });
   // Match upstream CatchEscapedLinksPlugin so new-tab links retain the workspace.
   $scramjet.Tap.tap(tabFrame.hooks.fetch.intercept, (context, props) => {
+    if(!context.parsed.isIframe && ['document','iframe'].includes(context.parsed.destination) && windowTools?.openYouTube(context.parsed.url.href)){
+      props.response={body:'',status:204,statusText:'No Content',headers:$scramjet.ScramjetHeaders.fromRawHeaders([])};return;
+    }
     if (context.parsed.destination !== 'document') return;
     const remote = resolveRemoteUrl(context.parsed.url);
     if (!remote) return;
@@ -127,6 +137,7 @@ async function navigate(input,tab=browserTabs.active) {
   $('go').disabled = true;
   try {
     const url = normalizeAddress(input);
+    if(windowTools?.openYouTube(url))return;
     if(!tab || tab.closed)return;
     tab.warning='';
     recordNavigation(url);

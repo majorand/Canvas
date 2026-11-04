@@ -59,7 +59,7 @@ async function workspaceFixture(t) {
     controllerPaths,
     prepareWorker: async () => ({ active: {} }),
     accountApi: async () => ({}),
-    recordNavigation() {}, startPresence() {},initWorkspaceWindows:()=>({closePlayers(){}}),
+    recordNavigation() {}, startPresence() {},initWorkspaceWindows:()=>({closePlayers(){},openYouTube(){return false;}}),
     authorizedRelayUrl: async () => 'wss://relay.example/api/wisp/?ticket=test&transport=/',
     clearMember() { throw new Error('Reconnect must not clear the member session'); },
     signOut() {},
@@ -240,4 +240,31 @@ test('relay reconnect from a new tab preserves the shared controller and loaded 
   tabs.add();await element('reconnect').listeners.get('click')();
   await context.navigate('https://example.com/');
   assert.equal(controllers.length,1);assert.equal(first.frame,originalFrame);assert.equal(originalFrame.reloads,undefined);assert.equal(controllers[0].frames.length,2);
+});
+
+test('YouTube links open the player from address input, page clicks and script navigation while preserving background pages and embeds',async t=>{
+  const {youtubeDestination}=await import('../public/youtube-url.mjs');
+  const {context,frame,Tap,element}=await workspaceFixture(t);
+  const opened=[];
+  context.routeYoutube=(input,base)=>{const target=youtubeDestination(input,base);if(target)opened.push(target);return Boolean(target);};
+  vm.runInContext('windowTools.openYouTube=routeYoutube',context);
+  const previous=frame.destination;
+  await context.navigate('https://youtu.be/M7lc1UVf-VE?t=45');
+  assert.equal(frame.destination,previous,'opening the player must not replace the website frame');
+  assert.equal(opened.at(-1).video.start,45);
+  assert.equal(element('go').disabled,false);
+  const listeners=new Map();
+  const client={url:new URL('https://example.com/'),hooks:{lifecycle:Tap.create()}};
+  await Tap.dispatch(frame.hooks.init.post,{isTopLevel:true,client,window:{document:{addEventListener:(name,fn)=>listeners.set(name,fn),removeEventListener(){}}}},{});
+  let cancelled=false,stopped=false;
+  listeners.get('click')({button:0,target:{closest:()=>({href:'https://youtube.com/watch?v=M7lc1UVf-VE'})},preventDefault(){cancelled=true;},stopImmediatePropagation(){stopped=true;}});
+  assert.ok(cancelled&&stopped);
+  const props={};
+  await Tap.dispatch(frame.hooks.fetch.intercept,{parsed:{destination:'iframe',isIframe:false,url:new URL('https://www.youtube.com/')}},props);
+  assert.equal(props.response.status,204);
+  for(const parsed of [{destination:'iframe',isIframe:true},{destination:'script',isIframe:false}]){
+    const result={};const count=opened.length;
+    await Tap.dispatch(frame.hooks.fetch.intercept,{parsed:{...parsed,url:new URL('https://www.youtube.com/embed/M7lc1UVf-VE')}},result);
+    assert.equal(result.response,undefined);assert.equal(opened.length,count);
+  }
 });

@@ -1,5 +1,5 @@
 import { floatingWindow } from './floating-window.mjs';
-import { youtubeVideo, youtubeEmbed, youtubeError } from './youtube-url.mjs';
+import { youtubeVideo, youtubeEmbed, youtubeError, youtubeDestination } from './youtube-url.mjs';
 import { recordNavigation } from './member-activity.mjs';
 import { accountApi } from './auth-client.mjs';
 let apiPromise;
@@ -127,5 +127,10 @@ export function initWorkspaceWindows({ currentUrl }) {
   $('reset-windows').addEventListener('click',()=>{browserWindow.dock();if(!panel.hidden){youtubeWindow.dock();youtubeWindow.float();}status('Window layout reset. Playback is preserved.');});
   window.addEventListener('pagehide',stop);
   const requested=new URL(location.href).searchParams.get('youtube');if(requested)open(requested);
-  return {closePlayers:()=>youtubeWindow.close()};
+  return {closePlayers:()=>youtubeWindow.close(),openYouTube(input,base){
+    const target=youtubeDestination(input,base);if(!target)return false;
+    open(target.video?target.url:'');
+    if(!target.video){status('YouTube website links open here. Paste a video link, or search using the available public video APIs.');if(target.query){$('youtube-search').value=target.query;$('youtube-search-form').requestSubmit();}}
+    return true;
+  }};
 }
