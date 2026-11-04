@@ -2,6 +2,7 @@ import { floatingWindow } from './floating-window.mjs';
 import { youtubeVideo, youtubeEmbed, youtubeError, youtubeDestination } from './youtube-url.mjs';
 import { recordNavigation } from './member-activity.mjs';
 import { accountApi } from './auth-client.mjs';
+import { createVideoLibrary } from './video-library.mjs';
 let apiPromise;
 function youtubeApi() {
   if(window.YT?.Player)return Promise.resolve(window.YT);
@@ -20,21 +21,25 @@ function youtubeApi() {
 export function initWorkspaceWindows({ currentUrl }) {
   const $=id=>document.getElementById(id);
   const browserWindow=floatingWindow($('workspace'),{minimum:{width:360,height:320}});
-  const panel=$('youtube-panel');let player,sequence=0,loadTimer,searchSequence=0;
+  const panel=$('youtube-panel');let player,sequence=0,loadTimer,library,currentItem;
   const status=message=>{$('youtube-status').textContent=message;};
   function stop() {
     sequence++;clearTimeout(loadTimer);try{player?.destroy();}catch{}player=null;
     $('youtube-play').disabled=true;$('youtube-pause').disabled=true;
     $('youtube-video').replaceChildren();status('Paste a video link to start.');
   }
-  const youtubeWindow=floatingWindow(panel,{minimum:{width:360,height:460},onClose:()=>{searchSequence++;stop();},onMinimize:minimized=>{if(minimized)try{player?.pauseVideo();}catch{}}});
+  const youtubeWindow=floatingWindow(panel,{minimum:{width:360,height:460},onClose:()=>{library?.cancel();stop();},onMinimize:minimized=>{if(minimized)try{player?.pauseVideo();}catch{}}});
+  library=createVideoLibrary({document,api:accountApi,onPlay:(value,item)=>{$('youtube-url').value=value;load(value,{item});},onBrowse:stop,recordSearch:query=>{const url=new URL('https://www.youtube.com/results');url.searchParams.set('search_query',query);recordNavigation(url.href);$('youtube-search-original').href=url.href;}});
   function open(value='') {
     youtubeWindow.show();
-    if(value){$('youtube-url').value=value;load(value);}else $('youtube-url').focus();
+    if(value){$('youtube-url').value=value;load(value);}else{library.show();$('youtube-search').focus();}
   }
-  async function load(value,{exclude=[],resume}={}) {
+  async function load(value,{exclude=[],resume,item}={}) {
     let video;
-    try{video=youtubeVideo(value);}catch(error){status(error.message);return;}
+    try{video=youtubeVideo(value);}catch(error){status(error.message);$('youtube-link-status').textContent=error.message;$('youtube-link-status').hidden=false;return;}
+    $('youtube-link-status').hidden=true;
+    if(item)currentItem=item;else if(currentItem?.id!==video.id)currentItem=null;
+    library.watch(video.id,currentItem);
     if(Number.isFinite(resume))video.start=Math.floor(resume);
     stop();const revision=sequence;
     const original=new URL('https://www.youtube.com/watch');original.searchParams.set('v',video.id);if(video.start)original.searchParams.set('t',String(video.start));
@@ -113,24 +118,13 @@ export function initWorkspaceWindows({ currentUrl }) {
   $('youtube-retry').addEventListener('click',()=>load($('youtube-url').value));
   $('youtube-play').addEventListener('click',()=>{try{player?.playVideo();}catch{status('The player could not resume. Try Retry video.');}});
   $('youtube-pause').addEventListener('click',()=>{try{player?.pauseVideo();}catch{status('The player could not pause. Close the panel to stop playback.');}});
-  $('youtube-search-form').addEventListener('submit',async event=>{
-    event.preventDefault();const query=$('youtube-search').value.trim();if(!query)return;
-    const url=new URL('https://www.youtube.com/results');url.searchParams.set('search_query',query);
-    recordNavigation(url.href);$('youtube-search-original').href=url.href;
-    const revision=++searchSequence;$('youtube-search-status').textContent='Searching public video APIs…';$('youtube-search-results').replaceChildren();
-    try{
-      const result=await accountApi('video-search',{query});if(revision!==searchSequence || panel.hidden)return;
-      $('youtube-search-status').textContent=result.fallback?'Public search APIs are unavailable. Paste a video link above, or use Search on YouTube.':result.items.length?'Results via '+result.provider:'No videos found. Try a different search.';
-      for(const item of result.items){const button=document.createElement('button');button.type='button';button.className='youtube-result';button.textContent=item.title+(item.author?' · '+item.author:'');button.addEventListener('click',()=>{$('youtube-url').value=item.id;load(item.id);});$('youtube-search-results').append(button);}
-    }catch(error){if(revision===searchSequence)$('youtube-search-status').textContent=error.message;}
-  });
   $('reset-windows').addEventListener('click',()=>{browserWindow.dock();if(!panel.hidden){youtubeWindow.dock();youtubeWindow.float();}status('Window layout reset. Playback is preserved.');});
   window.addEventListener('pagehide',stop);
   const requested=new URL(location.href).searchParams.get('youtube');if(requested)open(requested);
   return {closePlayers:()=>youtubeWindow.close(),openYouTube(input,base){
     const target=youtubeDestination(input,base);if(!target)return false;
     open(target.video?target.url:'');
-    if(!target.video){status('YouTube website links open here. Paste a video link, or search using the available public video APIs.');if(target.query){$('youtube-search').value=target.query;$('youtube-search-form').requestSubmit();}}
+    if(!target.video && target.query)library.search(target.query);
     return true;
   }};
 }

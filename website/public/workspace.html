@@ -47,14 +47,30 @@
       <div data-window-resize tabindex="0" role="button" aria-label="Resize browser window. Drag or use arrow keys."></div>
     </section>
     <section id="youtube-panel" aria-label="YouTube player window" hidden>
-      <div class="window-titlebar" data-window-titlebar tabindex="0" aria-label="Move YouTube window. Drag or use arrow keys."><span>YouTube · drag title to move · drag edges to resize</span><div class="window-actions"><button data-window-toggle type="button">Dock</button><button data-window-minimize type="button" aria-label="Minimize or restore YouTube window">−</button><button data-window-maximize type="button" aria-label="Maximize or restore YouTube window" aria-pressed="false">□</button><button data-window-close type="button" aria-label="Close YouTube player">✕</button></div></div>
-      <div class="youtube-body"><form id="youtube-form"><label class="sr-only" for="youtube-url">YouTube video link or ID</label><input id="youtube-url" placeholder="Paste a YouTube video link or ID" autocomplete="off" spellcheck="false" required maxlength="2048"><button class="primary" type="submit">Open video</button></form>
-      <div class="youtube-video" id="youtube-video"></div><p id="youtube-status" role="status">Paste a video link to start.</p>
-      <div class="youtube-tools"><button class="quiet" id="youtube-play" type="button" disabled>Play</button><button class="quiet" id="youtube-pause" type="button" disabled>Pause</button><button class="quiet" id="youtube-retry" type="button">Retry video</button><a id="youtube-original" href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" hidden>Open on YouTube ↗</a></div>
-      <form id="youtube-search-form"><label class="sr-only" for="youtube-search">Search videos</label><input id="youtube-search" placeholder="Search through Invidious / Piped" maxlength="160" required><button class="quiet" type="submit">Search videos</button></form>
-      <p id="youtube-search-status" class="youtube-help" role="status"></p><div id="youtube-search-results" aria-label="Video search results"></div><a id="youtube-search-original" href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer">Search on YouTube ↗</a>
-      <details class="youtube-help"><summary>Playback source attempts</summary><ol id="youtube-attempts"></ol></details>
-      <p class="youtube-help">Tries public Invidious / Piped APIs, then the official YouTube embed. Public instances may be offline, rate-limited, or blocked by YouTube too. Video streams use the instance's connection directly; sign-in credentials are never sent to an instance. Drag or resize this window; minimize pauses playback.</p></div>
+      <div class="window-titlebar" data-window-titlebar tabindex="0" aria-label="Move YouTube window. Drag or use arrow keys."><span>Canvas Video · drag title to move · drag edges to resize</span><div class="window-actions"><button data-window-toggle type="button">Dock</button><button data-window-minimize type="button" aria-label="Minimize or restore YouTube window">−</button><button data-window-maximize type="button" aria-label="Maximize or restore YouTube window" aria-pressed="false">□</button><button data-window-close type="button" aria-label="Close YouTube player">✕</button></div></div>
+      <div class="youtube-body video-library">
+        <div class="video-library-heading"><div class="video-library-brand"><span class="video-brand-icon" aria-hidden="true">▶</span><div><strong>Canvas Video</strong><span>Find something worth watching</span></div></div><span class="video-library-badge">IN-PAGE VIEWER</span></div>
+        <form id="youtube-search-form" class="video-search"><label class="sr-only" for="youtube-search">Search videos</label><input id="youtube-search" placeholder="Search videos, topics, or channels" maxlength="160"><button class="primary" type="submit">Search</button></form>
+        <nav class="video-library-nav" aria-label="Video library"><button id="youtube-feed-home" type="button" aria-pressed="true">Latest uploads</button><button id="youtube-feed-saved" type="button" aria-pressed="false">Watch later</button><button id="youtube-feed-refresh" type="button" class="video-refresh">↻ Refresh feed</button></nav>
+        <details class="video-link-entry"><summary>Have a video link? Open it here</summary><form id="youtube-form"><label class="sr-only" for="youtube-url">YouTube video link or ID</label><input id="youtube-url" placeholder="Paste a YouTube video link or ID" autocomplete="off" spellcheck="false" required maxlength="2048"><button class="quiet" type="submit">Open video</button></form></details>
+        <p id="youtube-link-status" class="video-link-status" role="status" hidden></p>
+        <section id="youtube-browse" aria-label="Browse videos">
+          <div id="youtube-channels" class="video-channels" aria-label="Filter by channel"></div>
+          <div class="video-feed-heading"><h2 id="youtube-feed-title">Latest uploads</h2><p id="youtube-feed-note">Discover recent videos from selected channels.</p></div>
+          <p id="youtube-search-status" class="video-feed-status" role="status"></p>
+          <div id="youtube-search-results" aria-label="Videos"></div><p id="youtube-feed-empty" class="video-feed-empty" hidden></p>
+          <a id="youtube-search-original" href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" class="video-original-search">Search on YouTube ↗</a>
+        </section>
+        <section id="youtube-watch" aria-label="Watch video" hidden>
+          <button id="youtube-back-feed" type="button" class="video-back">← Back to videos</button>
+          <div class="youtube-video" id="youtube-video"></div>
+          <div class="video-watch-heading"><div><h2 id="youtube-watch-title">YouTube video</h2><p id="youtube-watch-author"></p></div><button id="youtube-watch-save" type="button" aria-pressed="false">＋ Watch later</button></div>
+          <p id="youtube-status" role="status">Choose a video to start.</p>
+          <div class="youtube-tools"><button class="quiet" id="youtube-play" type="button" disabled>Play</button><button class="quiet" id="youtube-pause" type="button" disabled>Pause</button><button class="quiet" id="youtube-retry" type="button">Retry video</button><a id="youtube-original" href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" hidden>Open on YouTube ↗</a></div>
+          <details class="youtube-help video-playback-details"><summary>Playback details</summary><ol id="youtube-attempts"></ol><p>Tries available public video sources, then the official YouTube embed. Playback depends on the video and your connection. A network that blocks these sources may prevent playback.</p></details>
+        </section>
+        <p class="video-library-footer">Choose a video to watch in this window. Videos must allow playback on your connection.</p>
+      </div>
       <div data-window-resize tabindex="0" role="button" aria-label="Resize YouTube window. Drag or use arrow keys."></div>
     </section>
   </main>

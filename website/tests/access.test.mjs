@@ -20,17 +20,20 @@ async function fixture() {
 }
 const rejected = (promise,status) => assert.rejects(promise,error => error instanceof AccessError && error.status === status);
 
-test('video API requires a valid member with workspace permission before contacting public instances',async()=>{
+test('video APIs require a valid member with workspace permission before contacting public sources',async()=>{
   const {service,admin,member}=await fixture();let calls=0;
-  const server=createAppServer({apiHandler:createAccessHandler(()=>service,{run:async()=>{calls++;return {sources:[],fallback:'embed'};}})});
+  const server=createAppServer({apiHandler:createAccessHandler(()=>service,{run:async()=>{calls++;return {sources:[],fallback:'embed'};}},{run:async()=>{calls++;return {items:[]};}})});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   try {
     const base='http://127.0.0.1:'+server.address().port;
-    const request=token=>fetch(base+'/api/access',{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify({action:'video-resolve',id:'aqz-KE-bpKQ'})});
-    assert.equal((await request('')).status,401);assert.equal((await request(admin.token)).status,401);assert.equal(calls,0);
-    assert.equal((await request(member.token)).status,200);assert.equal(calls,1);
+    const request=(token,action)=>fetch(base+'/api/access',{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify({action,id:'aqz-KE-bpKQ'})});
+    for(const action of ['video-resolve','video-search','video-feed']){assert.equal((await request('',action)).status,401);assert.equal((await request(admin.token,action)).status,401);}
+    assert.equal(calls,0);
+    for(const action of ['video-resolve','video-search','video-feed'])assert.equal((await request(member.token,action)).status,200);
+    assert.equal(calls,3);
     await service.dispatch('update-user',{id:member.user.id,can_browse:false},admin.token,'1');
-    assert.equal((await request(member.token)).status,403);assert.equal(calls,1);
+    for(const action of ['video-resolve','video-search','video-feed'])assert.equal((await request(member.token,action)).status,403);
+    assert.equal(calls,3);
   }finally{await new Promise(resolve=>server.close(resolve));}
 });
 

@@ -137,7 +137,11 @@ async function navigate(input,tab=browserTabs.active) {
   $('go').disabled = true;
   try {
     const url = normalizeAddress(input);
-    if(windowTools?.openYouTube(url))return;
+    if(windowTools?.openYouTube(url)){
+      history.replaceState(null,'',appUrl('workspace.html'));
+      if(!activeTransport)checkRelay().catch(error=>notice(error.message));
+      return;
+    }
     if(!tab || tab.closed)return;
     tab.warning='';
     recordNavigation(url);

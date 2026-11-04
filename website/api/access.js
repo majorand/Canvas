@@ -1,8 +1,9 @@
 import { AccessError, bearer, digest, getAccessService } from '../lib/access.mjs';
 import { videoSources } from '../lib/video-sources.mjs';
+import { videoFeed } from '../lib/video-feed.mjs';
 import { allowedOrigin } from '../lib/relay.mjs';
 
-export function createAccessHandler(getService = getAccessService, videos = videoSources) {
+export function createAccessHandler(getService = getAccessService, videos = videoSources, feed = videoFeed) {
   return async function access(req, res) {
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -34,9 +35,9 @@ export function createAccessHandler(getService = getAccessService, videos = vide
       const ip = process.env.VERCEL ? String(req.headers['x-vercel-forwarded-for'] || req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim() : req.socket?.remoteAddress || 'local';
       const token=bearer(req);
       let result;
-      if(['video-search','video-resolve'].includes(body.action)){
+      if(['video-search','video-resolve','video-feed'].includes(body.action)){
         await getService().dispatch('feature',{feature:'workspace'},token,ip);
-        result=await videos.run(body.action,body,digest(token));
+        result=body.action==='video-feed'?await feed.run(body,digest(token)):await videos.run(body.action,body,digest(token));
       }else result = await getService().dispatch(body.action, body, token, ip);
       res.writeHead(200); res.end(JSON.stringify(result));
     } catch (error) {

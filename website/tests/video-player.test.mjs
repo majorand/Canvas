@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
 import { tabDocument } from './fixtures/tab-dom.mjs';
-import { youtubeVideo,youtubeEmbed,youtubeError } from '../public/youtube-url.mjs';
+import { youtubeVideo,youtubeEmbed,youtubeError,youtubeDestination } from '../public/youtube-url.mjs';
+import { createVideoLibrary } from '../public/video-library.mjs';
 const tick=async()=>{for(let i=0;i<5;i++)await new Promise(resolve=>setImmediate(resolve));};
 const id='aqz-KE-bpKQ';
 async function fixture(accountApi){
@@ -13,7 +14,7 @@ async function fixture(accountApi){
   const create=document.createElement;
   document.createElement=tag=>{const node=create(tag);if(tag==='video')Object.assign(node,{canPlayType:()=>true,currentTime:0,paused:true,removeAttribute(name){delete this[name];},play(){this.paused=false;this.listeners.get('playing')?.();return Promise.resolve();},pause(){this.paused=true;this.listeners.get('pause')?.();},load(){if(!this.src)return;const src=this.src;queueMicrotask(()=>{if(this.src===src && !this.removed)this.listeners.get(src.includes('/fail')?'error':'loadeddata')?.();});}});return node;};
   const timers=new Map();let sequence=0;
-  const context=vm.createContext({document,URL,Date,Number,youtubeVideo,youtubeEmbed,youtubeError,accountApi,recordNavigation(){},
+  const context=vm.createContext({document,URL,Date,Number,youtubeVideo,youtubeEmbed,youtubeError,youtubeDestination,createVideoLibrary,accountApi,recordNavigation(){},
     location:{href:'https://majorand.github.io/Canvas/workspace.html',origin:'https://majorand.github.io'},
     setTimeout:callback=>{timers.set(++sequence,callback);return sequence;},clearTimeout:id=>timers.delete(id),
     floatingWindow(panel,options){const control={show(){panel.hidden=false;},close(){panel.hidden=true;options.onClose?.();},dock(){},float(){},minimize(){options.onMinimize?.(true);}};controls.push(control);return control;},
@@ -43,6 +44,17 @@ test('a later stream failure falls through to another provider then the official
 test('search renders safe buttons in the existing window and can open a selected result',async()=>{
   const calls=[];const f=await fixture(async(action,body)=>{calls.push({action,body});return action==='video-search'?{provider:'piped:one.example',items:[{id,title:'<img onerror=bad()>',author:'Author'}]}:{sources:[],fallback:'embed'};});
   f.element('youtube-search').value='sample video';await f.fire('youtube-search-form','submit');
-  const button=f.element('youtube-search-results').children[0];assert.equal(button.textContent,'<img onerror=bad()> · Author');button.listeners.get('click')();await tick();
-  assert.equal(calls[1].action,'video-resolve');assert.equal(calls[1].body.id,id);
+  const card=f.element('youtube-search-results').children[0],button=card.children[0];assert.equal(button.children[1].textContent,'<img onerror=bad()>');assert.equal(card.children[1].children[0].textContent,'Author');button.listeners.get('click')();await tick();
+  const resolved=calls.find(call=>call.action==='video-resolve');assert.equal(resolved.body.id,id);
+});
+
+test('returning to the feed invalidates late playback resolution',async()=>{
+  let resolve;const f=await fixture(action=>action==='video-resolve'?new Promise(done=>{resolve=done;}):Promise.resolve({items:[],channels:[]}));
+  f.load();f.fire('youtube-back-feed');resolve({sources:[],fallback:'embed'});await tick();
+  assert.equal(f.element('youtube-watch').hidden,true);assert.equal(f.element('youtube-video').children.length,0);
+});
+test('invalid links show a visible error while browsing without opening a blank watch view',async()=>{
+  const f=await fixture(async()=>({items:[],channels:[]}));f.element('youtube-watch').hidden=true;
+  f.load('https://example.com/not-a-video');await tick();
+  assert.equal(f.element('youtube-link-status').hidden,false);assert.match(f.element('youtube-link-status').textContent,/YouTube/);assert.equal(f.element('youtube-watch').hidden,true);
 });
