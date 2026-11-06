@@ -7,6 +7,7 @@ import { appUrl, controllerPaths } from '../public/runtime.mjs';
 import { RelayTransport } from '../public/relay-transport.mjs';
 import { createBrowserTabs } from '../public/browser-tabs.mjs';
 import { tabDocument } from './fixtures/tab-dom.mjs';
+import { youtubeDestination } from '../public/youtube-url.mjs';
 
 const [appSource, coreSource] = await Promise.all([
   readFile(new URL('../public/app.js', import.meta.url), 'utf8'),
@@ -23,7 +24,7 @@ async function workspaceFixture(t) {
   const replacements = [];
   const controllers = [];
   const transports = [];
-  let transportFailure;
+  let transportFailure,windowOptions;
   const lookup=browserDocument.getElementById;
   browserDocument.getElementById=id=>lookup(id)||element(id);
   class ProbeSocket {
@@ -54,12 +55,12 @@ async function workspaceFixture(t) {
     clearTimeout(timer) { clearTimeout(timer); timers.delete(timer); },
     setInterval: () => 1, clearInterval() {},
     addEventListener: (name, callback) => windowListeners.set(name, callback),
-    normalizeAddress, resolveRemoteUrl, RelayTransport,createBrowserTabs,
+    normalizeAddress, resolveRemoteUrl, RelayTransport,createBrowserTabs,youtubeDestination,
     appUrl: file => appUrl(file, 'https://majorand.github.io/Canvas/runtime.mjs?v=test-revision'),
     controllerPaths,
     prepareWorker: async () => ({ active: {} }),
     accountApi: async () => ({}),
-    recordNavigation() {}, startPresence() {},initWorkspaceWindows:()=>({closePlayers(){},openYouTube(){return false;}}),
+    recordNavigation() {}, startPresence() {},initWorkspaceWindows:options=>{windowOptions=options;return {closePlayers(){},openYouTube(){return false;}};},
     authorizedRelayUrl: async () => 'wss://relay.example/api/wisp/?ticket=test&transport=/',
     clearMember() { throw new Error('Reconnect must not clear the member session'); },
     signOut() {},
@@ -89,7 +90,7 @@ async function workspaceFixture(t) {
   assert.equal(controllers.length, 1, 'workspace initialization must succeed');
   t.after(() => { for (const timer of timers) clearTimeout(timer); });
   return {
-    context, elements, element, controllers, transports, Tap, workerListeners, replacements,
+    context, elements, element, controllers, transports, Tap, workerListeners, replacements,windowOptions,
     frame: controllers[0].frame,tabs:vm.runInContext('browserTabs',context),
     setTransportFailure(error) { transportFailure = error; },
   };
@@ -111,19 +112,19 @@ test('remote navigation resolves YouTube paths, queries, fragments, and URL obje
   assert.equal(resolveRemoteUrl('https://['), null);
 });
 
-test('YouTube navigation hooks accept relative paths without throwing or corrupting the address', async t => {
+test('ordinary website navigation hooks accept relative paths without throwing or corrupting the address', async t => {
   const fixture = await workspaceFixture(t);
   const { frame, Tap, element } = fixture;
   const remoteDocument = { addEventListener() {} };
-  const client = { url: new URL('https://www.youtube.com/'), hooks: { lifecycle: Tap.create() } };
+  const client = { url: new URL('https://example.com/'), hooks: { lifecycle: Tap.create() } };
   await Tap.dispatch(frame.hooks.init.post, { isTopLevel: true, client, window: { document: remoteDocument } }, {});
   await Tap.dispatch(client.hooks.lifecycle.navigate, {}, { url: '/results?search_query=space&themeRefresh=1' });
-  assert.equal(element('address').value, 'https://www.youtube.com/results?search_query=space&themeRefresh=1');
+  assert.equal(element('address').value, 'https://example.com/results?search_query=space&themeRefresh=1');
   assert.equal(element('open-original').href, element('address').value);
-  assert.equal(element('page-state').textContent, 'www.youtube.com');
+  assert.equal(element('page-state').textContent, 'example.com');
   client.url = new URL(element('address').value);
   await Tap.dispatch(client.hooks.lifecycle.navigate, {}, { url: '/watch?v=next' });
-  assert.equal(element('address').value, 'https://www.youtube.com/watch?v=next');
+  assert.equal(element('address').value, 'https://example.com/watch?v=next');
 });
 
 test('escaped document links reopen the Pages workspace after the upstream cache hook', async t => {
@@ -207,12 +208,12 @@ test('website tabs retain independent frames and ignore background navigation in
   const second=tabs.add();await context.navigate('https://example.com/',second);
   const secondFrame=second.frame;
   assert.notEqual(firstFrame,secondFrame);assert.equal(controllers.length,1);assert.equal(controllers[0].frames.length,2);
-  const client={url:new URL('https://www.youtube.com/'),hooks:{lifecycle:Tap.create()}};
+  const client={url:new URL('https://www.wikipedia.org/'),hooks:{lifecycle:Tap.create()}};
   const remoteDocument={title:'Background video',addEventListener(){}};
   await Tap.dispatch(firstFrame.hooks.init.post,{isTopLevel:true,client,window:{document:remoteDocument}},{});
   await Tap.dispatch(client.hooks.lifecycle.navigate,{}, {url:'/watch?v=next'});
   assert.equal(element('address').value,'https://example.com/');assert.equal(tabs.active,second);
-  assert.equal(first.url,'https://www.youtube.com/watch?v=next');assert.equal(first.title,'Background video');
+  assert.equal(first.url,'https://www.wikipedia.org/watch?v=next');assert.equal(first.title,'Background video');
   tabs.select(first.id);assert.equal(element('address').value,first.url);assert.equal(first.frame,firstFrame);
   tabs.select(second.id);assert.equal(element('address').value,'https://example.com/');assert.equal(second.frame,secondFrame);
   await Tap.dispatch(firstFrame.hooks.fetch.preresponse,{parsed:{destination:'document',url:new URL('https://example.com/')}},{response:{status:403}});
@@ -243,10 +244,10 @@ test('relay reconnect from a new tab preserves the shared controller and loaded 
 });
 
 test('YouTube links open the player from address input, page clicks and script navigation while preserving background pages and embeds',async t=>{
-  const {youtubeDestination}=await import('../public/youtube-url.mjs');
-  const {context,frame,Tap,element}=await workspaceFixture(t);
+  const {context,frame,Tap,element,windowOptions,tabs}=await workspaceFixture(t);
+  await context.navigate('https://example.com/');
   const opened=[];
-  context.routeYoutube=(input,base)=>{const target=youtubeDestination(input,base);if(target)opened.push(target);return Boolean(target);};
+  context.routeYoutube=(input,base,sourceTab)=>{const target=youtubeDestination(input,base);if(target){opened.push(target);windowOptions.onOpen(sourceTab);}return Boolean(target);};
   vm.runInContext('windowTools.openYouTube=routeYoutube',context);
   const previous=frame.destination;
   await context.navigate('https://youtu.be/M7lc1UVf-VE?t=45');
@@ -259,12 +260,57 @@ test('YouTube links open the player from address input, page clicks and script n
   let cancelled=false,stopped=false;
   listeners.get('click')({button:0,target:{closest:()=>({href:'https://youtube.com/watch?v=M7lc1UVf-VE'})},preventDefault(){cancelled=true;},stopImmediatePropagation(){stopped=true;}});
   assert.ok(cancelled&&stopped);
+  const beforeIntent=opened.length;
+  await Tap.dispatch(client.hooks.lifecycle.navigate,{}, {url:'https://youtube.com/watch?v=M7lc1UVf-VE'});
+  assert.equal(tabs.active.url,'https://example.com/','a canceled YouTube intent must preserve the source page URL');
+  assert.equal(tabs.active.frame,frame);assert.equal(opened.length,beforeIntent,'a lifecycle intent must defer opening to the actual fetch');
   const props={};
   await Tap.dispatch(frame.hooks.fetch.intercept,{parsed:{destination:'iframe',isIframe:false,url:new URL('https://www.youtube.com/')}},props);
-  assert.equal(props.response.status,204);
+  assert.equal(props.response.status,204);assert.equal(opened.length,beforeIntent+1,'lifecycle plus fetch opens the viewer once');
   for(const parsed of [{destination:'iframe',isIframe:true},{destination:'script',isIframe:false}]){
     const result={};const count=opened.length;
     await Tap.dispatch(frame.hooks.fetch.intercept,{parsed:{...parsed,url:new URL('https://www.youtube.com/embed/M7lc1UVf-VE')}},result);
     assert.equal(result.response,undefined);assert.equal(opened.length,count);
   }
+});
+
+
+test('opening the viewer retires only a stale YouTube page and reused tabs ignore old frame events',async t=>{
+  const {context,frame,Tap,element,windowOptions,tabs,controllers}=await workspaceFixture(t);
+  const youtubeTab=tabs.active,iframe=youtubeTab.element,listeners=new Map();
+  const client={url:new URL('https://www.youtube.com/'),hooks:{lifecycle:Tap.create()}};
+  const remoteDocument={title:'YouTube',addEventListener:(name,fn)=>listeners.set(name,fn),removeEventListener:(name,fn)=>{if(listeners.get(name)===fn)listeners.delete(name);}};
+  await Tap.dispatch(frame.hooks.init.post,{isTopLevel:true,client,window:{document:remoteDocument}},{});
+  const other=tabs.add();await context.navigate('https://www.wikipedia.org/',other);const otherFrame=other.frame;
+  tabs.select(youtubeTab.id);
+  let opened=0;
+  context.routeYoutube=(input,base,sourceTab)=>{const target=youtubeDestination(input,base);if(target){opened++;windowOptions.onOpen(sourceTab);}return Boolean(target);};
+  vm.runInContext('windowTools.openYouTube=routeYoutube',context);
+  await context.navigate('https://youtu.be/M7lc1UVf-VE');
+  assert.equal(youtubeTab.frame,null);assert.equal(youtubeTab.url,'');assert.equal(youtubeTab.element,iframe);
+  assert.equal(iframe.src,'about:blank');assert.notEqual(iframe.removed,true);assert.equal(listeners.has('click'),false);
+  assert.ok(!controllers[0].frames.includes(frame));assert.equal(other.frame,otherFrame);assert.equal(other.url,'https://www.wikipedia.org/');
+  assert.equal(element('workspace').hidden,true);assert.match(element('notice').textContent,/video viewer/);
+  await context.navigate('https://example.com/',youtubeTab);
+  const replacement=youtubeTab.frame;assert.notEqual(replacement,frame);assert.equal(youtubeTab.element,iframe);assert.equal(controllers.length,1);
+  const count=opened;
+  await Tap.dispatch(client.hooks.lifecycle.navigate,{}, {url:'/watch?v=M7lc1UVf-VE'});
+  await Tap.dispatch(frame.hooks.fetch.preresponse,{parsed:{destination:'iframe',url:new URL('https://www.youtube.com/')}},{response:{status:403}});
+  const intercepted={};await Tap.dispatch(frame.hooks.fetch.intercept,{parsed:{destination:'iframe',isIframe:false,url:new URL('https://www.youtube.com/')}},intercepted);
+  await Tap.dispatch(frame.hooks.error.request,{rawrequest:{destination:'iframe'}},{});
+  assert.equal(intercepted.response,undefined);assert.equal(opened,count);assert.equal(youtubeTab.url,'https://example.com/');assert.equal(youtubeTab.frame,replacement);assert.equal(youtubeTab.warning,'');
+  tabs.select(other.id);assert.equal(element('address').value,'https://www.wikipedia.org/');assert.equal(other.frame,otherFrame);
+});
+
+test('an actually committed YouTube document is handed off without retiring an unrelated active tab',async t=>{
+  const {context,frame,Tap,windowOptions,tabs,controllers}=await workspaceFixture(t);
+  const old=tabs.active;await context.navigate('https://example.com/',old);
+  const other=tabs.add();await context.navigate('https://www.wikipedia.org/',other);const otherFrame=other.frame;
+  context.routeYoutube=(input,base,sourceTab)=>{const target=youtubeDestination(input,base);if(target)windowOptions.onOpen(sourceTab);return Boolean(target);};
+  vm.runInContext('windowTools.openYouTube=routeYoutube',context);
+  const client={url:new URL('https://www.youtube.com/'),hooks:{lifecycle:Tap.create()}};
+  const doc={addEventListener(){},removeEventListener(){}};
+  await Tap.dispatch(frame.hooks.init.post,{isTopLevel:true,client,window:{document:doc}},{});
+  assert.equal(old.frame,null);assert.equal(old.url,'');assert.equal(old.element.src,'about:blank');
+  assert.equal(tabs.active,other);assert.equal(other.frame,otherFrame);assert.equal(other.url,'https://www.wikipedia.org/');assert.equal(controllers[0].frames.length,1);
 });

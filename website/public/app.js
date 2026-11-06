@@ -5,6 +5,7 @@ import { RelayTransport } from './relay-transport.mjs';
 import { recordNavigation, startPresence } from './member-activity.mjs';
 import { initWorkspaceWindows } from './workspace-windows.mjs';
 import { createBrowserTabs } from './browser-tabs.mjs';
+import { youtubeDestination } from './youtube-url.mjs';
 const $ = id => document.getElementById(id);
 const address = $('address');
 let controller, frame, initPromise, activeTransport, windowTools, browserTabs, currentUrl = '';
@@ -25,6 +26,14 @@ function closeTab(tab) {
   clearTimeout(tab.timer);
   if(controller?.frames && tab.frame){const index=controller.frames.indexOf(tab.frame);if(index>=0)controller.frames.splice(index,1);}
   for(const dispose of tab.disposers || [])dispose();
+}
+function retireYouTubePage(sourceTab) {
+  const tab=sourceTab || browserTabs?.active;
+  if(!tab || tab.closed || !browserTabs.all.includes(tab) || !youtubeDestination(tab.url))return;
+  closeTab(tab);tab.frame=null;tab.disposers=[];tab.timer=null;
+  tab.element.src='about:blank';
+  browserTabs.update(tab,{url:'',title:'New tab',status:'',warning:'Opened YouTube in the video viewer.'});
+  paintTab(tab);
 }
 function setConnection(online) { $('connection').textContent = online ? 'Relay connected' : 'Relay unavailable'; $('connection').className = `status ${online ? 'online' : 'offline'}`; }
 async function checkRelay(refresh = false) {
@@ -72,33 +81,40 @@ async function initialize() {
 function attachFrame(tab) {
   const tabFrame=controller.createFrame(tab.element);tab.frame=tabFrame;tab.disposers=[];
   if(browserTabs.active===tab)frame=tabFrame;
+  const currentFrame=()=>!tab.closed && tab.frame===tabFrame;
   $scramjet.Tap.tap(tabFrame.hooks.init.post, context => {
-    if(tab.closed)return;
+    if(!currentFrame())return;
     if (!context.isTopLevel) return;
     for(const dispose of tab.disposers)dispose();tab.disposers=[];
-    const update = input => {
+    const update = (input,committed=false) => {
       const url = resolveRemoteUrl(input, context.client.url.href || tab.url);
-      if (!url || tab.closed) return;
+      if (!url || !currentFrame()) return;
+      // A navigation intent is followed by the fetch hook; avoid opening twice.
+      if(!committed && youtubeDestination(url.href))return;
       browserTabs.update(tab,{url:url.href,title:context.window.document.title?.trim().slice(0,80) || url.hostname,status:url.hostname});
       recordNavigation(url.href);
-      clearTimeout(tab.timer);paintTab(tab);
+      clearTimeout(tab.timer);
+      if(committed && windowTools?.openYouTube(url.href,undefined,tab))return;
+      paintTab(tab);
     };
     const clicked=event=>{
-      if(event.defaultPrevented || event.button!==0)return;
+      if(!currentFrame() || event.defaultPrevented || event.button!==0)return;
       const link=event.target?.closest?.('a[href]');
-      if(link && windowTools?.openYouTube(link.href,context.client.url.href)){event.preventDefault();event.stopImmediatePropagation();}
+      if(link && windowTools?.openYouTube(link.href,context.client.url.href,tab)){event.preventDefault();event.stopImmediatePropagation();}
     };
     context.window.document.addEventListener('click',clicked,true);
     tab.disposers.push(()=>context.window.document.removeEventListener('click',clicked,true));
-    update(context.client.url.href);
+    update(context.client.url.href,true);
+    if(!currentFrame())return;
     $scramjet.Tap.tap(context.client.hooks.lifecycle.navigate, (_context, props) => update(props.url));
-    const refreshTitle=()=>{const title=context.window.document.title?.trim().slice(0,80) || (tab.url?new URL(tab.url).hostname:'New tab');if(!tab.closed && title!==tab.title)browserTabs.update(tab,{title});};
+    const refreshTitle=()=>{const title=context.window.document.title?.trim().slice(0,80) || (tab.url?new URL(tab.url).hostname:'New tab');if(currentFrame() && title!==tab.title)browserTabs.update(tab,{title});};
     context.window.document.addEventListener('DOMContentLoaded',refreshTitle,{once:true});
     if(context.window.MutationObserver && context.window.document.head){
       const observer=new context.window.MutationObserver(refreshTitle);observer.observe(context.window.document.head,{childList:true,subtree:true,characterData:true});
       tab.disposers.push(()=>observer.disconnect());
     }
     context.window.document.addEventListener('error', event => {
+      if(!currentFrame())return;
       if (['VIDEO', 'AUDIO'].includes(event.target?.tagName) && event.target.error) {
         tabWarning(tab,'This website could not play the media. Try Reconnect once. If it still fails, use Open original; some video formats, protected content, or site restrictions cannot work through this proxy.');
       }
@@ -106,7 +122,8 @@ function attachFrame(tab) {
   });
   // Match upstream CatchEscapedLinksPlugin so new-tab links retain the workspace.
   $scramjet.Tap.tap(tabFrame.hooks.fetch.intercept, (context, props) => {
-    if(!context.parsed.isIframe && ['document','iframe'].includes(context.parsed.destination) && windowTools?.openYouTube(context.parsed.url.href)){
+    if(!currentFrame())return;
+    if(!context.parsed.isIframe && ['document','iframe'].includes(context.parsed.destination) && windowTools?.openYouTube(context.parsed.url.href,undefined,tab)){
       props.response={body:'',status:204,statusText:'No Content',headers:$scramjet.ScramjetHeaders.fromRawHeaders([])};return;
     }
     if (context.parsed.destination !== 'document') return;
@@ -117,6 +134,7 @@ function attachFrame(tab) {
     props.response = { body: '', status: 302, statusText: 'Found', headers: $scramjet.ScramjetHeaders.fromRawHeaders([['Location', target.href]]) };
   }, undefined, { after: ['scramjet-http-cache'] });
   $scramjet.Tap.tap(tabFrame.hooks.fetch.preresponse, (context, props) => {
+    if(!currentFrame())return;
     if (![403, 429].includes(props.response.status)) return;
     const url = context.parsed.url;
     const media = /(^|\.)googlevideo\.com$/.test(url.hostname);
@@ -128,7 +146,7 @@ function attachFrame(tab) {
     clearTimeout(tab.timer);tabWarning(tab,warning);
   });
   $scramjet.Tap.tap(tabFrame.hooks.error.request, context => {
-    if(tab.closed)return;
+    if(!currentFrame())return;
     if (['document', 'iframe'].includes(context.rawrequest.destination)) { clearTimeout(tab.timer);tab.status='Could not load this page';tabWarning(tab,'This page could not be loaded. Try Reconnect or Open original.');paintTab(tab); }
   });
   return tabFrame;
@@ -137,7 +155,7 @@ async function navigate(input,tab=browserTabs.active) {
   $('go').disabled = true;
   try {
     const url = normalizeAddress(input);
-    if(windowTools?.openYouTube(url)){
+    if(windowTools?.openYouTube(url,undefined,tab)){
       history.replaceState(null,'',appUrl('workspace.html'));
       if(!activeTransport)checkRelay().catch(error=>notice(error.message));
       return;
@@ -262,4 +280,4 @@ workspaceReady.then(registration => {
   if (!registration) return;
   if (initialUrl) navigate(initialUrl); else checkRelay().catch(error => notice(error.message));
 }).catch(error => { setConnection(false); notice(error.message); });
-windowTools = initWorkspaceWindows({currentUrl:()=>currentUrl});
+windowTools = initWorkspaceWindows({currentUrl:()=>currentUrl,onOpen:retireYouTubePage});

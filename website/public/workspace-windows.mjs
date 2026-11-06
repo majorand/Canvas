@@ -18,7 +18,7 @@ function youtubeApi() {
   }).catch(error=>{apiPromise=null;throw error;});
   return apiPromise;
 }
-export function initWorkspaceWindows({ currentUrl }) {
+export function initWorkspaceWindows({ currentUrl, onOpen=()=>{} }) {
   const $=id=>document.getElementById(id);
   const browserWindow=floatingWindow($('workspace'),{minimum:{width:360,height:320}});
   const panel=$('youtube-panel');let player,sequence=0,loadTimer,library,currentItem;
@@ -30,7 +30,8 @@ export function initWorkspaceWindows({ currentUrl }) {
   }
   const youtubeWindow=floatingWindow(panel,{minimum:{width:360,height:460},onClose:()=>{library?.cancel();stop();},onMinimize:minimized=>{if(minimized)try{player?.pauseVideo();}catch{}}});
   library=createVideoLibrary({document,api:accountApi,onPlay:(value,item)=>{$('youtube-url').value=value;load(value,{item});},onBrowse:stop,recordSearch:query=>{const url=new URL('https://www.youtube.com/results');url.searchParams.set('search_query',query);recordNavigation(url.href);$('youtube-search-original').href=url.href;}});
-  function open(value='') {
+  function open(value='',sourceTab) {
+    onOpen(sourceTab);
     youtubeWindow.show();
     if(value){$('youtube-url').value=value;load(value);}else{library.show();$('youtube-search').focus();}
   }
@@ -121,9 +122,9 @@ export function initWorkspaceWindows({ currentUrl }) {
   $('reset-windows').addEventListener('click',()=>{browserWindow.dock();if(!panel.hidden){youtubeWindow.dock();youtubeWindow.float();}status('Window layout reset. Playback is preserved.');});
   window.addEventListener('pagehide',stop);
   const requested=new URL(location.href).searchParams.get('youtube');if(requested)open(requested);
-  return {closePlayers:()=>youtubeWindow.close(),openYouTube(input,base){
+  return {closePlayers:()=>youtubeWindow.close(),openYouTube(input,base,sourceTab){
     const target=youtubeDestination(input,base);if(!target)return false;
-    open(target.video?target.url:'');
+    open(target.video?target.url:'',sourceTab);
     if(!target.video && target.query)library.search(target.query);
     return true;
   }};

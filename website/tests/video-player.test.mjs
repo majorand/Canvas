@@ -7,23 +7,23 @@ import { youtubeVideo,youtubeEmbed,youtubeError,youtubeDestination } from '../pu
 import { createVideoLibrary } from '../public/video-library.mjs';
 const tick=async()=>{for(let i=0;i<5;i++)await new Promise(resolve=>setImmediate(resolve));};
 const id='aqz-KE-bpKQ';
-async function fixture(accountApi){
+async function fixture(accountApi,options={}){
   const {document,element}=tabDocument(),controls=[];
   const find=document.getElementById;document.getElementById=id=>find(id)||element(id);
   document.head=element('head');
   const create=document.createElement;
   document.createElement=tag=>{const node=create(tag);if(tag==='video')Object.assign(node,{canPlayType:()=>true,currentTime:0,paused:true,removeAttribute(name){delete this[name];},play(){this.paused=false;this.listeners.get('playing')?.();return Promise.resolve();},pause(){this.paused=true;this.listeners.get('pause')?.();},load(){if(!this.src)return;const src=this.src;queueMicrotask(()=>{if(this.src===src && !this.removed)this.listeners.get(src.includes('/fail')?'error':'loadeddata')?.();});}});return node;};
   const timers=new Map();let sequence=0;
-  const context=vm.createContext({document,URL,Date,Number,youtubeVideo,youtubeEmbed,youtubeError,youtubeDestination,createVideoLibrary,accountApi,recordNavigation(){},
+  const context=vm.createContext({document,URL,Date,Number,windowOptions:{currentUrl:()=>"",...options},youtubeVideo,youtubeEmbed,youtubeError,youtubeDestination,createVideoLibrary,accountApi,recordNavigation(){},
     location:{href:'https://majorand.github.io/Canvas/workspace.html',origin:'https://majorand.github.io'},
     setTimeout:callback=>{timers.set(++sequence,callback);return sequence;},clearTimeout:id=>timers.delete(id),
     floatingWindow(panel,options){const control={show(){panel.hidden=false;},close(){panel.hidden=true;options.onClose?.();},dock(){},float(){},minimize(){options.onMinimize?.(true);}};controls.push(control);return control;},
     window:{addEventListener(){},YT:{Player:class{constructor(_iframe,{events}){this.events=events;queueMicrotask(()=>events.onReady());}destroy(){}playVideo(){this.events.onStateChange({data:1});}pauseVideo(){this.events.onStateChange({data:2});}}}}
   });
   const source=(await readFile(new URL('../public/workspace-windows.mjs',import.meta.url),'utf8')).replace(/^import .*;\r?\n/gm,'').replace('export function','function');
-  vm.runInContext(source,context);vm.runInContext('initWorkspaceWindows({currentUrl:()=>""})',context);
+  vm.runInContext(source,context);const windows=vm.runInContext('initWorkspaceWindows(windowOptions)',context);
   const fire=(name,event='click')=>element(name).listeners.get(event)?.({preventDefault(){}});
-  return {element,document,controls,fire,load(value=id){element('youtube-url').value=value;fire('youtube-form','submit');}};
+  return {element,document,controls,fire,windows,load(value=id){element('youtube-url').value=value;fire('youtube-form','submit');}};
 }
 test('native playback tries another format after media failure and preserves controls and minimize behavior',async()=>{
   const f=await fixture(async()=>({provider:'piped:working.example',sources:[{url:'https://media.example/fail.mp4',type:'video/mp4',quality:'360p'},{url:'https://media.example/works.webm',type:'video/webm',quality:'360p'}]}));
@@ -57,4 +57,15 @@ test('invalid links show a visible error while browsing without opening a blank 
   const f=await fixture(async()=>({items:[],channels:[]}));f.element('youtube-watch').hidden=true;
   f.load('https://example.com/not-a-video');await tick();
   assert.equal(f.element('youtube-link-status').hidden,false);assert.match(f.element('youtube-link-status').textContent,/YouTube/);assert.equal(f.element('youtube-watch').hidden,true);
+});
+
+
+test('opening the dedicated viewer invokes its handoff callback once and passes the source tab',async()=>{
+  const opened=[],sourceTab={id:'site-tab-source'};
+  const f=await fixture(async()=>({items:[],channels:[],sources:[],fallback:'embed'}),{currentUrl:()=> 'https://youtube.com/watch?v='+id,onOpen:tab=>opened.push(tab)});
+  f.fire('youtube-current');await tick();assert.equal(opened.length,1);assert.equal(opened[0],undefined);
+  assert.equal(f.windows.openYouTube('https://youtu.be/'+id,undefined,sourceTab),true);await tick();
+  assert.equal(opened.length,2);assert.equal(opened[1],sourceTab);
+  assert.equal(f.windows.openYouTube('https://example.com/'),false);assert.equal(opened.length,2);
+  f.load();await tick();assert.equal(opened.length,2,'choosing another video inside an already open viewer does not hand off another website');
 });
