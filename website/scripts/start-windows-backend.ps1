@@ -16,7 +16,7 @@ try {
   $env:HOST = '127.0.0.1'
   $env:PORT = '3030'
   $env:VERIFY_TLS_DISTRUST = '1'
-  $env:ALLOWED_ORIGINS = 'https://majorand.github.io'
+  $env:ALLOWED_ORIGINS = 'https://majorand.github.io,https://scotscanvas.netlify.app'
   $nodePath = Join-Path $statePath 'node.exe'
   while ($true) {
     foreach ($name in @('backend.stdout.log','backend.stderr.log')) {

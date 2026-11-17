@@ -1,6 +1,6 @@
 # Running the existing Canvas backend on Windows
 
-The local backend uses the existing Supabase database, accounts, permissions and scoped relay tickets. It listens on 127.0.0.1:3030; Tailscale Funnel publishes that service over HTTPS. No router port forwarding is required. Keep Windows and Tailscale running; sleep, shutdown or a lost home connection takes the backend offline. Funnel is available on all plans but has bandwidth limits; it is not an unlimited hosting service.
+The local backend uses the existing Supabase database, accounts, permissions and scoped relay tickets. It listens on 127.0.0.1:3030; Tailscale Funnel publishes that service over HTTPS. The backend permits the exact GitHub Pages origin and https://scotscanvas.netlify.app for authenticated account and relay requests. No router port forwarding is required. Keep Windows and Tailscale running; sleep, shutdown or a lost home connection takes the backend offline. Funnel is available on all plans but has bandwidth limits; it is not an unlimited hosting service.
 
 The installed runtime is Node 24.22.1 in `%LOCALAPPDATA%\CanvasBackend\node.exe`. Update that runtime when new Node security patches are released. Source and dependencies run from this repository's website folder. After changing server code, run the stop and start scripts to use the update.
 
