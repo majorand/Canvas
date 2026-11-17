@@ -1,0 +1,43 @@
+# Static Canvas site. The published @mercuryworkshop/scramjet package already
+# includes scramjet.wasm, so this build does not compile the Rust rewriter or
+# run the monorepo rspack config. pnpm 10.12.1 remains the monorepo package
+# manager and is not used for this site. A base directory in this root file
+# overrides the Netlify UI base directory.
+[build]
+  base = "website"
+  command = "npm ci --workspaces=false && npm run build:pages"
+  publish = "dist"
+
+[build.environment]
+  # Node 24.22.1 is the patched runtime required by website/package.json
+  # (>=24.22.1 <25). npm 11.19.1 is the version bundled with that Node release.
+  NODE_VERSION = "24.22.1"
+  NPM_VERSION = "11.19.1"
+  NPM_FLAGS = "--workspaces=false"
+
+# Same response headers as website/vercel.json. Each page is a real HTML file
+# with relative links, so there is no single-page fallback redirect.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cross-Origin-Opener-Policy = "same-origin"
+    Cross-Origin-Embedder-Policy = "credentialless"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-store"
+    Service-Worker-Allowed = "/"
+
+[[headers]]
+  for = "/config.js"
+  [headers.values]
+    Cache-Control = "no-store"
+
+[[headers]]
+  for = "/admin.html"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    Cache-Control = "no-store"

@@ -17,7 +17,7 @@ services:
       - key: AUTH_SITE_URL
         value: https://majorand.github.io/Canvas/
       - key: ALLOWED_ORIGINS
-        value: https://majorand.github.io
+        value: "https://majorand.github.io,https://stupendous-cannoli-af7e50.netlify.app,https://*--stupendous-cannoli-af7e50.netlify.app"
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SECRET_KEY

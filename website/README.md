@@ -44,13 +44,23 @@ Live frontend: https://majorand.github.io/Canvas/
 
 The `.github/workflows/website-pages.yml` workflow builds and tests `website/`, then deploys `website/dist` on pushes to main. In repository Settings → Pages, set Source to **GitHub Actions**. You can also run **Deploy website to GitHub Pages** manually in Actions.
 
-`npm run build:pages` creates the Pages artifact. It defaults to the Render backend above for both the account API and secure Wisp relay. Repository Actions variables `AUTH_API_URL` and `WISP_URL` override these public endpoints. GitHub Pages serves static files; keep the Render service running for sign-in and proxy traffic. The backend explicitly allows `https://majorand.github.io`; other owners or custom domains must add their exact origin to `ALLOWED_ORIGINS` and redeploy. Do not use a wildcard. The default relay is specific to this deployment. Vercel is not required for the Pages site.
+`npm run build:pages` creates the Pages artifact. It defaults to the Render backend above for both the account API and secure Wisp relay. Repository Actions variables `AUTH_API_URL` and `WISP_URL` override these public endpoints. GitHub Pages serves static files; keep the Render service running for sign-in and proxy traffic. The backend always allows `https://majorand.github.io`. `ALLOWED_ORIGINS` adds exact origins, and a `*` in an entry matches one hostname label while keeping a two-label suffix (`https://*.netlify.app`, `https://*--your-site.netlify.app`). An entry of `*` alone is ignored. Changing the list requires a Render redeploy. The default relay is specific to this deployment. Vercel is not required for the Pages site.
 
 The calculator, Code Mode (`0000`), browsing controls, Canvas exit, and about:blank window work on Pages. All assets, links, proxy prefixes, and worker scope follow the deployed directory, so repository subpaths and root/custom-domain hosting are supported. On the first workspace visit, its service worker reloads once to add cross-origin isolation headers that Pages cannot configure on the server. This preserves the browser features available on Vercel. Unsupported browsers show an error instead of repeatedly reloading.
 
 For a local simulation of Pages at `http://localhost:3031/Canvas/`, run `npm run preview:pages`. This serves without isolation headers and uses a local relay solely for testing. Clear `WISP_URL` if you want the local relay. No local computer is required for the published Pages site.
 
 Browser data and member sessions are separate for the Pages and Vercel origins. Both sites share the same backend limits and third-party website compatibility constraints.
+
+## Netlify
+
+The root `netlify.toml` publishes this static site. Netlify installs and builds `website/` with `npm ci --workspaces=false && npm run build:pages`, then publishes `website/dist`. Node is 24.22.1 and npm is 11.19.1. The monorepo's pnpm 10.12.1 and the Rust rewriter build are not part of this deploy. The published `@mercuryworkshop/scramjet` package already contains `scramjet.wasm`.
+
+`build:pages` writes `config.js` from Netlify environment variables `WISP_URL` and `AUTH_API_URL` when they are present. When they are absent it uses `wss://canvas-backend-majorand.onrender.com/api/wisp/` and `https://canvas-backend-majorand.onrender.com/api/access`. `NETLIFY=true` selects those same defaults for a plain `npm run build`. Leave Supabase secrets on Render.
+
+`netlify.toml` sends the cross-origin isolation, `Service-Worker-Allowed`, and no-cache headers from `website/vercel.json`. The site is a set of real HTML files, so the config has no single-page fallback redirect.
+
+In the Netlify UI, the base directory can stay empty or be `website`; the root `netlify.toml` base overrides the UI. The build command and publish directory in that file override the UI as well. For the Render service `canvas-backend-majorand`, set `ALLOWED_ORIGINS` to `https://majorand.github.io,https://stupendous-cannoli-af7e50.netlify.app,https://*--stupendous-cannoli-af7e50.netlify.app` and redeploy. `render.yaml` records that value. The live service keeps its dashboard value until the variable is updated and the service is redeployed. Pages remains allowed either way.
 
 ## Features
 

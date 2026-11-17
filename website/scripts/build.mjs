@@ -19,14 +19,17 @@ for (const [pkg, files, folder] of [
   }
 }
 const backendOrigin = 'https://canvas-backend-majorand.onrender.com';
-const wisp = process.env.WISP_URL || (process.argv.includes('--pages') ? backendOrigin.replace('https:', 'wss:') + '/api/wisp/' : '');
+// GitHub Pages (--pages) and Netlify (NETLIFY=true) share this injection.
+// WISP_URL and AUTH_API_URL override the Render defaults when they are set.
+const staticPublish = process.argv.includes('--pages') || process.env.NETLIFY === 'true';
+const wisp = process.env.WISP_URL || (staticPublish ? backendOrigin.replace('https:', 'wss:') + '/api/wisp/' : '');
 if (wisp) {
   const url = new URL(wisp);
   if (!['ws:', 'wss:'].includes(url.protocol) || url.username || url.password) throw new Error('WISP_URL must be a WebSocket URL without credentials');
-  if (process.argv.includes('--pages') && url.protocol !== 'wss:') throw new Error('GitHub Pages requires a secure wss:// relay');
+  if (staticPublish && url.protocol !== 'wss:') throw new Error(process.argv.includes('--pages') ? 'GitHub Pages requires a secure wss:// relay' : 'Netlify requires a secure wss:// relay');
 }
 await writeFile(path.join(dist, '.nojekyll'), '');
-await writeFile(path.join(dist, 'config.js'), `window.SCRAMJET_CONFIG = ${JSON.stringify({ wisp, api: process.env.AUTH_API_URL || (process.argv.includes('--pages') ? backendOrigin + '/api/access' : '') })};\n`);
+await writeFile(path.join(dist, 'config.js'), `window.SCRAMJET_CONFIG = ${JSON.stringify({ wisp, api: process.env.AUTH_API_URL || (staticPublish ? backendOrigin + '/api/access' : '') })};\n`);
 // A shared revision keeps HTML, configuration, and the entire module graph in sync.
 const appFiles = (await readdir(path.join(root, 'public'))).filter(file => /\.(html|js|mjs|css)$/.test(file)).sort();
 const sources = await Promise.all(appFiles.map(file => readFile(path.join(dist, file), 'utf8')));
