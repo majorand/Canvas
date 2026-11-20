@@ -19,7 +19,8 @@
     "@mercuryworkshop/scramjet": "2.0.67-alpha.2",
     "@mercuryworkshop/scramjet-controller": "0.0.14",
     "@mercuryworkshop/wisp-js": "0.5.1",
-    "@supabase/supabase-js": "2.117.1"
+    "@supabase/supabase-js": "2.117.1",
+    "dashjs": "5.3.0"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8"

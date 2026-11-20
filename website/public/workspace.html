@@ -14,7 +14,7 @@
   <section id="auth-status" style="padding:48px 24px;text-align:center"><p id="auth-status-text">Checking sign-in…</p><a href="./access.html">Return to sign in</a></section>
   <div class="exit-bar"><a class="emergency-exit" data-exit-canvas href="https://hpisd.instructure.com/" target="_top" referrerpolicy="no-referrer">Leave this page and go to Canvas</a></div>
   <header class="header"><a class="brand" href="./workspace.html" aria-label="Scots Canvas home"><img src="./scots.png" width="36" height="36" alt="Scots logo"><span class="brand-name">Scots Canvas</span></a>
-    <div class="header-actions"><a class="quiet games-link" href="./games.html">Games</a><button class="quiet youtube-link" data-youtube-open>YouTube player</button><button class="quiet" id="reset-windows">Reset windows</button><span id="signed-in-name" class="status"></span><a id="admin-link" class="quiet" href="./admin.html" target="_blank" rel="noopener noreferrer" hidden>Admin</a><button id="sign-out" class="quiet">Sign out</button><span class="status" id="connection" role="status">Checking connection…</span><button class="quiet" id="settings-open">Settings</button></div>
+    <div class="header-actions"><a class="quiet games-link" href="./games.html">Games</a><div class="youtube-mode-control"><button id="youtube-mode" class="youtube-mode-toggle" type="button" role="switch" aria-checked="false" aria-label="YouTube mode" aria-controls="youtube-panel" aria-describedby="youtube-mode-help"><span class="youtube-mode-track" aria-hidden="true"><span></span></span><span>YouTube mode</span><strong id="youtube-mode-state" aria-hidden="true">Off</strong></button><span id="youtube-mode-help">Browse and watch here</span></div><button class="quiet" id="reset-windows">Reset windows</button><span id="signed-in-name" class="status"></span><a id="admin-link" class="quiet" href="./admin.html" target="_blank" rel="noopener noreferrer" hidden>Admin</a><button id="sign-out" class="quiet">Sign out</button><span class="status" id="connection" role="status">Checking connection…</span><button class="quiet" id="settings-open">Settings</button></div>
   </header>
   <main>
     <section id="landing" class="landing">
@@ -35,7 +35,7 @@
       <div class="shortcuts">
         <button data-url="https://www.google.com/"><span class="shortcut-icon blue">G</span><span>Google<small>Find something new</small></span><b>↗</b></button>
         <button data-url="https://www.wikipedia.org/"><span class="shortcut-icon lavender">W</span><span>Wikipedia<small>Follow your curiosity</small></span><b>↗</b></button>
-        <button data-youtube-open><span class="shortcut-icon coral">▶</span><span>YouTube player<small>Paste a video and watch</small></span><b>↗</b></button>
+        <button data-youtube-open><span class="shortcut-icon coral">▶</span><span>YouTube mode<small>Browse and watch here</small></span><b>↗</b></button>
         <button data-url="https://example.com/"><span class="shortcut-icon mint">◎</span><span>Test connection<small>Open Example Domain</small></span><b>↗</b></button>
       </div>
       <div class="info-row"><span class="info-number">↗</span><div><strong>Powered by Scramjet</strong><p>Websites load here through your connected relay. Compatibility varies by site.</p></div><span class="keyboard-hint">Ctrl / ⌘ + L<br><small>focus the address bar*</small></span></div>
@@ -43,6 +43,7 @@
     </section>
     <section id="workspace" aria-label="Browser window" hidden>
       <div class="window-titlebar" data-window-titlebar tabindex="0" aria-label="Move browser window. Drag or use arrow keys."><span>Browser · drag title to move · drag edges to resize</span><div class="window-actions"><button data-window-toggle type="button">Float</button><button data-window-maximize type="button" aria-label="Maximize or restore browser window" aria-pressed="false">□</button></div></div>
+      <p id="youtube-fullscreen-hint" class="youtube-fullscreen-hint" role="status" hidden>Exit full screen (Esc), then turn YouTube mode on to view the player.</p>
       <div class="page-meta"><span id="page-state">Loading…</span><a class="emergency-exit fullscreen-exit" data-exit-canvas href="https://hpisd.instructure.com/" target="_top" referrerpolicy="no-referrer">Leave this page and go to Canvas</a><div class="page-tools"><a class="quiet" id="open-original" href="#" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" title="Open directly in a new tab using your own connection" hidden>Open original ↗</a><button class="quiet" id="youtube-current" type="button">Use YouTube player</button><button class="quiet" id="reconnect" type="button">Reconnect</button><button class="quiet" id="fullscreen">Full screen</button></div></div><div id="browser-pages"><iframe id="web-frame" class="web-frame" title="Proxied website" allow="fullscreen; autoplay; encrypted-media; picture-in-picture" referrerpolicy="no-referrer"></iframe></div>
       <div data-window-resize tabindex="0" role="button" aria-label="Resize browser window. Drag or use arrow keys."></div>
     </section>

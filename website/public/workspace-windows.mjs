@@ -3,6 +3,7 @@ import { youtubeVideo, youtubeEmbed, youtubeError, youtubeDestination } from './
 import { recordNavigation } from './member-activity.mjs';
 import { accountApi } from './auth-client.mjs';
 import { createVideoLibrary } from './video-library.mjs';
+import { createDashPlayback } from './dash-player.mjs';
 let apiPromise;
 function youtubeApi() {
   if(window.YT?.Player)return Promise.resolve(window.YT);
@@ -21,24 +22,42 @@ function youtubeApi() {
 export function initWorkspaceWindows({ currentUrl, onOpen=()=>{} }) {
   const $=id=>document.getElementById(id);
   const browserWindow=floatingWindow($('workspace'),{minimum:{width:360,height:320}});
-  const panel=$('youtube-panel');let player,sequence=0,loadTimer,library,currentItem;
+  const panel=$('youtube-panel');let player,sequence=0,loadTimer,library,currentItem,modeEnabled=false,modeRevision=0;
+  function setMode(enabled) {
+    if(modeEnabled!==enabled)modeRevision++;
+    modeEnabled=enabled;
+    $('youtube-mode').setAttribute('aria-checked',String(enabled));
+    $('youtube-mode-state').textContent=enabled?'On':'Off';
+  }
+  setMode(false);
   const status=message=>{$('youtube-status').textContent=message;};
   function stop() {
     sequence++;clearTimeout(loadTimer);try{player?.destroy();}catch{}player=null;
     $('youtube-play').disabled=true;$('youtube-pause').disabled=true;
     $('youtube-video').replaceChildren();status('Paste a video link to start.');
   }
-  const youtubeWindow=floatingWindow(panel,{minimum:{width:360,height:460},onClose:()=>{library?.cancel();stop();},onMinimize:minimized=>{if(minimized)try{player?.pauseVideo();}catch{}}});
+  const youtubeWindow=floatingWindow(panel,{minimum:{width:360,height:460},onClose:()=>{library?.cancel();stop();setMode(false);$('youtube-link-status').hidden=true;$('youtube-fullscreen-hint').hidden=true;},onMinimize:minimized=>{if(minimized)try{player?.pauseVideo();}catch{}}});
   library=createVideoLibrary({document,api:accountApi,onPlay:(value,item)=>{$('youtube-url').value=value;load(value,{item});},onBrowse:stop,recordSearch:query=>{const url=new URL('https://www.youtube.com/results');url.searchParams.set('search_query',query);recordNavigation(url.href);$('youtube-search-original').href=url.href;}});
   function open(value='',sourceTab) {
+    setMode(true);
+    const revision=modeRevision;
+    $('youtube-fullscreen-hint').hidden=true;
+    // The video window sits beside the browser panel, outside its full screen.
+    if(document.fullscreenElement && document.fullscreenElement!==panel){
+      const failed=()=>{if(modeEnabled && modeRevision===revision && document.fullscreenElement && document.fullscreenElement!==panel){youtubeWindow.close();$('youtube-fullscreen-hint').hidden=false;return true;}return false;};
+      try{Promise.resolve(document.exitFullscreen()).catch(failed);}catch{if(failed())return false;}
+    }
     onOpen(sourceTab);
     youtubeWindow.show();
     if(value){$('youtube-url').value=value;load(value);}else{library.show();$('youtube-search').focus();}
+    return true;
   }
   async function load(value,{exclude=[],resume,item}={}) {
     let video;
     try{video=youtubeVideo(value);}catch(error){status(error.message);$('youtube-link-status').textContent=error.message;$('youtube-link-status').hidden=false;return;}
     $('youtube-link-status').hidden=true;
+    setMode(true);
+    if(panel.hidden)youtubeWindow.show();
     if(item)currentItem=item;else if(currentItem?.id!==video.id)currentItem=null;
     library.watch(video.id,currentItem);
     if(Number.isFinite(resume))video.start=Math.floor(resume);
@@ -60,7 +79,7 @@ export function initWorkspaceWindows({ currentUrl, onOpen=()=>{} }) {
           if(sequence!==revision)return;
           if(Date.now()>=deadline)break;
           status('Loading '+source.quality+' via '+result.provider+'…');
-          try {await nativeVideo(source,video,result.provider,revision,()=>load(value,{exclude:failures,resume:$('youtube-media')?.currentTime}));if(sequence===revision)return;}
+          try {const play=source.kind==='dash'?adaptiveVideo:nativeVideo;await play(source,video,result.provider,revision,resume=>load(value,{exclude:failures,resume:resume??$('youtube-media')?.currentTime}));if(sequence===revision)return;}
           catch(error){if(sequence!==revision)return;addAttempt(result.provider+' — media could not load ('+source.quality+')');}
         }
       }
@@ -70,6 +89,20 @@ export function initWorkspaceWindows({ currentUrl, onOpen=()=>{} }) {
     embed(video,revision);
   }
   function addAttempt(message){const item=document.createElement('li');item.textContent=message;$('youtube-attempts').append(item);}
+  function adaptiveVideo(source,video,provider,revision,onFailure) {
+    const media=document.createElement('video');media.id='youtube-media';media.controls=true;media.playsInline=true;media.preload='auto';media.crossOrigin='anonymous';
+    media.setAttribute('aria-label','Adaptive video through '+provider);
+    try{player?.destroy();}catch{}
+    $('youtube-video').replaceChildren(media);
+    player=createDashPlayback({media,source,start:video.start,isCurrent:()=>sequence===revision,
+      onReady:()=>{$('youtube-play').disabled=false;$('youtube-pause').disabled=false;status('Ready via '+provider+'. Press Play to watch.');},
+      onPlaying:()=>status('Playing via '+provider+'.'),onPause:()=>status('Paused · '+provider),onEnded:()=>status('Video ended · '+provider),onFailure,
+    });
+    const play=player.playVideo;
+    // The controller exists before its local module loads, so Off cancels that wait too.
+    player.playVideo=()=>play().catch(()=>{if(sequence===revision)status('Press Play inside the video to start.');});
+    return player.ready;
+  }
   function nativeVideo(source,video,provider,revision,onFailure) {
     return new Promise((resolve,reject)=>{
       const media=document.createElement('video');media.id='youtube-media';media.controls=true;media.playsInline=true;media.preload='auto';media.crossOrigin='anonymous';
@@ -113,6 +146,8 @@ export function initWorkspaceWindows({ currentUrl, onOpen=()=>{} }) {
       }});
     }catch(error){if(sequence===revision){clearTimeout(loadTimer);status(error.message);}}
   }
+  document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement)$('youtube-fullscreen-hint').hidden=true;});
+  $('youtube-mode').addEventListener('click',()=>modeEnabled?youtubeWindow.close():open());
   for(const button of document.querySelectorAll('[data-youtube-open]'))button.addEventListener('click',()=>open());
   $('youtube-current').addEventListener('click',()=>open(currentUrl() || $('address').value));
   $('youtube-form').addEventListener('submit',event=>{event.preventDefault();load($('youtube-url').value);});
@@ -120,12 +155,12 @@ export function initWorkspaceWindows({ currentUrl, onOpen=()=>{} }) {
   $('youtube-play').addEventListener('click',()=>{try{player?.playVideo();}catch{status('The player could not resume. Try Retry video.');}});
   $('youtube-pause').addEventListener('click',()=>{try{player?.pauseVideo();}catch{status('The player could not pause. Close the panel to stop playback.');}});
   $('reset-windows').addEventListener('click',()=>{browserWindow.dock();if(!panel.hidden){youtubeWindow.dock();youtubeWindow.float();}status('Window layout reset. Playback is preserved.');});
-  window.addEventListener('pagehide',stop);
+  window.addEventListener('pagehide',()=>youtubeWindow.close());
   const requested=new URL(location.href).searchParams.get('youtube');if(requested)open(requested);
   return {closePlayers:()=>youtubeWindow.close(),openYouTube(input,base,sourceTab){
     const target=youtubeDestination(input,base);if(!target)return false;
-    open(target.video?target.url:'',sourceTab);
-    if(!target.video && target.query)library.search(target.query);
+    const shown=open(target.video?target.url:'',sourceTab);
+    if(shown && !target.video && target.query)library.search(target.query);
     return true;
   }};
 }
