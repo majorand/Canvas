@@ -37,6 +37,35 @@ test('relay allows the exact Pages origin and continues rejecting other origins'
   }
 });
 
+test('relay allowlist accepts a configured Netlify site and single-label preview hosts', () => {
+  const previous = process.env.ALLOWED_ORIGINS;
+  const request = origin => ({ headers: { origin, host: 'canvas-backend-majorand.onrender.com' } });
+  process.env.ALLOWED_ORIGINS = 'https://stupendous-cannoli-af7e50.netlify.app, https://*--stupendous-cannoli-af7e50.netlify.app';
+  try {
+    assert.equal(allowedOrigin(request('https://majorand.github.io')), true);
+    assert.equal(allowedOrigin(request('https://stupendous-cannoli-af7e50.netlify.app')), true);
+    assert.equal(allowedOrigin(request('https://deploy-preview-3--stupendous-cannoli-af7e50.netlify.app')), true);
+    for (const origin of [
+      'https://another-site.netlify.app',
+      'http://stupendous-cannoli-af7e50.netlify.app',
+      'https://stupendous-cannoli-af7e50.netlify.app.evil.test',
+      'https://foo.bar.netlify.app',
+      'https://netlify.app',
+      'https://other.github.io',
+    ]) assert.equal(allowedOrigin(request(origin)), false, origin);
+    process.env.ALLOWED_ORIGINS = 'https://*.netlify.app,*,https://*';
+    assert.equal(allowedOrigin(request('https://another-site.netlify.app')), true);
+    assert.equal(allowedOrigin(request('https://foo.bar.netlify.app')), false);
+    assert.equal(allowedOrigin(request('https://evil.example')), false);
+    process.env.ALLOWED_ORIGINS = 'http://127.0.0.1:3030';
+    assert.equal(allowedOrigin(request('http://127.0.0.1:3030')), true);
+    assert.equal(allowedOrigin(request('http://127.0.0.1:3031')), false);
+  } finally {
+    if (previous === undefined) delete process.env.ALLOWED_ORIGINS;
+    else process.env.ALLOWED_ORIGINS = previous;
+  }
+});
+
 test('worker isolates Pages documents without interfering with proxy routing or other sites', async () => {
   const handlers = {};
   let proxied = false;

@@ -11,15 +11,39 @@ Object.assign(wisp.options, {
   dns_result_order: 'ipv4first',
 });
 
+// Exact origins, plus a single-label * for hosts such as Netlify previews.
+// `*` must leave a two-label suffix (`*.netlify.app`); `*` alone is ignored.
+function allowPattern(entry) {
+  let value = entry.trim();
+  if (value.endsWith('/')) value = value.slice(0, -1);
+  const parsed = /^(?:(https?):\/\/)?([^/?#@\\]+)$/.exec(value);
+  if (!parsed) return null;
+  const host = parsed[2];
+  const hostname = host.replace(/:\d+$/, '');
+  if (!hostname || !/^[A-Za-z0-9.*:-]+$/.test(host)) return null;
+  const labels = hostname.split('.');
+  if (labels.some(label => !label || !/^[A-Za-z0-9*-]+$/.test(label))) return null;
+  if (hostname.includes('*') && (host.includes(':') || labels.length < 3 || labels.slice(-2).some(label => label.includes('*')))) return null;
+  const expression = host.replace(/[.+?^${}()|[\]\\*]/g, '\\$&').replaceAll('\\*', '[^.]+');
+  return { protocol: (parsed[1] || 'https') + ':', host: new RegExp('^' + expression + '$', 'i') };
+}
+
+function originListed(url, entries) {
+  return entries.some(entry => {
+    const pattern = allowPattern(entry);
+    return pattern && url.protocol === pattern.protocol && pattern.host.test(url.host);
+  });
+}
+
 export function allowedOrigin(req) {
   const origin = req.headers.origin;
   if (!origin) return false;
   try {
     const url = new URL(origin);
     const host = req.headers['x-forwarded-host'] || req.headers.host;
-    // The GitHub Pages frontend uses this authenticated backend's relay.
-    const extra = ['https://majorand.github.io', ...(process.env.ALLOWED_ORIGINS || '').split(',').map(x => x.trim()).filter(Boolean)];
-    return (['http:', 'https:'].includes(url.protocol) && url.host === host) || extra.includes(url.origin);
+    // Pages stays allowed. ALLOWED_ORIGINS adds exact origins and single-label host patterns.
+    const extra = ['https://majorand.github.io', ...(process.env.ALLOWED_ORIGINS || '').split(',').map(item => item.trim()).filter(Boolean)];
+    return (['http:', 'https:'].includes(url.protocol) && url.host === host) || originListed(url, extra);
   } catch { return false; }
 }
 
