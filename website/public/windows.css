@@ -104,3 +104,5 @@
 @media(prefers-reduced-motion:reduce){.youtube-mode-track>span{transition:none}}
 
 .youtube-fullscreen-hint{margin:0;padding:10px 14px;border-bottom:1px solid #496551;background:#263c2d;color:#d9efdf;font-size:12px;line-height:1.5}
+
+@media(max-width:480px){.header{flex-wrap:wrap;gap:10px}.header-actions{width:100%;justify-content:flex-start;row-gap:6px}}
