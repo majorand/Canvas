@@ -53,7 +53,12 @@ export function createDashPlayback({media,source,start=0,isCurrent=()=>true,load
     const {MediaPlayer}=await loadLibrary();
     if(!current())return;
     engine=MediaPlayer().create();
-    engineError=()=>fail(new Error('Adaptive media unavailable'));
+    const recoverable=new Set([MediaPlayer.errors?.TIME_SYNC_FAILED_ERROR_CODE??16,MediaPlayer.errors?.TIMED_TEXT_ERROR_ID_PARSE_CODE??33]);
+    engineError=event=>{
+      // Timing services and optional subtitles can fail while video remains playable.
+      if(recoverable.has(event?.error?.code))return;
+      fail(new Error('Adaptive media unavailable'));
+    };
     engine.on('error',engineError);
     engine.updateSettings({debug:{logLevel:0},streaming:{
       lastBitrateCachingInfo:{enabled:false},lastMediaSettingsCachingInfo:{enabled:false},

@@ -74,3 +74,18 @@ test('unsupported MSE and unsafe or wrong-kind sources skip the local engine wit
 test('a local library loading failure releases pending playback for normal provider fallback',async()=>{
   const f=fixture({loadLibrary:async()=>{throw new Error('Local engine unavailable');}});await assert.rejects(f.player.ready,/Local engine unavailable/);assert.equal(f.engines.length,0);assert.equal(f.media.src,undefined);assert.equal(f.timers.size,0);assert.equal(f.listeners.size,0);
 });
+
+
+test('optional timing and subtitle errors do not discard an otherwise playable DASH stream',async()=>{
+  const f=fixture();f.library.MediaPlayer.errors={TIME_SYNC_FAILED_ERROR_CODE:16,TIMED_TEXT_ERROR_ID_PARSE_CODE:33};await tick();
+  const engine=f.engines[0],error=engine.listeners.get('error');
+  error({error:{code:16}});error({error:{code:33}});assert.equal(engine.resets,0);assert.equal(f.timers.size,1);assert.deepEqual(f.events,[]);
+  f.emit('loadeddata');await f.player.ready;error({error:{code:16}});error({error:{code:33}});assert.equal(engine.resets,0);assert.deepEqual(f.events,['ready']);
+  error({error:{code:27}});assert.equal(engine.resets,1);assert.deepEqual(f.events,['ready','failed']);
+});
+
+test('recoverable errors follow the engine exported constants rather than an unrelated error shape',async()=>{
+  const f=fixture();f.library.MediaPlayer.errors={TIME_SYNC_FAILED_ERROR_CODE:116,TIMED_TEXT_ERROR_ID_PARSE_CODE:133};await tick();
+  const engine=f.engines[0],error=engine.listeners.get('error');error({error:{code:116}});error({error:{code:133}});assert.equal(engine.resets,0);
+  error({code:116});await assert.rejects(f.player.ready,/unavailable/);assert.equal(engine.resets,1);
+});
