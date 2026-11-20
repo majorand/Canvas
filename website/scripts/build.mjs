@@ -18,6 +18,17 @@ for (const [pkg, files, folder] of [
     vendorFiles.push(path.join(dist, folder, file));
   }
 }
+// Ship the media player locally, without the optional DRM or reporting plugins.
+await mkdir(path.join(dist, 'video'), { recursive: true });
+for (const [source, target] of [
+  ['dist/modern/esm/dash.mediaplayer.min.js', 'dash.mediaplayer.min.js'],
+  ['dist/modern/esm/dash.mediaplayer.min.js.LICENSE.txt', 'dash.mediaplayer.min.js.LICENSE.txt'],
+  ['LICENSE.md', 'LICENSE.md'],
+]) {
+  const output = path.join(dist, 'video', target);
+  await copyFile(path.join(root, 'node_modules/dashjs', source), output);
+  vendorFiles.push(output);
+}
 const backendOrigin = 'https://canvas-backend-majorand.onrender.com';
 // GitHub Pages (--pages) and Netlify (NETLIFY=true) share this injection.
 // WISP_URL and AUTH_API_URL override the Render defaults when they are set.

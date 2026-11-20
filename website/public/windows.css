@@ -86,3 +86,21 @@
 @media(max-width:640px){#youtube-panel .video-library{padding:14px;gap:14px}#youtube-search-form{flex-wrap:nowrap}#youtube-search-form input{min-width:0;font-size:12px}#youtube-search-form button{padding:13px 15px}#youtube-form input{min-width:130px}.video-library-heading{gap:6px}}
 @media(prefers-reduced-motion:reduce){.video-card-thumb img,.video-card-icon{transition:none}}
 .video-link-status{font-size:11px;line-height:1.6;color:#f4c8b4;background:#432c23;border:1px solid #75513d;border-radius:8px;padding:10px 12px;margin:0}
+
+/* YouTube mode is a page control; it changes no browser or device settings. */
+.youtube-mode-control{display:flex;flex-direction:column;align-items:flex-start;gap:4px;flex-shrink:0}
+.header-actions .youtube-mode-toggle{display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:7px 10px;border:1px solid #718a79;border-radius:9px;background:#18271f;color:#e5f1e9;font:inherit;font-size:12px;white-space:nowrap;cursor:pointer}
+.youtube-mode-toggle strong{min-width:21px;font-size:10px;text-align:right;color:#a5b9ac}
+.youtube-mode-track{display:inline-flex;align-items:center;width:30px;height:18px;padding:2px;border:1px solid #61776a;border-radius:20px;background:#34483b;flex-shrink:0}
+.youtube-mode-track>span{width:12px;height:12px;border-radius:50%;background:#d0ded4;transform:translateX(0);transition:transform .16s ease,background .16s ease}
+.header-actions .youtube-mode-toggle[aria-checked="true"]{border-color:#9ce2b5;background:#294b34;color:#effff4}
+.youtube-mode-toggle[aria-checked="true"] .youtube-mode-track{background:#b6efca;border-color:#b6efca}
+.youtube-mode-toggle[aria-checked="true"] .youtube-mode-track>span{transform:translateX(11px);background:#173a23}
+.youtube-mode-toggle[aria-checked="true"] strong{color:#c6f9d8}
+.header-actions .youtube-mode-toggle:hover{border-color:#b4e9c6}
+.header-actions .youtube-mode-toggle:focus-visible{outline:2px solid #b6efca;outline-offset:3px}
+#youtube-mode-help{font-size:9px;line-height:1.2;color:#98b0a0;padding-left:2px}
+@media(max-width:640px){.header-actions .youtube-mode-toggle{font-size:11px;min-height:36px;padding:7px 8px;gap:6px}.youtube-mode-control{margin:3px 7px 3px 0}#youtube-mode-help{font-size:8px}}
+@media(prefers-reduced-motion:reduce){.youtube-mode-track>span{transition:none}}
+
+.youtube-fullscreen-hint{margin:0;padding:10px 14px;border-bottom:1px solid #496551;background:#263c2d;color:#d9efdf;font-size:12px;line-height:1.5}

@@ -5,6 +5,10 @@ import { AccessError } from './access.mjs';
 
 const registry='https://api.invidious.io/instances.json';
 const pipedRegistry='https://raw.githubusercontent.com/TeamPiped/documentation/main/content/docs/public-instances/index.md';
+// This API-enabled instance was verified against the official directory. It is
+// only a cold-start fallback when that directory cannot be read, never an
+// override for a successfully fetched directory (including an empty one).
+const fallbackInvidious=[['yt.chocolatemoo53.com',{api:true,type:'https',uri:'https://yt.chocolatemoo53.com'}]];
 const seeds=['https://pipedapi.ducks.party','https://pipedapi.adminforge.de','https://pipedapi.kavin.rocks','https://pipedapi.leptons.xyz','https://pipedapi.orangenet.cc'];
 const blocked=new BlockList();
 for(const [ip,bits] of [['0.0.0.0',8],['10.0.0.0',8],['100.64.0.0',10],['127.0.0.0',8],['169.254.0.0',16],['172.16.0.0',12],['192.0.0.0',24],['192.0.2.0',24],['192.168.0.0',16],['198.18.0.0',15],['198.51.100.0',24],['203.0.113.0',24],['224.0.0.0',3]])blocked.addSubnet(ip,bits,'ipv4');
@@ -46,8 +50,7 @@ export function normalizeSearch(data,provider) {
 }
 export function normalizeSources(data,provider) {
   const list=provider.kind==='piped'?data.videoStreams:data.formatStreams;
-  if(!Array.isArray(list))return [];
-  return list.filter(s=>provider.kind!=='piped' || s.videoOnly===false).map(s=>{
+  const progressive=(Array.isArray(list)?list:[]).filter(s=>s && typeof s==='object' && (provider.kind!=='piped' || s.videoOnly===false)).map(s=>{
     let url=publicUrl(s.url);if(!url)return null;
     // Invidious progressive formats can reference Google's IP-bound URLs.
     // Ask the instance to proxy them instead, retaining their signed parameters.
@@ -58,15 +61,31 @@ export function normalizeSources(data,provider) {
     if(!['video/mp4','video/webm'].includes(type))return null;
     return {url:url.href,type,quality:String(s.quality || s.qualityLabel || 'Standard').slice(0,40),height:parseInt(s.height || s.quality || s.qualityLabel)||360};
   }).filter(Boolean).sort((a,b)=>Math.abs(a.height-360)-Math.abs(b.height-360)).slice(0,4);
+  const dash=provider.kind==='invidious'?publicUrl(data.dashUrl):null;
+  const adaptive=Array.isArray(data.adaptiveFormats)?data.adaptiveFormats:[];
+  const types=adaptive.map(s=>String(s?.mimeType || s?.type || '').split(';')[0]);
+  if(dash && dash.origin===new URL(provider.url).origin && types.some(t=>['video/mp4','video/webm'].includes(t)) && types.some(t=>['audio/mp4','audio/webm'].includes(t))){
+    dash.searchParams.set('local','true');
+    // Keep the lowest-cost combined format first, while making adaptive audio
+    // and video reachable within the player's first two format attempts.
+    progressive.splice(Math.min(1,progressive.length),0,{kind:'dash',type:'application/dash+xml',url:dash.href,quality:'Adaptive video',height:360});
+  }
+  return progressive.slice(0,4);
 }
 export function createVideoSources({request=requestPublic,now=Date.now,providers}={}) {
-  let known,until=0,pending,active=0;const cooldown=new Map(),limits=new Map(),preferred=new Map();
+  let known,lastInvidious,until=0,pending,active=0;const cooldown=new Map(),limits=new Map(),preferred=new Map();
   async function instances(){
     if(providers)return providers;
     if(known && now()<until)return known;
     pending ||=Promise.allSettled([request(registry),request(pipedRegistry)]).then(results=>{
-      let inv=[];try{inv=JSON.parse(results[0].value || '[]');}catch{}
-      known=directory(inv,results[1].value || '');until=now()+3600000;return known;
+      let inv,validInvidious=false;
+      try {
+        const value=JSON.parse(results[0].status==='fulfilled'?results[0].value:'');
+        if(Array.isArray(value) && value.every(entry=>Array.isArray(entry) && typeof entry[0]==='string' && entry[1] && typeof entry[1]==='object' && !Array.isArray(entry[1]))){inv=value;validInvidious=true;lastInvidious=value;}
+      }catch{}
+      inv ||=lastInvidious ?? fallbackInvidious;
+      known=directory(inv,results[1].status==='fulfilled'?results[1].value:'');
+      until=now()+(validInvidious && results[1].status==='fulfilled'?3600000:60000);return known;
     }).finally(()=>{pending=null;});return pending;
   }
   async function run(action,body,key) {
